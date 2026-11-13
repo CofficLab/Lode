@@ -1,23 +1,45 @@
 # Lode
 
-Lode 是一个 macOS 原生数据库管理器，支持 SQLite、MySQL、PostgreSQL 和 Redis。它提供连接管理、对象树浏览、SQL 编辑器（tree-sitter 语法高亮）、表结构与数据编辑、查询历史，以及面向 Agent 的数据库工具。
+Lode is a native macOS database manager for SQLite, MySQL, PostgreSQL, and Redis. It provides connection management, an object tree, a SQL editor with tree-sitter syntax highlighting, table structure and data editing, query history, and database tools for agents.
 
-Lode 从 Lumi 中剥离而来，保留 Lumi 的 Kernel / Provider / Plugin 架构：内核负责生命周期与依赖装配，Provider 提供宿主能力，Plugin 实现数据库功能。
+Lode was extracted from [Lumi](https://github.com/CofficLab/Lumi) and keeps Lumi's Kernel / Provider / Plugin architecture: the kernel owns lifecycle and dependency wiring, providers expose host capabilities, and plugins implement database features.
 
-## 结构
+📖 English | [中文版](README_zh.md)
 
-| 路径 | 说明 |
-|------|------|
-| `LodeApp/` | SwiftUI 应用入口、Info.plist、entitlements |
-| `Packages/FactoryDatabaseManager/` | 组合根：KernelFactory、ProviderFactory、ViewFactory 与专用插件目录 |
-| `Packages/PluginDatabaseManager/` | 数据库插件：连接、查询、对象树、编辑器、Agent 工具 |
-| `Packages/PluginCodeEditorHost/` | 编辑器宿主插件（SQL 编辑器依赖） |
-| `Packages/Kit*` / `Packages/Provider*` / `Packages/Plugin*` | 从 Lumi 剥离的最小依赖闭包 |
-| `project.yml` | XcodeGen 工程描述 |
+[![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
+[![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://developer.apple.com/macos/)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-共享能力（LumiKernel、LumiProviders、LumiUI 等）通过 Swift Package 远端依赖引入，不在本仓库复制。
+## Features
 
-## 构建
+- **Multiple databases** — SQLite, MySQL, PostgreSQL, and Redis connections in one workspace.
+- **Connection management** — save, edit, and switch between connections, with per-connection settings and capabilities.
+- **Object tree** — browse databases, tables, views, indexes, and triggers from the sidebar.
+- **SQL editor** — tree-sitter based SQL syntax highlighting and a dedicated editor host.
+- **Table editing** — inspect table structure and edit data with an in-memory change queue before writing back.
+- **Query history** — persisted history for revisiting and re-running previous queries.
+- **Agent tools** — database tools that let the agent inspect schemas and run queries.
+
+## Architecture
+
+| Path | Description |
+|------|-------------|
+| `LodeApp/` | SwiftUI app entry point, Info.plist, and entitlements |
+| `Packages/FactoryDatabaseManager/` | Composition root: KernelFactory, ProviderFactory, ViewFactory, and the dedicated plugin catalog |
+| `Packages/PluginDatabaseManager/` | Database plugin: connections, queries, object tree, editor, and agent tools |
+| `Packages/PluginCodeEditorHost/` | Editor host plugin used by the SQL editor |
+| `Packages/Kit*` / `Packages/Provider*` / `Packages/Plugin*` | Minimal dependency closure carried over from Lumi |
+| `project.yml` | XcodeGen project description |
+
+Shared capabilities (LumiKernel, LumiProviders, LumiUI, and others) are consumed as remote Swift packages and are not copied into this repository.
+
+## Build
+
+Requirements:
+
+- macOS 14 or later
+- Xcode 27.0 or later
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 
 ```sh
 xcodegen generate
@@ -26,17 +48,17 @@ xcodebuild -project Lode.xcodeproj -scheme Lode -configuration Debug \
   ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build
 ```
 
-必须单架构构建：`generic/platform=macOS` 会同时编 arm64 与 x86_64，触发 ACP 可执行文件的单架构校验。
+Builds must target a single architecture: `generic/platform=macOS` compiles both arm64 and x86_64 and trips the single-architecture validation for the ACP executable.
 
-`Lode.xcodeproj` 由 `project.yml` 生成，不要直接手改工程文件。
+`Lode.xcodeproj` is generated from `project.yml`; do not edit the project file by hand.
 
-## 测试
+## Testing
 
 ```sh
 swift test --package-path Packages/PluginDatabaseManager
 swift test --package-path Packages/FactoryDatabaseManager
 ```
 
-## 许可
+## License
 
-GPL-3.0，见 [LICENSE](LICENSE)。
+GPL-3.0. See [LICENSE](LICENSE).
