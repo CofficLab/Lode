@@ -1,0 +1,18 @@
+# Xcode
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+
+# Finder metadata
+.DS_Store
+
+# Swift Package Manager
+.swiftpm/
+.build/
+SourcePackages/
+Packages/*/Package.resolved
+!Lode.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Generated project (xcodegen)
+# Lode.xcodeproj is generated from project.yml; regenerate with `xcodegen generate`.

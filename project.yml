@@ -1,0 +1,67 @@
+name: Lode
+options:
+  bundleIdPrefix: com.coffic
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  FactoryDatabaseManager:
+    path: Packages/FactoryDatabaseManager
+  LumiKernel:
+    url: https://github.com/lumi-softworks/LumiKernel.git
+    from: 1.1.1
+
+targets:
+  Lode:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: LodeApp
+        excludes:
+          - "Lode-Info.plist"
+          - "App.entitlements"
+    dependencies:
+      - package: FactoryDatabaseManager
+        product: FactoryDatabaseManager
+      - package: LumiKernel
+        product: KernelCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode
+        PRODUCT_NAME: Lode
+        INFOPLIST_FILE: LodeApp/Lode-Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Lode
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: Y6HZ9JJYV6
+        CODE_SIGN_ENTITLEMENTS: LodeApp/App.entitlements
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_USER_SELECTED_FILES: readwrite
+        ENABLE_HARDENED_RUNTIME: YES
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "6.0"
+        SWIFT_EMIT_LOC_STRINGS: YES
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        DEAD_CODE_STRIPPING: YES
+        ENABLE_PREVIEWS: YES
+        COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+
+schemes:
+  Lode:
+    build:
+      targets:
+        Lode: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

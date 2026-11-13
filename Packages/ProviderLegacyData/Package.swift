@@ -1,0 +1,17 @@
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "ProviderLegacyData",
+    platforms: [.macOS("13.1"), .iOS(.v17)],
+    products: [
+        .library(name: "ProviderLegacyData", targets: ["ProviderLegacyData"]),
+    ],
+    targets: [
+        .target(name: "ProviderLegacyData", path: "Sources/ProviderLegacyData"),
+        .testTarget(
+            name: "ProviderLegacyDataTests",
+            dependencies: ["ProviderLegacyData"]
+        ),
+    ]
+)

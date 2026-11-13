@@ -1,0 +1,260 @@
+import AppKit
+import Foundation
+import LanguageServerProtocol
+import os
+import LumiLoggingKit
+import UniformTypeIdentifiers
+
+final class EditorDocumentController: SuperLog {
+    nonisolated static let emoji = "📄"
+    private static let logger = Logger(subsystem: EditorHostEnvironment.current.logSubsystem, category: "editor.doc-controller")
+    nonisolated(unsafe) static var verbose: Bool = false
+    private static let truncationFileSizeThreshold: Int64 = 2 * 1024 * 1024
+
+    struct LoadedTextDocument: Sendable {
+        let content: String
+        let fileSize: Int64
+        let isTruncated: Bool
+        let largeFileMode: LargeFileMode
+        let fileExtension: String
+        let fileName: String
+        /// 打开时检测到的文件编码，保存时按原编码写回。
+        let encoding: String.Encoding
+    }
+
+    struct LoadedBinaryDocument: Sendable {
+        let fileSize: Int64
+        let largeFileMode: LargeFileMode
+        let fileExtension: String
+        let fileName: String
+    }
+
+    enum LoadedDocument: Sendable {
+        case text(LoadedTextDocument)
+        case binary(LoadedBinaryDocument)
+    }
+
+    private(set) var buffer: EditorBuffer?
+    private(set) var textStorage: NSTextStorage?
+    private(set) var persistedTextSnapshot: String?
+
+    var currentText: String? {
+        buffer?.text ?? textStorage?.string
+    }
+
+    func clear() {
+        buffer = nil
+        textStorage = nil
+        persistedTextSnapshot = nil
+    }
+
+    @discardableResult
+    func load(text: String) -> EditorEditResult {
+        let buffer = EditorBuffer(text: text)
+        self.buffer = buffer
+        syncTextStorage(from: buffer.text)
+        return EditorEditResult(snapshot: buffer.snapshot(), selections: nil)
+    }
+
+    @discardableResult
+    func replaceText(_ text: String) -> EditorEditResult {
+        let result: EditorEditResult
+        if let buffer {
+            result = buffer.replaceText(text)
+        } else {
+            let newBuffer = EditorBuffer(text: text)
+            buffer = newBuffer
+            result = EditorEditResult(snapshot: newBuffer.snapshot(), selections: nil)
+        }
+        syncTextStorage(from: result.snapshot.text)
+        return result
+    }
+
+    @discardableResult
+    func apply(transaction: EditorTransaction) -> EditorEditResult? {
+        guard let buffer else { return nil }
+        let previousText = buffer.text
+        guard let result = buffer.apply(transaction) else { return nil }
+        guard result.snapshot.text != previousText else { return nil }
+        syncTextStorage(from: result.snapshot.text)
+        return result
+    }
+
+    @discardableResult
+    func applyTextEdits(_ edits: [TextEdit]) -> EditorEditResult? {
+        guard let text = currentText else { return nil }
+        guard let transaction = TextEditTransactionBuilder.makeTransaction(edits: edits, in: text) else {
+            return nil
+        }
+        return apply(transaction: transaction)
+    }
+
+    @discardableResult
+    func applyTextStorageEdit(range: NSRange, text: String) -> EditorEditResult? {
+        guard let buffer else { return nil }
+        let previousText = buffer.text
+        let transaction = EditorTransaction(
+            replacements: [
+                .init(
+                    range: EditorRange(location: range.location, length: range.length),
+                    text: text
+                ),
+            ]
+        )
+        guard let result = buffer.apply(transaction), result.snapshot.text != previousText else {
+            return nil
+        }
+
+        if let textStorage {
+            if textStorage.string != result.snapshot.text {
+                textStorage.mutableString.setString(result.snapshot.text)
+            }
+        } else {
+            textStorage = NSTextStorage(string: result.snapshot.text)
+        }
+        return result
+    }
+
+    @discardableResult
+    func syncBufferFromTextStorageIfNeeded() -> EditorEditResult? {
+        guard let textStorage else { return nil }
+        guard buffer?.text != textStorage.string else { return nil }
+        return replaceText(textStorage.string)
+    }
+
+    func markPersistedText(_ text: String) {
+        persistedTextSnapshot = text
+    }
+
+    func clearPersistedTextSnapshot() {
+        persistedTextSnapshot = nil
+    }
+
+    func hasChangesComparedToPersistedSnapshot(_ text: String) -> Bool {
+        guard let persistedTextSnapshot else { return false }
+        return text != persistedTextSnapshot
+    }
+
+    /// 在**后台线程**读取并解码文档。
+    ///
+    /// - Important: 必须是 `static` + `nonisolated`：调用方（`EditorState.loadFile`）
+    ///   在 `@MainActor` 上，若在主线程直接调用本方法，整个文件读取与解码都会阻塞 UI
+    ///   （见 issue #1277）。静态化后可直接放进 `Task.detached` 执行。
+    nonisolated static func loadDocument(
+        from url: URL,
+        truncationReadBytes: Int,
+        forceFullLoad: Bool = false
+    ) throws -> LoadedDocument {
+        let fileSize = Int64((try url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        let largeFileMode = LargeFileMode.mode(for: fileSize)
+        let fileExtension = url.pathExtension.lowercased()
+        let fileName = url.lastPathComponent
+
+        let isLikelyText = try Self.isLikelyTextFile(url: url)
+        if Self.verbose {
+            Self.logger.info("\(self.t)loadDocument: url=\(url.path), fileSize=\(fileSize), ext=\(fileExtension), isLikelyText=\(isLikelyText), largeFileMode=\(String(describing: largeFileMode)), forceFullLoad=\(forceFullLoad)")
+        }
+
+        guard isLikelyText else {
+            if Self.verbose {
+                Self.logger.info("\(self.t)loadDocument: → 二进制文件, url=\(url.path)")
+            }
+            return .binary(
+                .init(
+                    fileSize: fileSize,
+                    largeFileMode: largeFileMode,
+                    fileExtension: fileExtension,
+                    fileName: fileName
+                )
+            )
+        }
+
+        let shouldTruncate = !forceFullLoad && Self.shouldUseTruncatedPreview(for: url, fileSize: fileSize)
+        let content: String
+        var detectedEncoding = String.Encoding.utf8
+        if shouldTruncate {
+            content = try Self.readTruncatedContent(from: url, maxBytes: truncationReadBytes)
+        } else {
+            content = try String(contentsOf: url, usedEncoding: &detectedEncoding)
+        }
+
+        return .text(
+            .init(
+                content: content,
+                fileSize: fileSize,
+                isTruncated: shouldTruncate,
+                largeFileMode: largeFileMode,
+                fileExtension: fileExtension,
+                fileName: fileName,
+                encoding: detectedEncoding
+            )
+        )
+    }
+
+    /// 实例入口：保留给既有调用方与测试。
+    func loadDocument(
+        from url: URL,
+        truncationReadBytes: Int,
+        forceFullLoad: Bool = false
+    ) throws -> LoadedDocument {
+        try Self.loadDocument(from: url, truncationReadBytes: truncationReadBytes, forceFullLoad: forceFullLoad)
+    }
+
+    private func syncTextStorage(from text: String) {
+        if let textStorage {
+            if textStorage.string != text {
+                textStorage.mutableString.setString(text)
+            }
+        } else {
+            textStorage = NSTextStorage(string: text)
+        }
+    }
+
+    nonisolated private static func shouldUseTruncatedPreview(for url: URL, fileSize: Int64) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        let alwaysFullLoadExtensions: Set<String> = ["md", "markdown", "txt"]
+        if alwaysFullLoadExtensions.contains(ext) {
+            return false
+        }
+        return fileSize > Self.truncationFileSizeThreshold
+    }
+
+    nonisolated private static func readTruncatedContent(from url: URL, maxBytes: Int) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+
+        let data = try handle.read(upToCount: maxBytes) ?? Data()
+        let preview: String
+        if let string = String(data: data, encoding: .utf8) {
+            preview = string
+        } else {
+            preview = String(decoding: data, as: UTF8.self)
+        }
+        let suffix = "\n\n… " + String(localized: "File too large. Preview is truncated.", bundle: .module)
+        return preview + suffix
+    }
+
+    nonisolated private static func isLikelyTextFile(url: URL) throws -> Bool {
+        let ext = url.pathExtension.lowercased()
+        let obviousTextExts: Set<String> = [
+            "swift", "m", "mm", "h", "hpp", "c", "cc", "cpp", "rs", "go", "py", "rb", "php", "java", "kt", "kts", "js", "ts", "tsx", "jsx", "json", "md", "txt", "yml", "yaml", "toml", "ini", "conf", "sh", "zsh", "bash", "fish", "html", "css", "scss", "sass", "less", "xml", "plist", "sql", "graphql", "proto", "env", "gitignore", "editorconfig", "xcodeproj", "pbxproj",
+        ]
+
+        if obviousTextExts.contains(ext) {
+            return true
+        }
+
+        if let type = UTType(filenameExtension: ext) {
+            if type.conforms(to: .text) || type.conforms(to: .sourceCode) || type.conforms(to: .xml) || type.conforms(to: .json) || type.conforms(to: .propertyList) {
+                return true
+            }
+        }
+
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let data = try handle.read(upToCount: 1024) ?? Data()
+        if data.isEmpty { return true }
+        if data.contains(0) { return false }
+        return true
+    }
+}

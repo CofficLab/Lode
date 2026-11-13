@@ -1,0 +1,34 @@
+import ProviderEditor
+import EditorService
+import KernelCore
+import PluginCodeEditorHost
+import Testing
+
+@MainActor
+struct CodeEditorHostSuperPluginTests {
+    @Test("registers the shared editor service and every host capability")
+    func registersEditorServices() throws {
+        let kernel = KernelCoreContainer()
+        try kernel.start(plugins: [CodeEditorHostPlugin()])
+
+        _ = try #require(kernel.resolveProvider(EditorService.self))
+        let editor = try #require(kernel.resolveProvider(EditorProviding.self))
+        let surface = try #require(kernel.resolveProvider(EditorSurfaceProviding.self))
+
+        #expect(editor.surface === surface)
+        #expect(kernel.resolveProvider(EditorEmbeddedEditorProviding.self) != nil)
+    }
+
+    @Test("removes every editor capability during shutdown")
+    func removesEditorServices() throws {
+        let kernel = KernelCoreContainer()
+        try kernel.start(plugins: [CodeEditorHostPlugin()])
+
+        try kernel.stop()
+
+        #expect(kernel.resolveProvider(EditorService.self) == nil)
+        #expect(kernel.resolveProvider(EditorProviding.self) == nil)
+        #expect(kernel.resolveProvider(EditorSurfaceProviding.self) == nil)
+        #expect(kernel.resolveProvider(EditorEmbeddedEditorProviding.self) == nil)
+    }
+}

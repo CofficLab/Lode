@@ -1,0 +1,31 @@
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "ProviderChatSection",
+    platforms: [.macOS("14.0"), .iOS(.v17)],
+    products: [
+        .library(name: "ProviderChatSection", targets: ["ProviderChatSection"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/lumi-softworks/LumiUI.git", from: "1.13.0"),
+        .package(path: "../ProviderConversation"),
+    ],
+    targets: [
+        .target(
+            name: "ProviderChatSection",
+            dependencies: [
+                .product(name: "LumiUI", package: "LumiUI"),
+                .product(name: "ProviderConversation", package: "ProviderConversation"),
+            ],
+            path: "Sources/ProviderChatSection"
+        ),
+        .testTarget(
+            name: "ProviderChatSectionTests",
+            dependencies: [
+                "ProviderChatSection",
+                .product(name: "ProviderConversation", package: "ProviderConversation"),
+            ]
+        )
+    ]
+)
