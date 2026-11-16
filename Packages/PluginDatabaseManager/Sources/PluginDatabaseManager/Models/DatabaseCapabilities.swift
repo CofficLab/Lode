@@ -5,9 +5,9 @@ import Foundation
 /// UI 层据此启用/禁用功能入口（结构编辑、SSL、EXPLAIN、分页等），
 /// 避免在视图里硬编码 `switch databaseType`。新增驱动时只需提供一份 preset。
 ///
-/// - Note: 能力是"该引擎原则上支持"，不代表当前驱动已实现对应特性。
-///   例如 SQLite 的 `supportsSSH` 为 true（TCP 隧道对任何引擎都适用），
-///   但 SSL 为 false（SQLite 是本地文件，无需 TLS）。
+/// - Note: 能力声明必须与驱动的实际实现保持一致：未实现的特性一律声明 false，
+///   落地时再翻 true（由能力快照测试守卫）。例如 SSH 隧道尚未实现，所有引擎
+///   的 `supportsSSH` 均为 false；SQLite 是本地文件，SSL 恒为 false。
 public struct DatabaseCapabilities: Sendable, Equatable {
     // MARK: - Schema editing
     public let supportsSchemaEditing: Bool
@@ -103,7 +103,7 @@ extension DatabaseCapabilities {
         supportsMaterializedViews: false,
         supportsRoutines: false,
         supportsSSL: false,
-        supportsSSH: true,
+        supportsSSH: false,
         supportsPasswordSources: false,
         supportsExplain: true,
         supportsTransactions: true,
@@ -126,8 +126,8 @@ extension DatabaseCapabilities {
         supportsMaterializedViews: false,
         supportsRoutines: true,
         supportsSSL: true,
-        supportsSSH: true,
-        supportsPasswordSources: true,
+        supportsSSH: false,
+        supportsPasswordSources: false,
         supportsExplain: true,
         supportsTransactions: true,
         supportsPagination: true,
@@ -149,8 +149,8 @@ extension DatabaseCapabilities {
         supportsMaterializedViews: true,
         supportsRoutines: true,
         supportsSSL: true,
-        supportsSSH: true,
-        supportsPasswordSources: true,
+        supportsSSH: false,
+        supportsPasswordSources: false,
         supportsExplain: true,
         supportsTransactions: true,
         supportsPagination: true,
@@ -171,8 +171,8 @@ extension DatabaseCapabilities {
         supportsViews: false,
         supportsMaterializedViews: false,
         supportsRoutines: false,
-        supportsSSL: true,
-        supportsSSH: true,
+        supportsSSL: false,
+        supportsSSH: false,
         supportsPasswordSources: false,
         supportsExplain: false,
         supportsTransactions: true,
