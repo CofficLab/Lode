@@ -7,6 +7,7 @@ import LumiUI
 struct QueryHistoryView: View {
     @LumiUI.LumiTheme private var theme: any LumiUITheme
     @ObservedObject var viewModel: DatabaseViewModel
+    @State private var confirmClearAll = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,6 +43,18 @@ struct QueryHistoryView: View {
         }
         .frame(width: 480, height: 520)
         .onAppear { Task { await viewModel.loadRecentHistory() } }
+        .confirmationDialog(
+            pluginLocalization.string("Clear all query history?"),
+            isPresented: $confirmClearAll,
+            titleVisibility: .visible
+        ) {
+            Button(pluginLocalization.string("Clear All"), role: .destructive) {
+                Task { await viewModel.clearHistory() }
+            }
+            Button(pluginLocalization.string("Cancel"), role: .cancel) {}
+        } message: {
+            Text(pluginLocalization.string("All recorded queries will be removed. This cannot be undone."))
+        }
     }
 
     private var header: some View {
@@ -92,8 +105,9 @@ struct QueryHistoryView: View {
                 .foregroundStyle(.secondary)
             Spacer()
             AppButton(pluginLocalization.string("Clear All"), systemImage: "trash", style: .secondary, size: .small) {
-                Task { await viewModel.clearHistory() }
+                confirmClearAll = true
             }
+            .disabled(viewModel.history.isEmpty)
         }
         .padding(.horizontal, 12)
         .frame(height: 36)

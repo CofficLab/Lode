@@ -9,7 +9,7 @@ import LumiUI
 /// 风格参考 `ConnectionPopoverView`，但作为侧边栏列表使用：
 /// - 顶部 ``DatabaseSidebarHeaderBar``（标题 Connections + 加号 + 切换）；
 /// - 列表项展示图标、连接名、类型/host 副标题；当前连接显示绿色圆点；
-/// - 右键上下文菜单提供「Delete」入口（与 TablePlus、Navicat 一致）。
+/// - 右键上下文菜单提供「Edit / Delete」入口，Delete 需二次确认。
 struct ConnectionsListView: View {
     @LumiUI.LumiTheme private var theme: any LumiUITheme
 
@@ -22,6 +22,8 @@ struct ConnectionsListView: View {
     @State private var showAddConfigSheet: Bool = false
     /// 正在编辑的连接；非 nil 时弹出编辑表单。
     @State private var editingConfig: DatabaseConfig?
+    /// 等待删除确认的连接。
+    @State private var configPendingDeletion: DatabaseConfig?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -61,6 +63,28 @@ struct ConnectionsListView: View {
                 get: { editingConfig != nil },
                 set: { if !$0 { editingConfig = nil } }
             ), editing: config)
+        }
+        .confirmationDialog(
+            pluginLocalization.string("Delete this connection?"),
+            isPresented: Binding(
+                get: { configPendingDeletion != nil },
+                set: { if !$0 { configPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(pluginLocalization.string("Delete"), role: .destructive) {
+                if let config = configPendingDeletion {
+                    viewModel.removeConfig(config)
+                }
+                configPendingDeletion = nil
+            }
+            Button(pluginLocalization.string("Cancel"), role: .cancel) {
+                configPendingDeletion = nil
+            }
+        } message: {
+            if let config = configPendingDeletion {
+                Text(pluginLocalization.string("The saved settings for “\(config.name)” will be removed. This cannot be undone."))
+            }
         }
     }
 
@@ -120,7 +144,7 @@ struct ConnectionsListView: View {
                 Label(pluginLocalization.string("Edit"), systemImage: "pencil")
             }
             Button(role: .destructive) {
-                viewModel.removeConfig(config)
+                configPendingDeletion = config
             } label: {
                 Label(pluginLocalization.string("Delete"), systemImage: "trash")
             }
