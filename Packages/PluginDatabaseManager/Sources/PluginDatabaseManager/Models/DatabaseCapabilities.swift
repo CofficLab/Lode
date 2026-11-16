@@ -113,7 +113,7 @@ extension DatabaseCapabilities {
         supportsSchemas: false,
         supportsComments: false,
         supportsRowEdit: true,
-        defaultQueryLimit: 50,
+        defaultQueryLimit: 1000,
         identifierQuoteCharacter: "\""
     )
 
@@ -136,7 +136,7 @@ extension DatabaseCapabilities {
         supportsSchemas: false,
         supportsComments: true,
         supportsRowEdit: true,
-        defaultQueryLimit: 100,
+        defaultQueryLimit: 1000,
         identifierQuoteCharacter: "`"
     )
 
@@ -159,7 +159,7 @@ extension DatabaseCapabilities {
         supportsSchemas: true,
         supportsComments: true,
         supportsRowEdit: true,
-        defaultQueryLimit: 100,
+        defaultQueryLimit: 1000,
         identifierQuoteCharacter: "\""
     )
 
@@ -182,7 +182,7 @@ extension DatabaseCapabilities {
         supportsSchemas: false,
         supportsComments: false,
         supportsRowEdit: true,
-        defaultQueryLimit: 100,
+        defaultQueryLimit: 1000,
         identifierQuoteCharacter: nil
     )
 }

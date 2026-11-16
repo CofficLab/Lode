@@ -58,6 +58,26 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 多结果当前选中的 tab 索引。
     @Published public var selectedExecutionIndex: Int = 0
 
+    // MARK: - 编辑器查询行数上限与增量加载
+
+    /// 编辑器查询的默认行数上限；用户 SQL 自带 LIMIT 时不覆盖。0 表示不限制。
+    @Published public var queryRowLimit: Int = 1000
+    /// 当前编辑器结果的基础 SQL（去尾分号）；nil 表示不可增量加载。
+    @Published public private(set) var editorBaseSQL: String?
+    /// 当前结果是否还有更多行可加载（注入了 LIMIT 且上一页取满）。
+    @Published public private(set) var editorHasMore: Bool = false
+    /// 已取回的行数，作为下一次加载的 OFFSET。
+    @Published public private(set) var editorFetchedRows: Int = 0
+    /// 增量加载进行中。
+    @Published public private(set) var isLoadingMore: Bool = false
+    /// 执行序列号：每次新执行自增，迟到的旧结果（含增量加载）凭此丢弃。
+    private var executionSequence: UInt64 = 0
+
+    /// 是否可为当前编辑器结果加载更多行。
+    public var canLoadMoreEditorResults: Bool {
+        editorBaseSQL != nil && editorHasMore && !isLoading && !isLoadingMore
+    }
+
     /// 只读对象定义（索引/触发器/例程）的展示状态；非 nil 时弹出定义面板。
     @Published public var objectDefinition: ObjectDefinitionDisplay?
 
@@ -229,6 +249,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             selectedConfig = config
             connectedConfigId = config.id
             isConnected = true
+            queryRowLimit = config.type.capabilities.defaultQueryLimit
+            resetEditorPaging()
             queryResult = nil
             redisKeys = []
             sqliteTables = []
@@ -364,13 +386,25 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         errorMessage = nil
         // 单语句模式：清掉多结果 tab 栏。
         multiExecutions = []
+        resetEditorPaging()
+        executionSequence += 1
+        let sequence = executionSequence
 
         do {
             // Redis 读命令与 SQL 读语句共用同一判定，避免两处前缀列表漂移。
             if Self.isReadStatement(sql, type: config.type) {
-                let result = try await connection.query(sql, params: nil)
-                guard isCurrentConnection(generation, configId: config.id) else { return }
+                // Redis 命令不是 SQL，不能注入 LIMIT。
+                let limited = config.type == .redis
+                    ? SQLQueryLimitResult(sql: sql, injectedLimit: nil, baseSQL: nil)
+                    : SQLQueryLimiter.apply(sql, limit: queryRowLimit)
+                let result = try await connection.query(limited.sql, params: nil)
+                guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
                 queryResult = result
+                editorBaseSQL = limited.baseSQL
+                editorFetchedRows = result.rows.count
+                if let injected = limited.injectedLimit {
+                    editorHasMore = result.rows.count >= injected
+                }
                 if Self.verbose {
                     if DatabaseManagerPluginSupport.verbose {
                                                 DatabaseManagerPluginSupport.logger.info("\(self.t)查询成功，返回 \(result.rows.count) 行")
@@ -378,7 +412,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 }
             } else {
                 let affected = try await connection.execute(sql, params: nil)
-                guard isCurrentConnection(generation, configId: config.id) else { return }
+                guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
                 queryResult = QueryResult(columns: ["Result"], rows: [[.string("Success. Rows affected: \(affected)")]], rowsAffected: affected)
                 if Self.verbose {
                     if DatabaseManagerPluginSupport.verbose {
@@ -387,16 +421,58 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 }
             }
         } catch {
-            guard isCurrentConnection(generation, configId: config.id) else { return }
+            guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)查询执行失败: \(error.localizedDescription)")
             }
             errorMessage = error.localizedDescription
         }
-        guard isCurrentConnection(generation, configId: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
         isLoading = false
         // 成功或失败都记历史（失败时用户可能想重试/修改）。
         await recordExecutedSQLs([sql], config: config)
+    }
+
+    /// 为当前编辑器结果追加下一页（基础 SQL + LIMIT/OFFSET 窗口）。
+    ///
+    /// 仅当执行时注入了默认 LIMIT 才可用；用户自带 LIMIT 的查询不提供增量加载。
+    public func loadMoreEditorResults() async {
+        guard let baseSQL = editorBaseSQL, editorHasMore,
+              let config = selectedConfig, config.type != .redis else { return }
+        let generation = connectionGeneration
+        let sequence = executionSequence
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
+
+        isLoadingMore = true
+        let pageSize = max(queryRowLimit, 1)
+        let sql = "\(baseSQL)\nLIMIT \(pageSize) OFFSET \(editorFetchedRows)"
+        do {
+            let result = try await connection.query(sql, params: nil)
+            guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else {
+                isLoadingMore = false
+                return
+            }
+            if var current = queryResult {
+                current.rows.append(contentsOf: result.rows)
+                queryResult = current
+            }
+            editorFetchedRows += result.rows.count
+            editorHasMore = result.rows.count >= pageSize
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else {
+                isLoadingMore = false
+                return
+            }
+            errorMessage = error.localizedDescription
+        }
+        isLoadingMore = false
+    }
+
+    private func resetEditorPaging() {
+        editorBaseSQL = nil
+        editorHasMore = false
+        editorFetchedRows = 0
     }
 
     /// 把 `queryText` 按 `;` 拆成多条语句依次执行（事务不包裹：跨引擎语义不一致）。
@@ -426,6 +502,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         errorMessage = nil
         multiExecutions = []
         queryResult = nil
+        resetEditorPaging()
+        executionSequence += 1
         var executions: [StatementExecution] = []
         var lastSuccess: QueryResult?
 
@@ -434,7 +512,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             var exec = StatementExecution(sql: stmt)
             do {
                 if Self.isReadStatement(stmt, type: config.type) {
-                    let result = try await connection.query(stmt, params: nil)
+                    let limited = config.type == .redis
+                        ? SQLQueryLimitResult(sql: stmt, injectedLimit: nil, baseSQL: nil)
+                        : SQLQueryLimiter.apply(stmt, limit: queryRowLimit)
+                    let result = try await connection.query(limited.sql, params: nil)
                     guard isCurrentConnection(generation, configId: config.id) else { return }
                     exec.result = result
                     lastSuccess = result
@@ -481,6 +562,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return upper.hasPrefix("SELECT") || upper.hasPrefix("PRAGMA")
             || upper.hasPrefix("SHOW") || upper.hasPrefix("DESCRIBE")
+            // CTE 查询与执行计划都产生结果行。
+            || upper.hasPrefix("WITH") || upper.hasPrefix("EXPLAIN")
             // DML ... RETURNING 也产生结果行，必须走 query 才能把返回行展示出来。
             || upper.contains("RETURNING")
     }

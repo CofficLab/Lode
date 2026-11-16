@@ -48,25 +48,30 @@ struct QueryResultSectionView: View {
             AppErrorBanner(message: LocalizedStringKey(error))
                 .padding(12)
         } else if let result = viewModel.queryResult {
-            QueryResultView(
-                result: result,
-                sortColumn: viewModel.tableOrderBy?.column,
-                sortAscending: viewModel.tableOrderBy?.ascending ?? true,
-                onToggleSort: { column in Task { await viewModel.toggleSort(column: column) } },
-                changeManager: viewModel.changeManager,
-                onStageChange: { column, rowValues, columns, newValue in
-                    viewModel.stageCellChange(column: column, newValue: newValue, rowValues: rowValues, columns: columns)
-                },
-                onStageInsertChange: { insertId, column, value in
-                    viewModel.stageInsertCell(insertId: insertId, column: column, value: value)
-                },
-                onToggleRowDeletion: { rowValues, columns in
-                    viewModel.toggleRowDeletion(rowValues: rowValues, columns: columns)
-                },
-                onRemoveInsert: { insertId in
-                    viewModel.removePendingInsert(insertId)
+            VStack(spacing: 0) {
+                QueryResultView(
+                    result: result,
+                    sortColumn: viewModel.tableOrderBy?.column,
+                    sortAscending: viewModel.tableOrderBy?.ascending ?? true,
+                    onToggleSort: { column in Task { await viewModel.toggleSort(column: column) } },
+                    changeManager: viewModel.changeManager,
+                    onStageChange: { column, rowValues, columns, newValue in
+                        viewModel.stageCellChange(column: column, newValue: newValue, rowValues: rowValues, columns: columns)
+                    },
+                    onStageInsertChange: { insertId, column, value in
+                        viewModel.stageInsertCell(insertId: insertId, column: column, value: value)
+                    },
+                    onToggleRowDeletion: { rowValues, columns in
+                        viewModel.toggleRowDeletion(rowValues: rowValues, columns: columns)
+                    },
+                    onRemoveInsert: { insertId in
+                        viewModel.removePendingInsert(insertId)
+                    }
+                )
+                if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
+                    loadMoreBar
                 }
-            )
+            }
         } else {
             AppEmptyState(
                 icon: viewModel.selectedSQLiteTable == nil ? "tablecells" : "tray",
@@ -78,6 +83,32 @@ struct QueryResultSectionView: View {
                     : nil
             )
         }
+    }
+
+    // MARK: - Load more (editor result row cap)
+
+    private var loadMoreBar: some View {
+        HStack(spacing: 8) {
+            Text("\(viewModel.editorFetchedRows) \(pluginLocalization.string("rows"))")
+                .font(.appCaption)
+                .foregroundStyle(theme.textSecondary)
+            Spacer()
+            if viewModel.isLoadingMore {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            AppButton(
+                pluginLocalization.string("Load More"),
+                systemImage: "arrow.down.circle",
+                style: .secondary,
+                size: .small,
+                action: { Task { await viewModel.loadMoreEditorResults() } }
+            )
+            .disabled(viewModel.isLoadingMore)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Material.regularMaterial)
     }
 
     // MARK: - Multi-execution tab bar

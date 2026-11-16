@@ -37,7 +37,8 @@ struct DatabaseCapabilitiesTests {
         #expect(DatabaseType.postgresql.capabilities.supportsSchemas)
         #expect(DatabaseType.mysql.capabilities.supportsMultipleDatabases)
         for type in DatabaseType.allCases {
-            #expect(type.capabilities.defaultQueryLimit > 0)
+            // P1-2 起 defaultQueryLimit 驱动编辑器行数上限，声明必须与默认值一致。
+            #expect(type.capabilities.defaultQueryLimit == 1000)
         }
     }
 }
