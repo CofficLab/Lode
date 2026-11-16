@@ -19,6 +19,7 @@ import ProviderSettingView
 import ProviderSkill
 import ProviderAgentRules
 import ProviderStorage
+import ProviderTheme
 import ProviderToast
 import ProviderToolbar
 import ProviderToolManager
@@ -224,6 +225,14 @@ public struct DefaultProviderFactory: ProviderFactory {
         )
     }
 
+    /// 产出 `ThemeProviding` 实现：内置主题注册表 + 选中持久化。
+    /// ViewFactory 依赖它把选中主题桥接到 LumiUI（缺失时主题切换整体 no-op）。
+    public func makeThemeProvider(storage: any StorageProviding) -> any ThemeProviding {
+        DefaultThemeProviding(
+            storageDirectory: storage.pluginDataDirectory(for: DefaultThemeProviding.pluginName)
+        )
+    }
+
     public func makeLegacyDataProvider() -> any LegacyDataProviding {
         DefaultLegacyDataProviding()
     }
@@ -383,6 +392,7 @@ public struct DefaultProviderFactory: ProviderFactory {
         }
         try kernel.registerProvider((any CommandProviding).self, makeCommandProvider())
         try kernel.registerProvider((any IdleTimeProviding).self, makeIdleTimeProvider(storage: storage))
+        try kernel.registerProvider((any ThemeProviding).self, makeThemeProvider(storage: storage))
         try kernel.registerProvider((any LegacyDataProviding).self, makeLegacyDataProvider())
         try kernel.registerProvider(
             (any PluginControlling).self,
