@@ -86,6 +86,20 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var isCreateTablePresented: Bool = false
     @Published public private(set) var createTableError: String?
     @Published public private(set) var isCreatingTable: Bool = false
+    @Published public var isImportDataPresented: Bool = false
+    @Published public private(set) var importFormat: ImportFileFormat?
+    @Published public private(set) var importSourceColumns: [String] = []
+    @Published public private(set) var importPreviewRows: [[ImportCell]] = []
+    @Published public private(set) var importInferredTypes: [ImportColumnType] = []
+    @Published public var importHasHeader: Bool = true
+    @Published public private(set) var isImporting: Bool = false
+    @Published public private(set) var importProgress: Double = 0
+    @Published public private(set) var importedRowCount: Int = 0
+    @Published public private(set) var importBadRows: [ImportBadRow] = []
+    @Published public private(set) var importError: String?
+    @Published public private(set) var importCompleted: Bool = false
+    private var importFileURL: URL?
+    private var importTask: Task<Void, Never>?
 
     // MARK: - 表浏览状态（统一分页）
 
@@ -2024,6 +2038,339 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             guard isCurrentConnection(generation, configId: config.id) else { return }
             createTableError = error.localizedDescription
         }
+    }
+
+    // MARK: - 数据导入（CSV/JSON）
+
+    /// 打开导入向导并重置上一次的状态。
+    public func presentImportData() {
+        importFileURL = nil
+        importFormat = nil
+        importSourceColumns = []
+        importPreviewRows = []
+        importInferredTypes = []
+        importError = nil
+        importCompleted = false
+        importBadRows = []
+        importedRowCount = 0
+        importProgress = 0
+        isImportDataPresented = true
+    }
+
+    /// 读取文件头部：格式检测 + 源列名 + 预览行（≤50）+ 类型推断采样（≤200 行）。
+    /// CSV 只读前 256KB（流式，不整载）；JSON 整载解析（对象数组/NDJSON）。
+    public func loadImportPreview(url: URL) async {
+        importError = nil
+        importCompleted = false
+        importFileURL = url
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let head = try Self.readImportHead(url: url, limit: 256 * 1024)
+            let format = ImportFileFormat.detect(fileName: url.lastPathComponent, head: head)
+            importFormat = format
+            switch format {
+            case .csv:
+                let parser = CSVStreamParser()
+                var rows = parser.feed(Data(head.utf8))
+                rows += parser.finish()
+                guard !rows.isEmpty else { throw ImportError.emptyFile }
+                let columns: [String]
+                let dataRows: [[String]]
+                if importHasHeader {
+                    columns = rows[0].map { $0.trimmingCharacters(in: .whitespaces) }
+                    guard !columns.isEmpty, columns.allSatisfy({ !$0.isEmpty }) else { throw ImportError.noColumns }
+                    dataRows = Array(rows.dropFirst())
+                } else {
+                    let width = rows.map(\.count).max() ?? 0
+                    guard width > 0 else { throw ImportError.noColumns }
+                    columns = (1...width).map { "Column \($0)" }
+                    dataRows = rows
+                }
+                importSourceColumns = columns
+                importPreviewRows = dataRows.prefix(50).map { row in
+                    columns.indices.map { index in index < row.count ? ImportCell.text(row[index]) : .missing }
+                }
+                let samples = Array(dataRows.prefix(200))
+                importInferredTypes = columns.indices.map { index in
+                    ImportTypeInference.infer(samples.compactMap { $0.count > index ? $0[index] : nil })
+                }
+            case .json:
+                let text = try String(contentsOf: url, encoding: .utf8)
+                let parsed = try JSONImportParser.parse(text)
+                guard !parsed.columns.isEmpty else { throw ImportError.noColumns }
+                importSourceColumns = parsed.columns
+                importPreviewRows = Array(parsed.rows.prefix(50))
+                importInferredTypes = parsed.columns.indices.map { index in
+                    ImportTypeInference.infer(parsed.rows.prefix(200).compactMap { row in
+                        guard index < row.count, case .text(let s) = row[index] else { return nil }
+                        return s
+                    })
+                }
+            }
+        } catch {
+            importError = error.localizedDescription
+        }
+    }
+
+    /// 当前连接活动上下文中的表列表（导入目标选择用）。
+    public func loadImportTargetTables() async -> [DatabaseObject] {
+        guard let config = selectedConfig, config.type != .redis else { return [] }
+        guard let connection = await manager.getConnection(for: config.id) else { return [] }
+        let database: String? = config.type == .sqlite ? nil : (activeDatabase ?? config.database)
+        let schema: String? = config.type == .postgresql ? activeSchema : nil
+        let objects = (try? await schemaCache.objects(for: config, kind: .table, database: database, schema: schema, connection: connection)) ?? []
+        return objects.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    /// 目标表的列名（导入映射用）。
+    public func loadImportTargetColumns(_ object: DatabaseObject) async -> [String] {
+        guard let config = selectedConfig else { return [] }
+        guard let connection = await manager.getConnection(for: config.id) else { return [] }
+        let schema = try? await schemaCache.tableSchema(for: object, config: config, connection: connection)
+        return schema?.columns.map { $0.name } ?? []
+    }
+
+    /// 启动导入（可取消）：批量参数化 INSERT + 事务 + 进度 + 坏行报告，经写闸门。
+    public func startImport(target: ImportTarget, mappings: [ImportColumnMapping], options: ImportOptions = ImportOptions()) {
+        importTask?.cancel()
+        importError = nil
+        importCompleted = false
+        importBadRows = []
+        importedRowCount = 0
+        importProgress = 0
+        isImporting = true
+        importTask = Task { [weak self] in
+            guard let self else { return }
+            await self.performImport(target: target, mappings: mappings, options: options)
+        }
+    }
+
+    public func cancelImport() {
+        importTask?.cancel()
+    }
+
+    /// 等待导入任务结束（测试用）。
+    func waitForImport() async {
+        await importTask?.value
+    }
+
+    private func performImport(target: ImportTarget, mappings: [ImportColumnMapping], options: ImportOptions) async {
+        defer { isImporting = false }
+        guard let config = selectedConfig, config.type != .redis else { return }
+        guard let url = importFileURL, let format = importFormat else {
+            importError = ImportError.emptyFile.localizedDescription
+            return
+        }
+        do {
+            try ImportMappingBuilder.validate(mappings)
+        } catch {
+            importError = error.localizedDescription
+            return
+        }
+        let generation = connectionGeneration
+        guard let connection = await manager.getConnection(for: config.id) else {
+            importError = DatabaseError.connectionFailed("No active connection").localizedDescription
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let database: String? = config.type == .sqlite ? nil : (activeDatabase ?? config.database)
+        let schema: String? = config.type == .postgresql ? activeSchema : nil
+
+        let mapped = mappings.filter { mapping in
+            guard let target = mapping.targetColumn else { return false }
+            return !target.isEmpty
+        }
+        let targetColumns = mapped.compactMap { $0.targetColumn }
+        let sourceIndices = mapped.map { importSourceColumns.firstIndex(of: $0.sourceColumn) ?? -1 }
+        let tableObject: DatabaseObject
+        var createStatements: [String] = []
+        let columnTypes: [ImportColumnType]
+        switch target {
+        case .existingTable(let object):
+            tableObject = object
+            do {
+                let tableSchema = try await schemaCache.tableSchema(for: object, config: config, connection: connection)
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                columnTypes = targetColumns.map { name in
+                    tableSchema.columns.first { $0.name.lowercased() == name.lowercased() }
+                        .map { ImportColumnType.from(sqlType: $0.dataType) } ?? .text
+                }
+            } catch {
+                importError = error.localizedDescription
+                return
+            }
+        case .newTable(let draft):
+            do {
+                try CreateTableDDLGenerator.validate(draft)
+            } catch {
+                importError = error.localizedDescription
+                return
+            }
+            tableObject = DatabaseObject(kind: .table, name: draft.name, database: database, schema: schema)
+            createStatements = CreateTableDDLGenerator.statements(draft, type: config.type, database: database, schema: schema)
+            columnTypes = mapped.map(\.inferredType)
+        }
+
+        // 占位符上限钳制（MySQL/PG 单语句绑定参数上限 65535）。
+        let batchSize = max(1, min(options.batchSize, 60000 / max(1, targetColumns.count)))
+        let insertSQL = ImportSQLBuilder.insertStatement(table: tableObject, columns: targetColumns, rowCount: batchSize, type: config.type)
+        switch await authorizeWrites(createStatements + [insertSQL], type: config.type, kind: .batch) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked:
+            importError = pluginLocalization.string("This connection is read-only. Import is blocked. Edit the connection to change its safe mode.")
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let transaction = try await connection.beginTransaction()
+            do {
+                for statement in createStatements {
+                    _ = try await transaction.execute(statement, params: nil)
+                }
+                var batch: [[DatabaseValue]] = []
+                var batchRowNumbers: [Int] = []
+                var rowNumber = 0
+                var inserted = 0
+                var badRows: [ImportBadRow] = []
+
+                func statementSQL(_ sql: String) async throws {
+                    _ = try await transaction.execute(sql, params: nil)
+                }
+                // 批失败（约束冲突等）回滚到批保存点后逐行重试定位坏行；
+                // PG 事务内任何错误都会中止整个事务，故每批/每行均经保存点隔离。
+                func flushBatch() async throws {
+                    guard !batch.isEmpty else { return }
+                    let sql = batch.count == batchSize ? insertSQL : ImportSQLBuilder.insertStatement(table: tableObject, columns: targetColumns, rowCount: batch.count, type: config.type)
+                    let singleSQL = ImportSQLBuilder.insertStatement(table: tableObject, columns: targetColumns, rowCount: 1, type: config.type)
+                    try await statementSQL("SAVEPOINT lode_batch")
+                    do {
+                        _ = try await transaction.execute(sql, params: batch.flatMap { $0 })
+                        try await statementSQL("RELEASE SAVEPOINT lode_batch")
+                        inserted += batch.count
+                    } catch {
+                        try? await statementSQL("ROLLBACK TO SAVEPOINT lode_batch")
+                        try? await statementSQL("RELEASE SAVEPOINT lode_batch")
+                        if options.badRowStrategy == .abort { throw error }
+                        for (index, row) in batch.enumerated() {
+                            do {
+                                try await statementSQL("SAVEPOINT lode_row")
+                                _ = try await transaction.execute(singleSQL, params: row)
+                                try await statementSQL("RELEASE SAVEPOINT lode_row")
+                                inserted += 1
+                            } catch {
+                                try? await statementSQL("ROLLBACK TO SAVEPOINT lode_row")
+                                try? await statementSQL("RELEASE SAVEPOINT lode_row")
+                                badRows.append(ImportBadRow(rowNumber: batchRowNumbers[index], message: error.localizedDescription))
+                            }
+                        }
+                    }
+                    batch.removeAll(keepingCapacity: true)
+                    batchRowNumbers.removeAll(keepingCapacity: true)
+                    importedRowCount = inserted
+                    importBadRows = badRows
+                }
+
+                func ingest(_ cells: [ImportCell], skipBlank: Bool) async throws {
+                    if skipBlank, cells.allSatisfy({ cell in
+                        if case .text(let s) = cell { return s.trimmingCharacters(in: .whitespaces).isEmpty }
+                        return cell == .missing
+                    }) { return }
+                    rowNumber += 1
+                    let values: [DatabaseValue]
+                    do {
+                        values = try mapped.enumerated().map { index, mapping in
+                            let sourceIndex = sourceIndices[index]
+                            let cell: ImportCell = sourceIndex >= 0 && sourceIndex < cells.count ? cells[sourceIndex] : .missing
+                            return try ImportValueConverter.databaseValue(
+                                cell, as: columnTypes[index],
+                                column: mapping.targetColumn ?? mapping.sourceColumn,
+                                emptyAsNull: options.emptyAsNull
+                            )
+                        }
+                    } catch {
+                        if options.badRowStrategy == .abort { throw error }
+                        badRows.append(ImportBadRow(rowNumber: rowNumber, message: error.localizedDescription))
+                        importBadRows = badRows
+                        return
+                    }
+                    batch.append(values)
+                    batchRowNumbers.append(rowNumber)
+                    if batch.count >= batchSize {
+                        try await flushBatch()
+                        try Task.checkCancellation()
+                    }
+                }
+
+                switch format {
+                case .csv:
+                    let fileSize = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int) ?? 0
+                    let handle = try FileHandle(forReadingFrom: url)
+                    defer { try? handle.close() }
+                    let parser = CSVStreamParser()
+                    var headerSkipped = !importHasHeader
+                    var bytesRead = 0
+                    func consume(_ raw: [String]) async throws {
+                        if !headerSkipped {
+                            headerSkipped = true
+                            return
+                        }
+                        try await ingest(raw.map { .text($0) }, skipBlank: true)
+                    }
+                    while true {
+                        try Task.checkCancellation()
+                        guard let chunk = try handle.read(upToCount: 65536), !chunk.isEmpty else { break }
+                        bytesRead += chunk.count
+                        for raw in parser.feed(chunk) {
+                            try await consume(raw)
+                        }
+                        importProgress = fileSize > 0 ? min(1, Double(bytesRead) / Double(fileSize)) : 0
+                    }
+                    for raw in parser.finish() {
+                        try await consume(raw)
+                    }
+                case .json:
+                    let text = try String(contentsOf: url, encoding: .utf8)
+                    let parsed = try JSONImportParser.parse(text)
+                    let total = max(1, parsed.rows.count)
+                    for (index, row) in parsed.rows.enumerated() {
+                        try Task.checkCancellation()
+                        try await ingest(row, skipBlank: false)
+                        importProgress = Double(index + 1) / Double(total)
+                    }
+                }
+                try await flushBatch()
+                try await transaction.commit()
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                importProgress = 1
+                importCompleted = true
+                await refreshSidebarObjects()
+                if case .newTable = target {
+                    await openObject(tableObject)
+                }
+            } catch {
+                try? await transaction.rollback()
+                throw error
+            }
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            if error is CancellationError {
+                importError = pluginLocalization.string("Import cancelled.")
+            } else {
+                importError = error.localizedDescription
+            }
+        }
+    }
+
+    private nonisolated static func readImportHead(url: URL, limit: Int) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let data = try handle.read(upToCount: limit) ?? Data()
+        return String(decoding: data, as: UTF8.self)
     }
 
     /// 加载当前页数据（`SELECT * FROM ... [ORDER BY ...] LIMIT pageSize OFFSET page*pageSize`）。

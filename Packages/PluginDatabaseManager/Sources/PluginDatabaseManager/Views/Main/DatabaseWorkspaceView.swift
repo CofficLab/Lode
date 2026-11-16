@@ -49,6 +49,19 @@ public struct DatabaseWorkspaceView: View {
                     .buttonStyle(.plain)
                     .help(pluginLocalization.string("New Table"))
                 }
+                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis {
+                    Button {
+                        viewModel.presentImportData()
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(pluginLocalization.string("Import Data"))
+                }
                 if viewModel.isConnected, viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
                     Button {
                         viewModel.isERDiagramPresented = true
@@ -105,6 +118,9 @@ public struct DatabaseWorkspaceView: View {
         }
         .sheet(isPresented: $viewModel.isCreateTablePresented) {
             CreateTableSheet(viewModel: viewModel, isPresented: $viewModel.isCreateTablePresented)
+        }
+        .sheet(isPresented: $viewModel.isImportDataPresented) {
+            ImportDataSheet(viewModel: viewModel, isPresented: $viewModel.isImportDataPresented)
         }
     }
 
