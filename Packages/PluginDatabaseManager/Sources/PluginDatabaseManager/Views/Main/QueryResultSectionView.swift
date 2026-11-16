@@ -19,6 +19,17 @@ struct QueryResultSectionView: View {
 
     @ObservedObject var viewModel: DatabaseViewModel
 
+    /// 外键选择器请求（insertId 非空表示为新增行选值）。
+    private struct FKPickerRequest: Identifiable {
+        let id = UUID()
+        let column: String
+        let rowValues: [DatabaseValue]
+        let columns: [String]
+        let insertId: UUID?
+    }
+
+    @State private var fkPicker: FKPickerRequest?
+
     // MARK: - Initialization
 
     init(viewModel: DatabaseViewModel) {
@@ -96,11 +107,40 @@ struct QueryResultSectionView: View {
                     },
                     onClearInsertColumn: { insertId, column in
                         viewModel.clearPendingInsertColumn(insertId: insertId, column: column)
+                    },
+                    onChooseReference: { column, rowValues, columns in
+                        fkPicker = FKPickerRequest(column: column, rowValues: rowValues, columns: columns, insertId: nil)
+                    },
+                    onJumpToReference: { column, rowValues, columns in
+                        Task { await viewModel.jumpToReference(column: column, rowValues: rowValues, columns: columns) }
+                    },
+                    onChooseInsertReference: { insertId, column in
+                        fkPicker = FKPickerRequest(column: column, rowValues: [], columns: [], insertId: insertId)
                     }
                 )
                 if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
                     loadMoreBar
                 }
+            }
+            .sheet(item: $fkPicker) { request in
+                ForeignKeyPickerView(
+                    title: pickerTitle(for: request),
+                    fetch: { search in
+                        try await viewModel.fetchReferenceOptions(column: request.column, search: search)
+                    },
+                    onPick: { value in
+                        if let insertId = request.insertId {
+                            viewModel.stageInsertCell(insertId: insertId, column: request.column, value: value)
+                        } else {
+                            viewModel.stageCellChange(
+                                column: request.column,
+                                newValue: value,
+                                rowValues: request.rowValues,
+                                columns: request.columns
+                            )
+                        }
+                    }
+                )
             }
         } else {
             AppEmptyState(
@@ -119,6 +159,15 @@ struct QueryResultSectionView: View {
 
     private func errorBanner(for classified: ClassifiedDatabaseError) -> some View {
         DatabaseErrorBannerView(viewModel: viewModel, classified: classified)
+    }
+
+    // MARK: - FK picker
+
+    private func pickerTitle(for request: FKPickerRequest) -> String {
+        guard let refTable = viewModel.foreignKey(for: request.column)?.referencesTable else {
+            return request.column
+        }
+        return "\(request.column) → \(refTable)"
     }
 
     // MARK: - Load more (editor result row cap)

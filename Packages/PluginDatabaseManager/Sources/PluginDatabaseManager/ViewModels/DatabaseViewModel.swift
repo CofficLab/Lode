@@ -988,7 +988,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     }
 
     /// 统一打开一个数据库对象。表/视图进入分页浏览主区；其它对象暂不处理。
-    public func openObject(_ object: DatabaseObject) async {
+    /// `initialFilter` 用于引用行跳转等场景：打开即带过滤定位。
+    public func openObject(_ object: DatabaseObject, initialFilter: TableFilter = .empty) async {
         guard let config = selectedConfig else { return }
         switch object.kind {
         case .table, .view, .materializedView:
@@ -998,8 +999,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tablePage = 0
             tableRowCount = nil
             tableOrderBy = nil
-            tableFilter = .empty
-            showFilterPanel = false
+            tableFilter = initialFilter
+            showFilterPanel = initialFilter.isActive
             changeManager = nil
             pendingConflicts = []
             showConflictSheet = false
@@ -1300,6 +1301,58 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
         tablePage = 0
         await loadTablePage()
+    }
+
+    // MARK: - 外键引用导航
+
+    /// 列参与的外键（来自当前浏览表的结构）。
+    public func foreignKey(for column: String) -> ForeignKey? {
+        guard let schema = selectedTableSchema else { return nil }
+        return ForeignKeySupport.foreignKey(for: column, in: schema)
+    }
+
+    /// 引用表候选项：按搜索词在引用表非二进制列上 LIKE，限量返回。
+    public func fetchReferenceOptions(column: String, search: String) async throws -> [FKReferenceOption] {
+        guard let config = selectedConfig,
+              let fk = foreignKey(for: column),
+              ForeignKeySupport.canPick(fk) else { return [] }
+        guard let connection = await manager.getConnection(for: config.id) else {
+            throw DatabaseError.connectionFailed("Not connected to a database")
+        }
+        let refObject = DatabaseObject(
+            kind: .table,
+            name: fk.referencesTable,
+            database: openTableObject?.database,
+            schema: openTableObject?.schema
+        )
+        let refSchema = try? await schemaCache.tableSchema(for: refObject, config: config, connection: connection)
+        guard let query = ForeignKeySupport.referenceSearchSQL(
+            fk,
+            dialect: config.type,
+            search: search,
+            searchColumns: refSchema?.columns ?? []
+        ) else { return [] }
+        let result = try await connection.query(query.sql, params: query.params)
+        return ForeignKeySupport.options(from: result, fk: fk)
+    }
+
+    /// 跳转到引用行：打开引用表并带上定位过滤（含已暂存编辑的显示值）。
+    public func jumpToReference(column: String, rowValues: [DatabaseValue], columns: [String]) async {
+        guard let config = selectedConfig, let fk = foreignKey(for: column) else { return }
+        let values: [DatabaseValue]
+        if let cm = changeManager {
+            values = fk.columns.map { cm.displayedValue(column: $0, rowValues: rowValues, columns: columns) }
+        } else {
+            values = ForeignKeySupport.sourceValues(fk, rowValues: rowValues, columns: columns) ?? []
+        }
+        guard let filter = ForeignKeySupport.locateFilter(fk, values: values, dialect: config.type) else { return }
+        let target = DatabaseObject(
+            kind: .table,
+            name: fk.referencesTable,
+            database: openTableObject?.database,
+            schema: openTableObject?.schema
+        )
+        await openObject(target, initialFilter: filter)
     }
 
     // MARK: - 表筛选

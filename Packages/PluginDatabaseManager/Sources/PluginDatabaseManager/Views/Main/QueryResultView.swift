@@ -36,6 +36,12 @@ struct QueryResultView: View {
     var onStageDefault: ((String, [DatabaseValue], [String]) -> Void)? = nil
     /// 新增行某列恢复为「使用数据库默认值」回调：(insertId, 列名)。
     var onClearInsertColumn: ((UUID, String) -> Void)? = nil
+    /// 外键选值回调：(列名, 当前行, 全部列名)。
+    var onChooseReference: ((String, [DatabaseValue], [String]) -> Void)? = nil
+    /// 跳转到引用行回调：(列名, 当前行, 全部列名)。
+    var onJumpToReference: ((String, [DatabaseValue], [String]) -> Void)? = nil
+    /// 新增行外键选值回调：(insertId, 列名)。
+    var onChooseInsertReference: ((UUID, String) -> Void)? = nil
 
     // MARK: - Editing state
 
@@ -247,6 +253,11 @@ struct QueryResultView: View {
                     editingInsert = key
                 }
                 .contextMenu {
+                    if let onChooseInsertReference, canPickReference(for: column) {
+                        Button(pluginLocalization.string("Choose Reference…")) {
+                            onChooseInsertReference(insert.id, column)
+                        }
+                    }
                     Button(pluginLocalization.string("Set NULL")) {
                         onStageInsertChange?(insert.id, column, .null)
                     }
@@ -321,6 +332,16 @@ struct QueryResultView: View {
                                 onStageChange?(column, row, result.columns, .string(""))
                             }
                         }
+                        if let onChooseReference, canPickReference(for: column) {
+                            Button(pluginLocalization.string("Choose Reference…")) {
+                                onChooseReference(column, row, result.columns)
+                            }
+                        }
+                    }
+                    if let onJumpToReference, canJumpToReference(row: row, column: column) {
+                        Button(pluginLocalization.string("Jump to Referenced Row")) {
+                            onJumpToReference(column, row, result.columns)
+                        }
                     }
                 }
         }
@@ -330,6 +351,21 @@ struct QueryResultView: View {
     private func editorKind(for column: String) -> CellEditorKind {
         guard let cm = changeManager else { return .text }
         return cellEditorKind(for: cm.columnType(of: column) ?? "", enumValues: cm.enumValues(of: column))
+    }
+
+    /// 列是否可用引用选择器（单列外键）。
+    private func canPickReference(for column: String) -> Bool {
+        guard let cm = changeManager,
+              let fk = ForeignKeySupport.foreignKey(for: column, in: cm.schema) else { return false }
+        return ForeignKeySupport.canPick(fk)
+    }
+
+    /// 当前显示值（含暂存编辑）能否定位引用行。
+    private func canJumpToReference(row: [DatabaseValue], column: String) -> Bool {
+        guard let cm = changeManager,
+              let fk = ForeignKeySupport.foreignKey(for: column, in: cm.schema) else { return false }
+        let values = fk.columns.map { displayedValue(row: row, column: $0) }
+        return ForeignKeySupport.canLocate(fk, values: values)
     }
 
     /// 显示值：优先取变更队列里的暂存值，否则取结果原始值。
