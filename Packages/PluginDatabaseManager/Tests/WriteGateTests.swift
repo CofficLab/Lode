@@ -163,6 +163,30 @@ struct WriteGateTests {
         }
     }
 
+    @MainActor
+    @Test
+    func redisReadClassificationMatchesGate() {
+        // 读路径判定必须与写闸门同一事实源，杜绝两份前缀列表漂移。
+        for cmd in ["GET k", "HGETALL h", "TTL k", "TYPE k", "XRANGE s - +", "MGET a b",
+                    "GETBIT k 0", "ZRANGE z 0 -1 WITHSCORES", "SCAN 0", "SET k v", "DEL k",
+                    "HSET h f v", "EXPIRE k 10", "FLUSHDB", "SOMEUNKNOWNCMD x"] {
+            #expect(
+                DatabaseViewModel.isReadStatement(cmd, type: .redis) == !WriteGate.isWriteStatement(cmd, type: .redis),
+                "read classification diverges from gate: \(cmd)"
+            )
+        }
+    }
+
+    @MainActor
+    @Test
+    func redisTypedReadsUseQueryPath() {
+        // 回归守卫：这些读命令旧前缀列表会误判为写，导致结果被丢弃（只显示 Rows affected）。
+        for cmd in ["HGETALL h", "TTL k", "PTTL k", "TYPE k", "XRANGE s - +", "MGET a b",
+                    "HKEYS h", "HVALS h", "LLEN l", "ZSCORE z m", "GETBIT k 0", "STRLEN k"] {
+            #expect(DatabaseViewModel.isReadStatement(cmd, type: .redis), "redis read dropped to write path: \(cmd)")
+        }
+    }
+
     // MARK: - 配置持久化
 
     @Test

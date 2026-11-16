@@ -1040,9 +1040,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 判断一条 SQL 是否为"读"语句（走 query 路径）而非"写"（走 execute 路径）。
     public static func isReadStatement(_ sql: String, type: DatabaseType) -> Bool {
         if type == .redis {
-            let upper = sql.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            return upper.hasPrefix("GET") || upper.hasPrefix("SCAN") || upper.hasPrefix("HGET")
-                || upper.hasPrefix("LRANGE") || upper.hasPrefix("SMEMBERS") || upper.hasPrefix("ZRANGE")
+            // Redis 无 RETURNING 语义，读判定直接复用写闸门的读白名单（未知命令保守按写），
+            // 避免维护两份会漂移的前缀列表——HGETALL/TTL/TYPE/XRANGE 等读命令须走 query 取回结果。
+            return !WriteGate.isWriteStatement(sql, type: .redis)
         }
         let upper = SQLStatementParser.stripLiteralsAndComments(sql)
             .uppercased()
