@@ -167,15 +167,23 @@ public func hexEditText(for data: Data) -> String {
 ///
 /// 设计要点：
 /// - 编辑只改内存，单元格/行高亮提示；
-/// - 保存时按 DELETE → INSERT → UPDATE 顺序在事务中执行；
-/// - 行以**主键值**定位（无主键的表暂不支持编辑）；
+/// - 保存时按 DELETE → INSERT → UPDATE 顺序在事务中执行，并验证 affected rows；
+/// - 行定位：有主键按主键；SQLite 无主键按 rowid；其余无主键表按全列 NULL-safe 匹配；
+/// - 每行保留编辑时的原始快照，供提交前乐观锁冲突检测；
 /// - 撤销/重做用**快照式**栈：每次变更前快照状态，undo/redo 交换当前与快照。
 @MainActor
 public final class TableChangeManager: ObservableObject {
-    /// 单行的待提交更新。
+    /// 单行的待提交更新（含定位方式与原始快照）。
     public struct PendingRowUpdate {
-        public let primaryKeyValues: [(column: String, value: DatabaseValue)]
+        public let locator: RowLocator
+        public let originalRow: [String: DatabaseValue]
         public var columnUpdates: [String: DatabaseValue]
+    }
+
+    /// 一条待删除行的定位与原始快照。
+    struct DeletedRow {
+        let locator: RowLocator
+        let originalRow: [String: DatabaseValue]
     }
 
     /// 一条待新增的行（暂存各列值，未设的列在保存时使用数据库默认值）。
@@ -189,13 +197,13 @@ public final class TableChangeManager: ObservableObject {
         let updatesByRow: [String: PendingRowUpdate]
         let pendingInserts: [PendingInsert]
         let deletedRowKeys: Set<String>
-        let deletedPKValues: [String: [(column: String, value: DatabaseValue)]]
+        let deletedRows: [String: DeletedRow]
     }
 
     @Published public private(set) var updatesByRow: [String: PendingRowUpdate] = [:]
     @Published public private(set) var pendingInserts: [PendingInsert] = []
     @Published public private(set) var deletedRowKeys: Set<String> = []
-    private var deletedPKValues: [String: [(column: String, value: DatabaseValue)]] = [:]
+    private var deletedRows: [String: DeletedRow] = [:]
 
     private var undoStack: [Snapshot] = []
     private var redoStack: [Snapshot] = []
@@ -212,7 +220,8 @@ public final class TableChangeManager: ObservableObject {
         self.allColumnNames = schema.columns.map(\.name)
     }
 
-    public var isEditable: Bool { !pkColumns.isEmpty }
+    /// 只要有数据列即可编辑：无主键表改用 rowid（SQLite）或全列匹配定位。
+    public var isEditable: Bool { !allColumnNames.isEmpty }
     public var primaryKeyColumnNames: [String] { pkColumns }
 
     /// 列的 catalog 类型名（供单元格编辑做类型感知解析）。
@@ -243,11 +252,53 @@ public final class TableChangeManager: ObservableObject {
     // MARK: - Row identity
 
     public func rowKey(rowValues: [DatabaseValue], columns: [String]) -> String? {
-        guard !pkColumns.isEmpty else { return nil }
-        return pkColumns.map { pk -> String in
-            let value = value(of: pk, in: rowValues, columns: columns)
-            return "\(pk)=\(value.description)"
+        if !pkColumns.isEmpty {
+            return pkColumns.map { pk -> String in
+                let value = value(of: pk, in: rowValues, columns: columns)
+                return "\(pk)=\(value.description)"
+            }.joined(separator: "|")
+        }
+        if let id = rowidValue(rowValues: rowValues, columns: columns) {
+            return "rowid=\(id)"
+        }
+        guard !allColumnNames.isEmpty else { return nil }
+        return allColumnNames.map { col -> String in
+            let value = value(of: col, in: rowValues, columns: columns)
+            return "\(col)=\(keyComponent(for: value))"
         }.joined(separator: "|")
+    }
+
+    /// SQLite 无主键表浏览时附带 rowid 列；存在则用作物理行定位。
+    private func rowidValue(rowValues: [DatabaseValue], columns: [String]) -> Int64? {
+        guard let index = columns.firstIndex(of: "rowid"), index < rowValues.count else { return nil }
+        if case .integer(let i) = rowValues[index] { return Int64(i) }
+        return nil
+    }
+
+    /// 全列匹配的行标识分量：BLOB 用 hex，避免「N bytes」描述碰撞。
+    private func keyComponent(for value: DatabaseValue) -> String {
+        if case .data(let data) = value { return "0x" + hexEditText(for: data) }
+        return value.description
+    }
+
+    /// 据当前行构造定位方式：主键 → rowid → 全列。
+    private func makeLocator(rowValues: [DatabaseValue], columns: [String]) -> RowLocator {
+        if !pkColumns.isEmpty {
+            return .primaryKey(pkColumns.map { ColumnValue(column: $0, value: value(of: $0, in: rowValues, columns: columns)) })
+        }
+        if let id = rowidValue(rowValues: rowValues, columns: columns) {
+            return .rowid(id)
+        }
+        return .fullRow(allColumnNames.map { ColumnValue(column: $0, value: value(of: $0, in: rowValues, columns: columns)) })
+    }
+
+    /// 编辑发生时的原始数据列快照（不含 rowid 别名）。
+    private func originalRowSnapshot(rowValues: [DatabaseValue], columns: [String]) -> [String: DatabaseValue] {
+        var snapshot: [String: DatabaseValue] = [:]
+        for column in allColumnNames {
+            snapshot[column] = value(of: column, in: rowValues, columns: columns)
+        }
+        return snapshot
     }
 
     public func isRowDeleted(rowValues: [DatabaseValue], columns: [String]) -> Bool {
@@ -299,8 +350,11 @@ public final class TableChangeManager: ObservableObject {
             existing.columnUpdates[column] = newValue
             updatesByRow[key] = existing
         } else {
-            let pkValues = pkColumns.map { (column: $0, value: value(of: $0, in: rowValues, columns: columns)) }
-            updatesByRow[key] = PendingRowUpdate(primaryKeyValues: pkValues, columnUpdates: [column: newValue])
+            updatesByRow[key] = PendingRowUpdate(
+                locator: makeLocator(rowValues: rowValues, columns: columns),
+                originalRow: originalRowSnapshot(rowValues: rowValues, columns: columns),
+                columnUpdates: [column: newValue]
+            )
         }
     }
 
@@ -338,10 +392,13 @@ public final class TableChangeManager: ObservableObject {
         recordUndo()
         if deletedRowKeys.contains(key) {
             deletedRowKeys.remove(key)
-            deletedPKValues.removeValue(forKey: key)
+            deletedRows.removeValue(forKey: key)
         } else {
             deletedRowKeys.insert(key)
-            deletedPKValues[key] = pkColumns.map { (column: $0, value: value(of: $0, in: rowValues, columns: columns)) }
+            deletedRows[key] = DeletedRow(
+                locator: makeLocator(rowValues: rowValues, columns: columns),
+                originalRow: originalRowSnapshot(rowValues: rowValues, columns: columns)
+            )
             // 删除后该行的单元格更新不再有意义，移除
             updatesByRow.removeValue(forKey: key)
         }
@@ -366,28 +423,82 @@ public final class TableChangeManager: ObservableObject {
         updatesByRow.removeAll()
         pendingInserts.removeAll()
         deletedRowKeys.removeAll()
-        deletedPKValues.removeAll()
+        deletedRows.removeAll()
+    }
+
+    /// 丢弃某一行的全部待提交变更（冲突解决时「放弃」该行）。
+    public func removeRowChanges(forKey key: String) {
+        recordUndo()
+        updatesByRow.removeValue(forKey: key)
+        deletedRowKeys.remove(key)
+        deletedRows.removeValue(forKey: key)
     }
 
     // MARK: - SQL generation
 
     /// DELETE → INSERT → UPDATE（顺序便于"删旧行 + 插同主键新行"场景）。
     public func generatedAllStatements(for type: DatabaseType) -> [String] {
-        generatedDeleteStatements(for: type) + generatedInsertStatements(for: type) + generatedUpdateStatements(for: type)
+        writePlan(for: type).map(\.sql)
     }
 
     public func generatedUpdateStatements(for type: DatabaseType) -> [String] {
-        let tableExpr = DatabaseViewModel.qualifiedName(for: table, type: type)
-        func q(_ name: String) -> String { DatabaseViewModel.quoteIdentifier(name, for: type) }
+        writePlan(for: type).filter { $0.kind == .update }.map(\.sql)
+    }
 
-        return updatesByRow.values.map { row in
-            let setClause = row.columnUpdates.map { "\(q($0.key)) = \(sqlLiteral(for: $0.value, dialect: type))" }
-                .joined(separator: ", ")
-            let whereClause = row.primaryKeyValues
-                .map { "\(q($0.column)) = \(sqlLiteral(for: $0.value, dialect: type))" }
-                .joined(separator: " AND ")
-            return "UPDATE \(tableExpr) SET \(setClause) WHERE \(whereClause);"
+    /// 全部待提交写操作（DELETE → INSERT → UPDATE），每条附带行定位目标。
+    /// 行按 key 排序，保证语句顺序稳定、可与目标一一对应做写验证。
+    public func writePlan(for type: DatabaseType) -> [PlannedWrite] {
+        var plan: [PlannedWrite] = []
+        for key in deletedRowKeys.sorted() {
+            guard let deleted = deletedRows[key] else { continue }
+            let target = RowTarget(key: key, locator: deleted.locator, originalRow: deleted.originalRow, columnUpdates: [:], isDelete: true)
+            let sql = "DELETE FROM \(tableExpr(type)) WHERE \(whereClause(for: deleted.locator, dialect: type));"
+            plan.append(PlannedWrite(sql: sql, kind: .delete, target: target))
         }
+        for sql in generatedInsertStatements(for: type) {
+            plan.append(PlannedWrite(sql: sql, kind: .insert, target: nil))
+        }
+        for key in updatesByRow.keys.sorted() {
+            guard let row = updatesByRow[key] else { continue }
+            let target = RowTarget(key: key, locator: row.locator, originalRow: row.originalRow, columnUpdates: row.columnUpdates, isDelete: false)
+            let setClause = row.columnUpdates
+                .map { "\(q($0.key, type)) = \(sqlLiteral(for: $0.value, dialect: type))" }
+                .joined(separator: ", ")
+            let sql = "UPDATE \(tableExpr(type)) SET \(setClause) WHERE \(whereClause(for: row.locator, dialect: type));"
+            plan.append(PlannedWrite(sql: sql, kind: .update, target: target))
+        }
+        return plan
+    }
+
+    /// 待提交更新/删除行的定位目标（供提交前乐观锁冲突扫描）。
+    public var rowTargets: [RowTarget] {
+        writePlanTargets()
+    }
+
+    private func writePlanTargets() -> [RowTarget] {
+        var targets: [RowTarget] = []
+        for key in deletedRowKeys.sorted() {
+            guard let deleted = deletedRows[key] else { continue }
+            targets.append(RowTarget(key: key, locator: deleted.locator, originalRow: deleted.originalRow, columnUpdates: [:], isDelete: true))
+        }
+        for key in updatesByRow.keys.sorted() {
+            guard let row = updatesByRow[key] else { continue }
+            targets.append(RowTarget(key: key, locator: row.locator, originalRow: row.originalRow, columnUpdates: row.columnUpdates, isDelete: false))
+        }
+        return targets
+    }
+
+    /// 提交前重读某行当前快照的查询（按定位方式，SELECT 全部数据列）。
+    public func reReadStatement(for target: RowTarget, dialect: DatabaseType) -> String {
+        "SELECT * FROM \(tableExpr(dialect)) WHERE \(whereClause(for: target.locator, dialect: dialect));"
+    }
+
+    private func tableExpr(_ type: DatabaseType) -> String {
+        DatabaseViewModel.qualifiedName(for: table, type: type)
+    }
+
+    private func q(_ name: String, _ type: DatabaseType) -> String {
+        DatabaseViewModel.quoteIdentifier(name, for: type)
     }
 
     public func generatedInsertStatements(for type: DatabaseType) -> [String] {
@@ -416,29 +527,20 @@ public final class TableChangeManager: ObservableObject {
     }
 
     public func generatedDeleteStatements(for type: DatabaseType) -> [String] {
-        let tableExpr = DatabaseViewModel.qualifiedName(for: table, type: type)
-        func q(_ name: String) -> String { DatabaseViewModel.quoteIdentifier(name, for: type) }
-
-        return deletedRowKeys.compactMap { key -> String? in
-            guard let pkValues = deletedPKValues[key] else { return nil }
-            let whereClause = pkValues
-                .map { "\(q($0.column)) = \(sqlLiteral(for: $0.value, dialect: type))" }
-                .joined(separator: " AND ")
-            return "DELETE FROM \(tableExpr) WHERE \(whereClause);"
-        }
+        writePlan(for: type).filter { $0.kind == .delete }.map(\.sql)
     }
 
     // MARK: - Snapshot helpers
 
     private func currentSnapshot() -> Snapshot {
-        Snapshot(updatesByRow: updatesByRow, pendingInserts: pendingInserts, deletedRowKeys: deletedRowKeys, deletedPKValues: deletedPKValues)
+        Snapshot(updatesByRow: updatesByRow, pendingInserts: pendingInserts, deletedRowKeys: deletedRowKeys, deletedRows: deletedRows)
     }
 
     private func restore(_ snapshot: Snapshot) {
         updatesByRow = snapshot.updatesByRow
         pendingInserts = snapshot.pendingInserts
         deletedRowKeys = snapshot.deletedRowKeys
-        deletedPKValues = snapshot.deletedPKValues
+        deletedRows = snapshot.deletedRows
     }
 
     private func recordUndo() {

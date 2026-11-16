@@ -54,10 +54,14 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 服务端排序（列名 + 方向）；nil 表示不排序。
     @Published public var tableOrderBy: (column: String, ascending: Bool)?
 
-    /// 当前打开表的变更跟踪队列；无主键或未打开表时为 nil（不可编辑）。
+    /// 当前打开表的变更跟踪队列；未打开表时为 nil。
     @Published public var changeManager: TableChangeManager?
     /// 是否正在展示「Preview SQL」面板。
     @Published public var showChangePreview: Bool = false
+    /// 提交前乐观锁检测到的行冲突；非空时弹出冲突解决面板，暂停写入。
+    @Published public private(set) var pendingConflicts: [RowConflict] = []
+    /// 是否正在展示冲突解决面板。
+    @Published public var showConflictSheet: Bool = false
 
     /// 多语句执行的结果（每语句一条）；为空时表示当前是单语句模式。
     @Published public var multiExecutions: [StatementExecution] = []
@@ -295,6 +299,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tableSchemaError = nil
             tableRowCount = nil
             changeManager = nil
+            pendingConflicts = []
+            showConflictSheet = false
             schemaChangeManager = nil
             // 切换连接时清掉旧连接的结构缓存
             schemaCache.invalidate(configId: config.id)
@@ -393,6 +399,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         tableSchemaError = nil
         tableRowCount = nil
         changeManager = nil
+        pendingConflicts = []
+        showConflictSheet = false
         schemaChangeManager = nil
         schemaCache.invalidate(configId: config.id)
         // 显式断开后，下次不再自动重连这个连接
@@ -962,6 +970,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tableRowCount = nil
             tableOrderBy = nil
             changeManager = nil
+            pendingConflicts = []
+            showConflictSheet = false
             schemaChangeManager = nil
             // 兼容旧 UI（空状态判断等）
             if config.type == .sqlite { selectedSQLiteTable = object.name }
@@ -1053,6 +1063,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                   openTableObject?.id == object.id else { return }
             selectedTableSchema = nil
             changeManager = nil
+            pendingConflicts = []
+            showConflictSheet = false
             schemaChangeManager = nil
             tableSchemaError = error.localizedDescription
         }
@@ -1143,7 +1155,15 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard isCurrentConnection(generation, configId: config.id) else { return }
 
         let tableExpr = Self.qualifiedName(for: table, type: config.type)
-        var sql = "SELECT * FROM \(tableExpr)"
+        // SQLite 无主键表附带 rowid 别名，使完全相同的重复行也能被精确定位编辑。
+        let selectList: String
+        if config.type == .sqlite, table.kind == .table,
+           let schema = selectedTableSchema, !schema.columns.contains(where: \.isPrimaryKey) {
+            selectList = "rowid, *"
+        } else {
+            selectList = "*"
+        }
+        var sql = "SELECT \(selectList) FROM \(tableExpr)"
         if let order = tableOrderBy {
             let col = Self.quoteIdentifier(order.column, for: config.type)
             sql += " ORDER BY \(col) \(order.ascending ? "ASC" : "DESC")"
@@ -1289,21 +1309,101 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         return cm.generatedAllStatements(for: config.type)
     }
 
-    /// 在事务中应用全部待提交变更，成功后清空队列并刷新当前页。
+    /// 提交变更：先做提交前乐观锁冲突扫描，有冲突则暂停并弹出解决面板；
+    /// 无冲突则在事务中执行带 affected rows 验证的写入。
     public func saveChanges() async {
         guard let config = selectedConfig, let cm = changeManager, cm.hasChanges else { return }
         guard let connection = await manager.getConnection(for: config.id) else {
             presentError(DatabaseError.connectionFailed("Not connected to a database"))
             return
         }
-        let statements = cm.generatedAllStatements(for: config.type)
+        isLoading = true
+        errorMessage = nil
+        let conflicts: [RowConflict]
+        do {
+            conflicts = try await scanRowConflicts(cm: cm, connection: connection, type: config.type)
+        } catch {
+            isLoading = false
+            presentError(error)
+            return
+        }
+        isLoading = false
+        if !conflicts.isEmpty {
+            pendingConflicts = conflicts
+            showConflictSheet = true
+            return
+        }
+        await applyVerifiedWrites()
+    }
+
+    /// 提交前按定位重读每行当前快照，与编辑时的原始快照比对，收集冲突。
+    private func scanRowConflicts(
+        cm: TableChangeManager,
+        connection: any DatabaseConnection,
+        type: DatabaseType
+    ) async throws -> [RowConflict] {
+        var conflicts: [RowConflict] = []
+        for target in cm.rowTargets {
+            let result = try await connection.query(cm.reReadStatement(for: target, dialect: type), params: nil)
+            if let conflict = detectRowConflict(target: target, result: result) {
+                conflicts.append(conflict)
+            }
+        }
+        return conflicts
+    }
+
+    /// 在事务中执行写计划：先验证每条 UPDATE/DELETE 的定位恰好命中一行
+    /// （并复检内容冲突），再执行写入并验证 affected rows；任何不符即回滚并报告，
+    /// 队列保留供重试/放弃。
+    /// - Parameter overwriteConflicts: 用户已在冲突面板选择「覆盖」时跳过内容冲突复检
+    ///   （仍验证命中行数；missing/ambiguous 无法覆盖，会照常中止）。
+    public func applyVerifiedWrites(overwriteConflicts: Bool = false) async {
+        guard let config = selectedConfig, let cm = changeManager, cm.hasChanges else { return }
+        guard let connection = await manager.getConnection(for: config.id) else {
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
+            return
+        }
+        let plan = cm.writePlan(for: config.type)
         isLoading = true
         errorMessage = nil
         do {
             let tx = try await connection.beginTransaction()
             do {
-                for sql in statements {
-                    _ = try await tx.execute(sql, params: nil)
+                // 第一遍：验证定位命中数，并在非覆盖模式下复检内容冲突。
+                var reConflicts: [RowConflict] = []
+                for write in plan {
+                    guard let target = write.target else { continue }
+                    let reread = try await connection.query(cm.reReadStatement(for: target, dialect: config.type), params: nil)
+                    if reread.rows.isEmpty {
+                        throw WriteVerificationError(sql: write.sql, expected: 1, actual: 0, reason: .missingRow)
+                    }
+                    if reread.rows.count > 1 {
+                        throw WriteVerificationError(sql: write.sql, expected: 1, actual: reread.rows.count, reason: .ambiguousRow)
+                    }
+                    if !overwriteConflicts, let conflict = detectRowConflict(target: target, result: reread) {
+                        reConflicts.append(conflict)
+                    }
+                }
+                if !reConflicts.isEmpty {
+                    try await tx.rollback()
+                    pendingConflicts = reConflicts
+                    showConflictSheet = true
+                    isLoading = false
+                    return
+                }
+                // 第二遍：执行写入并验证 affected rows。
+                for write in plan {
+                    let affected = try await tx.execute(write.sql, params: nil)
+                    if let target = write.target {
+                        try verifyAffectedRows(
+                            actual: affected,
+                            operation: target.isDelete ? .delete : .update,
+                            dialect: config.type,
+                            sql: write.sql
+                        )
+                    } else if affected != 1 {
+                        throw WriteVerificationError(sql: write.sql, expected: 1, actual: affected, reason: .affectedMismatch)
+                    }
                 }
                 try await tx.commit()
             } catch {
@@ -1311,12 +1411,39 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 throw error
             }
             cm.discardAll()
+            pendingConflicts = []
             objectWillChange.send()
             await loadTablePage()
         } catch {
             presentError(error)
         }
         isLoading = false
+    }
+
+    // MARK: - 冲突解决
+
+    /// 「覆盖」：忽略内容冲突，按定位强制写入（missing/ambiguous 仍会在验证时中止）。
+    public func overwriteConflictsAndSave() async {
+        showConflictSheet = false
+        await applyVerifiedWrites(overwriteConflicts: true)
+    }
+
+    /// 「放弃冲突行」：移除冲突行的待提交变更，保存其余变更。
+    public func discardConflictedRowsAndSave() async {
+        guard let cm = changeManager else { return }
+        for conflict in pendingConflicts {
+            cm.removeRowChanges(forKey: conflict.id)
+        }
+        pendingConflicts = []
+        showConflictSheet = false
+        objectWillChange.send()
+        await saveChanges()
+    }
+
+    /// 「取消」：关闭面板，保留变更队列，不写库。
+    public func cancelConflictResolution() {
+        pendingConflicts = []
+        showConflictSheet = false
     }
 
     /// 按方言引用单个标识符（SQLite/PG 用双引号，MySQL 用反引号）。

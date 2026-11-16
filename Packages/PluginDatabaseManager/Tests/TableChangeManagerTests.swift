@@ -134,15 +134,21 @@ struct TableChangeManagerTests {
         #expect(manager.changedCellCount == 1)
     }
 
-    @Test("无主键表不可编辑（现状守卫，后续全列匹配方案替换）")
-    func noPrimaryKeyNotEditable() {
+    @Test("无主键表可编辑：全列 NULL-safe 匹配定位")
+    func noPrimaryKeyFullRowMatch() {
         let table = DatabaseObject(kind: .table, name: "logs")
         let schema = TableSchema(table: table, columns: [
             TableColumn(name: "message", dataType: "TEXT", isNullable: true, isPrimaryKey: false, defaultValue: nil, position: 0),
+            TableColumn(name: "level", dataType: "INTEGER", isNullable: true, isPrimaryKey: false, defaultValue: nil, position: 1),
         ])
         let manager = TableChangeManager(table: table, schema: schema)
-        #expect(!manager.isEditable)
-        #expect(manager.rowKey(rowValues: [.string("x")], columns: ["message"]) == nil)
+        #expect(manager.isEditable)
+        let row: [DatabaseValue] = [.string("x"), .null]
+        let columns = ["message", "level"]
+        #expect(manager.rowKey(rowValues: row, columns: columns) != nil)
+        manager.stageCellUpdate(column: "message", newValue: .string("y"), rowValues: row, columns: columns)
+        let sql = manager.generatedUpdateStatements(for: .postgresql)[0]
+        #expect(sql.contains("WHERE \"message\" = 'x' AND \"level\" IS NULL"))
     }
 
     @Test("列类型查询助手")

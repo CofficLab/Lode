@@ -31,6 +31,15 @@ struct TableDataView: View {
                 onSave: { Task { await viewModel.saveChanges() } }
             )
         }
+        .sheet(isPresented: $viewModel.showConflictSheet) {
+            ConflictResolutionSheet(
+                conflicts: viewModel.pendingConflicts,
+                isPresented: $viewModel.showConflictSheet,
+                onOverwrite: { Task { await viewModel.overwriteConflictsAndSave() } },
+                onDiscard: { Task { await viewModel.discardConflictedRowsAndSave() } },
+                onCancel: { viewModel.cancelConflictResolution() }
+            )
+        }
     }
 
     // MARK: - Changes bar
