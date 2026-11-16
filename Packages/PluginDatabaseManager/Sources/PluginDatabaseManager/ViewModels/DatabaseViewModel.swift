@@ -4059,6 +4059,26 @@ extension DatabaseViewModel {
         applyTab(tab)
         workspace.persist()
     }
+
+    /// 切换到下一个查询标签（循环回绕）；仅一个标签时无操作。
+    public func selectNextQueryTab() {
+        let count = workspace.tabs.count
+        guard count > 1 else { return }
+        selectQueryTab(id: workspace.tabs[(workspace.activeIndex + 1) % count].id)
+    }
+
+    /// 切换到上一个查询标签（循环回绕）；仅一个标签时无操作。
+    public func selectPreviousQueryTab() {
+        let count = workspace.tabs.count
+        guard count > 1 else { return }
+        selectQueryTab(id: workspace.tabs[(workspace.activeIndex - 1 + count) % count].id)
+    }
+
+    /// 切换到指定位置的标签（0 起，对应 ⌘1…⌘9）；越界忽略。
+    public func selectQueryTab(index: Int) {
+        guard workspace.tabs.indices.contains(index) else { return }
+        selectQueryTab(id: workspace.tabs[index].id)
+    }
 }
 
 // MARK: - SQL 文件往返（P3-6）

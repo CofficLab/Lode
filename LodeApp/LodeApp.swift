@@ -63,6 +63,7 @@ struct LodeApp: App {
         .commands {
             DatabaseGridEditCommands()
             DatabaseSQLFileCommands()
+            DatabaseQueryCommands()
         }
 
         Window("Settings", id: "lode.settings") {

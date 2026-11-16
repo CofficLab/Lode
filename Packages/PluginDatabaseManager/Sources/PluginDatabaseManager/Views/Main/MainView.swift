@@ -75,6 +75,41 @@ public struct MainView: View {
             canOpen: viewModel.isConnected,
             canSave: viewModel.isConnected && viewModel.openTableObject == nil
         ))
+        .focusedSceneValue(\.queryMenuActions, queryMenuActions)
+    }
+
+    /// Query 菜单动作：编辑器上下文（查询编辑器可见）与网格上下文（表浏览可见）
+    /// 互斥门控，见 ``QueryMenuActions``。
+    private var queryMenuActions: QueryMenuActions {
+        let editorVisible = viewModel.isConnected
+            && viewModel.openTableObject == nil
+            && viewModel.selectedRedisKey == nil
+        let gridVisible = viewModel.openTableObject != nil
+        return QueryMenuActions(
+            run: { Task { await viewModel.executeStatementAtCursor() } },
+            runAll: { Task { await viewModel.executeAllStatements() } },
+            stop: { Task { await viewModel.cancelRunningQuery() } },
+            format: { viewModel.formatDocumentOrSelection() },
+            explain: { Task { await viewModel.explainCurrentQuery() } },
+            showHistory: { viewModel.showHistory = true },
+            newTab: { viewModel.newQueryTab() },
+            closeTab: { viewModel.closeQueryTab(id: viewModel.workspace.activeTabID) },
+            reopenClosedTab: { viewModel.reopenLastClosedTab() },
+            nextTab: { viewModel.selectNextQueryTab() },
+            previousTab: { viewModel.selectPreviousQueryTab() },
+            selectTab: { viewModel.selectQueryTab(index: $0) },
+            commitChanges: { Task { await viewModel.saveChanges() } },
+            toggleFilter: { viewModel.showFilterPanel.toggle() },
+            canRun: editorVisible && !viewModel.isLoading,
+            canStop: viewModel.isLoading,
+            canFormat: editorVisible,
+            canExplain: editorVisible && viewModel.selectedConfig?.type != .redis && !viewModel.isLoading,
+            canManageTabs: editorVisible,
+            canReopenClosedTab: editorVisible && !viewModel.workspace.recentlyClosed.isEmpty,
+            tabCount: viewModel.workspace.tabs.count,
+            canCommitChanges: gridVisible && viewModel.changeManager?.hasChanges == true,
+            canToggleFilter: gridVisible
+        )
     }
 
     // MARK: - Connected
