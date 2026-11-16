@@ -241,7 +241,7 @@ struct QueryResultView: View {
                 .border(theme.appSubtleBorder.opacity(0.7))
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
-                    editInsertText = (value == .null ? "" : text)
+                    editInsertText = editRepresentation(for: value)
                     editingInsert = key
                 }
                 .contextMenu {
@@ -253,7 +253,8 @@ struct QueryResultView: View {
     }
 
     private func commitInsertEdit(insertId: UUID, column: String) {
-        let value = parseEditedCellValue(editInsertText)
+        let original = changeManager?.insertDisplayValue(insertId: insertId, column: column)
+        let value = parseEditedCellValue(editInsertText, columnType: changeManager?.columnType(of: column), original: original)
         onStageInsertChange?(insertId, column, value)
         editingInsert = nil
     }
@@ -296,7 +297,7 @@ struct QueryResultView: View {
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     guard changeManager?.isEditable == true else { return }
-                    editText = (isNull ? "" : text)
+                    editText = editRepresentation(for: displayed)
                     editingCell = key
                 }
                 .contextMenu {
@@ -323,9 +324,22 @@ struct QueryResultView: View {
     }
 
     private func commitEdit(row: [DatabaseValue], column: String) {
-        let value = parseEditedCellValue(editText)
+        let original: DatabaseValue? = {
+            guard let idx = result.columns.firstIndex(of: column), idx < row.count else { return nil }
+            return row[idx]
+        }()
+        let value = parseEditedCellValue(editText, columnType: changeManager?.columnType(of: column), original: original)
         onStageChange?(column, row, result.columns, value)
         editingCell = nil
+    }
+
+    /// 进入编辑时的文本：BLOB 用 hex 表示，保证无损往返。
+    private func editRepresentation(for value: DatabaseValue) -> String {
+        switch value {
+        case .null: return ""
+        case .data(let data): return hexEditText(for: data)
+        default: return content(for: value)
+        }
     }
 
     // MARK: - Helpers

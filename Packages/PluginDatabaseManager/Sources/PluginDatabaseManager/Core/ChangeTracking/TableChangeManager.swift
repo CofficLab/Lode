@@ -4,8 +4,8 @@ import Combine
 /// 把一个 ``DatabaseValue`` 转成 SQL 字面量（内联、已转义）。
 ///
 /// 采用内联而非参数绑定，是为了在 SQLite/MySQL/PostgreSQL 三种方言下统一生成
-/// 可直接 `execute(sql, params: nil)` 的语句。BLOB 暂不支持内联（v1 视为只读）。
-public func sqlLiteral(for value: DatabaseValue) -> String {
+/// 可直接 `execute(sql, params: nil)` 的语句。BLOB 按各方言的十六进制字面量输出。
+public func sqlLiteral(for value: DatabaseValue, dialect: DatabaseType) -> String {
     switch value {
     case .null:
         return "NULL"
@@ -17,17 +17,116 @@ public func sqlLiteral(for value: DatabaseValue) -> String {
         return b ? "TRUE" : "FALSE"
     case .string(let s):
         return "'" + s.replacingOccurrences(of: "'", with: "''") + "'"
-    case .data:
-        // BLOB 编辑在 v1 不支持；生成 NULL 避免破坏语句结构。
-        return "NULL"
+    case .data(let data):
+        let hex = data.map { String(format: "%02x", $0) }.joined()
+        switch dialect {
+        case .sqlite, .mysql:
+            return "X'\(hex)'"
+        case .postgresql:
+            // bytea 的 hex 输入格式（standard_conforming_strings 默认开启）。
+            return "'\\x\(hex)'"
+        case .redis:
+            return "NULL"
+        }
     }
 }
 
-/// 把单元格编辑文本解析为 ``DatabaseValue``：
-/// 空 / `NULL` → null；整数 → integer；小数 → double；true/false → bool；其余 → string。
-public func parseEditedCellValue(_ text: String) -> DatabaseValue {
+/// 单元格编辑文本的列类型族（用于类型感知解析）。
+public enum CellColumnTypeFamily: Sendable {
+    case integer, real, boolean, binary, text, other
+
+    /// 从 catalog 报告的类型名归类（忽略长度/精度修饰符与 unsigned 等后缀）。
+    public init(dataType: String) {
+        let base = dataType.lowercased()
+            .split(separator: "(").first.map(String.init)?
+            .trimmingCharacters(in: .whitespaces) ?? ""
+        switch base {
+        case "int", "integer", "smallint", "bigint", "tinyint", "mediumint",
+             "int2", "int4", "int8", "serial", "bigserial", "smallserial", "year":
+            self = .integer
+        case "real", "double", "double precision", "float", "float4", "float8",
+             "numeric", "decimal", "dec", "fixed":
+            self = .real
+        case "bool", "boolean":
+            self = .boolean
+        case "blob", "binary", "varbinary", "bytea", "tinyblob", "mediumblob",
+             "longblob", "bit varying", "bit":
+            self = .binary
+        case "text", "tinytext", "mediumtext", "longtext", "varchar",
+             "character varying", "char", "character", "clob", "uuid", "json",
+             "jsonb", "enum", "set", "name":
+            self = .text
+        default:
+            // 日期/时间/几何等：交给数据库解析文本，不做客户端强转。
+            self = .other
+        }
+    }
+}
+
+/// 把单元格编辑文本解析为 ``DatabaseValue``（类型感知）。
+///
+/// 规则：
+/// - 显式 `NULL`（忽略大小写）→ null；空文本 → 空字符串，但原值本就是 NULL 时保持 NULL
+///   （清空 NULL 单元格不应意外写入空串；显式空串作用于非 NULL 单元格）；
+/// - 给定列类型时按类型族解析：整数列 → integer、浮点列 → double、布尔列 → bool、
+///   二进制列 → hex（可带 0x 前缀）否则按 UTF-8 字节；文本列恒为 string；
+/// - 未给列类型时沿用原值的类型（避免把文本列里的 "123" 误转成整数）；
+/// - 既无列类型也无原值时退回启发式（整数/小数/布尔/字符串）。
+public func parseEditedCellValue(
+    _ text: String,
+    columnType: String? = nil,
+    original: DatabaseValue? = nil
+) -> DatabaseValue {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    if trimmed.isEmpty || trimmed.uppercased() == "NULL" { return .null }
+    if trimmed.uppercased() == "NULL" { return .null }
+    if trimmed.isEmpty { return original == .null ? .null : .string("") }
+
+    if let columnType {
+        switch CellColumnTypeFamily(dataType: columnType) {
+        case .integer:
+            if let i = Int(trimmed) { return .integer(i) }
+            return .string(trimmed)
+        case .real:
+            if let d = Double(trimmed) { return .double(d) }
+            return .string(trimmed)
+        case .boolean:
+            switch trimmed.lowercased() {
+            case "true", "t", "yes", "y", "1": return .bool(true)
+            case "false", "f", "no", "n", "0": return .bool(false)
+            default: return .string(trimmed)
+            }
+        case .binary:
+            return parseBinaryCellText(trimmed)
+        case .text:
+            return .string(trimmed)
+        case .other:
+            return .string(trimmed)
+        }
+    }
+
+    if let original {
+        switch original {
+        case .integer:
+            if let i = Int(trimmed) { return .integer(i) }
+            return .string(trimmed)
+        case .double:
+            if let d = Double(trimmed) { return .double(d) }
+            return .string(trimmed)
+        case .bool:
+            switch trimmed.lowercased() {
+            case "true", "t", "yes", "y", "1": return .bool(true)
+            case "false", "f", "no", "n", "0": return .bool(false)
+            default: return .string(trimmed)
+            }
+        case .string:
+            return .string(trimmed)
+        case .data:
+            return parseBinaryCellText(trimmed)
+        case .null:
+            break
+        }
+    }
+
     if let i = Int(trimmed) { return .integer(i) }
     if let d = Double(trimmed) { return .double(d) }
     switch trimmed.lowercased() {
@@ -35,6 +134,33 @@ public func parseEditedCellValue(_ text: String) -> DatabaseValue {
     case "false": return .bool(false)
     default: return .string(trimmed)
     }
+}
+
+/// 二进制单元格文本：纯 hex（偶数长度、可带 0x 前缀/空白）按字节解析，否则按 UTF-8。
+func parseBinaryCellText(_ text: String) -> DatabaseValue {
+    let stripped = text.hasPrefix("0x") || text.hasPrefix("0X") ? String(text.dropFirst(2)) : text
+    let compact = stripped.filter { !$0.isWhitespace }
+    if !compact.isEmpty, compact.count % 2 == 0, compact.allSatisfy({ $0.isHexDigit }) {
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(compact.count / 2)
+        var index = compact.startIndex
+        while index < compact.endIndex {
+            let next = compact.index(index, offsetBy: 2)
+            if let byte = UInt8(compact[index..<next], radix: 16) {
+                bytes.append(byte)
+            } else {
+                return .data(Data(text.utf8))
+            }
+            index = next
+        }
+        return .data(Data(bytes))
+    }
+    return .data(Data(text.utf8))
+}
+
+/// BLOB 单元格进入编辑时的文本表示（hex，便于无损往返）。
+public func hexEditText(for data: Data) -> String {
+    data.map { String(format: "%02x", $0) }.joined()
 }
 
 /// 表数据编辑的"变更跟踪队列"：在内存中暂存单元格修改、行新增、行删除，不立即写库。
@@ -88,6 +214,11 @@ public final class TableChangeManager: ObservableObject {
 
     public var isEditable: Bool { !pkColumns.isEmpty }
     public var primaryKeyColumnNames: [String] { pkColumns }
+
+    /// 列的 catalog 类型名（供单元格编辑做类型感知解析）。
+    public func columnType(of column: String) -> String? {
+        schema.columns.first { $0.name == column }?.dataType
+    }
 
     public var hasChanges: Bool {
         !updatesByRow.isEmpty || !pendingInserts.isEmpty || !deletedRowKeys.isEmpty
@@ -250,10 +381,10 @@ public final class TableChangeManager: ObservableObject {
         func q(_ name: String) -> String { DatabaseViewModel.quoteIdentifier(name, for: type) }
 
         return updatesByRow.values.map { row in
-            let setClause = row.columnUpdates.map { "\(q($0.key)) = \(sqlLiteral(for: $0.value))" }
+            let setClause = row.columnUpdates.map { "\(q($0.key)) = \(sqlLiteral(for: $0.value, dialect: type))" }
                 .joined(separator: ", ")
             let whereClause = row.primaryKeyValues
-                .map { "\(q($0.column)) = \(sqlLiteral(for: $0.value))" }
+                .map { "\(q($0.column)) = \(sqlLiteral(for: $0.value, dialect: type))" }
                 .joined(separator: " AND ")
             return "UPDATE \(tableExpr) SET \(setClause) WHERE \(whereClause);"
         }
@@ -278,7 +409,7 @@ public final class TableChangeManager: ObservableObject {
             // 按表结构列顺序输出，保证可读性
             let orderedColumns = allColumnNames.filter { insert.columnValues[$0] != nil }
             let cols = orderedColumns.map(q).joined(separator: ", ")
-            let vals = orderedColumns.map { sqlLiteral(for: insert.columnValues[$0]!) }.joined(separator: ", ")
+            let vals = orderedColumns.map { sqlLiteral(for: insert.columnValues[$0]!, dialect: type) }.joined(separator: ", ")
             return "INSERT INTO \(tableExpr) (\(cols)) VALUES (\(vals));"
         }
         .filter { !$0.isEmpty }
@@ -291,7 +422,7 @@ public final class TableChangeManager: ObservableObject {
         return deletedRowKeys.compactMap { key -> String? in
             guard let pkValues = deletedPKValues[key] else { return nil }
             let whereClause = pkValues
-                .map { "\(q($0.column)) = \(sqlLiteral(for: $0.value))" }
+                .map { "\(q($0.column)) = \(sqlLiteral(for: $0.value, dialect: type))" }
                 .joined(separator: " AND ")
             return "DELETE FROM \(tableExpr) WHERE \(whereClause);"
         }

@@ -1,0 +1,154 @@
+import Foundation
+import Testing
+@testable import DatabaseManagerPlugin
+
+/// 单元格编辑的数据完整性回归：
+/// - BLOB 字面量曾一律生成 NULL（数据丢失）；
+/// - 编辑文本曾不看列类型/原值类型，把文本列的 "123" 误转成整数。
+@MainActor
+struct TableChangeManagerTests {
+    // MARK: - SQL 字面量
+
+    @Test("BLOB 按方言生成十六进制字面量", arguments: [DatabaseType.sqlite, .mysql, .postgresql])
+    func blobLiteralPerDialect(dialect: DatabaseType) {
+        let value = DatabaseValue.data(Data([0xDE, 0xAD, 0xBE, 0xEF]))
+        let literal = sqlLiteral(for: value, dialect: dialect)
+        switch dialect {
+        case .sqlite, .mysql:
+            #expect(literal == "X'deadbeef'")
+        case .postgresql:
+            #expect(literal == "'\\xdeadbeef'")
+        case .redis:
+            break
+        }
+        #expect(literal != "NULL")
+    }
+
+    @Test("空 BLOB 生成合法空字面量")
+    func emptyBlobLiteral() {
+        #expect(sqlLiteral(for: .data(Data()), dialect: .sqlite) == "X''")
+        #expect(sqlLiteral(for: .data(Data()), dialect: .postgresql) == "'\\x'")
+    }
+
+    @Test("字符串字面量转义单引号")
+    func stringEscaping() {
+        #expect(sqlLiteral(for: .string("O'Brien"), dialect: .sqlite) == "'O''Brien'")
+    }
+
+    // MARK: - 类型感知解析
+
+    @Test("整数列解析为 integer，文本列保持 string")
+    func columnTypeAwareParsing() {
+        #expect(parseEditedCellValue("42", columnType: "INTEGER") == .integer(42))
+        #expect(parseEditedCellValue("42", columnType: "varchar(255)") == .string("42"))
+        #expect(parseEditedCellValue("42", columnType: "TEXT") == .string("42"))
+        #expect(parseEditedCellValue("3.14", columnType: "numeric(10,2)") == .double(3.14))
+        #expect(parseEditedCellValue("true", columnType: "boolean") == .bool(true))
+        #expect(parseEditedCellValue("1", columnType: "tinyint(1)") == .integer(1))
+    }
+
+    @Test("无列类型时沿用原值类型，文本不被误转数字")
+    func originalTypePreserved() {
+        #expect(parseEditedCellValue("123", original: .string("abc")) == .string("123"))
+        #expect(parseEditedCellValue("456", original: .integer(1)) == .integer(456))
+        #expect(parseEditedCellValue("2.5", original: .double(1.0)) == .double(2.5))
+    }
+
+    @Test("NULL 与空串语义区分")
+    func nullVersusEmpty() {
+        #expect(parseEditedCellValue("NULL") == .null)
+        #expect(parseEditedCellValue(" null ") == .null)
+        // 非 NULL 单元格清空 → 空字符串。
+        #expect(parseEditedCellValue("", original: .string("x")) == .string(""))
+        // NULL 单元格清空 → 保持 NULL（不意外写入空串）。
+        #expect(parseEditedCellValue("", original: .null) == .null)
+    }
+
+    @Test("二进制列 hex 与 UTF-8 解析")
+    func binaryParsing() {
+        #expect(parseEditedCellValue("deadbeef", columnType: "BLOB") == .data(Data([0xDE, 0xAD, 0xBE, 0xEF])))
+        #expect(parseEditedCellValue("0xDEAD", columnType: "bytea") == .data(Data([0xDE, 0xAD])))
+        #expect(parseEditedCellValue("hello", columnType: "BLOB") == .data(Data("hello".utf8)))
+    }
+
+    @Test("hex 编辑文本往返无损")
+    func hexRoundTrip() {
+        let data = Data([0x00, 0x01, 0xFE, 0xFF])
+        let text = hexEditText(for: data)
+        #expect(parseEditedCellValue(text, columnType: "BLOB") == .data(data))
+    }
+
+    // MARK: - 变更队列 SQL 生成
+
+    private func makeManager() -> TableChangeManager {
+        let table = DatabaseObject(kind: .table, name: "users")
+        let schema = TableSchema(table: table, columns: [
+            TableColumn(name: "id", dataType: "INTEGER", isNullable: false, isPrimaryKey: true, defaultValue: nil, position: 0),
+            TableColumn(name: "name", dataType: "TEXT", isNullable: true, isPrimaryKey: false, defaultValue: nil, position: 1),
+            TableColumn(name: "avatar", dataType: "BLOB", isNullable: true, isPrimaryKey: false, defaultValue: nil, position: 2),
+        ])
+        return TableChangeManager(table: table, schema: schema)
+    }
+
+    @Test("BLOB 单元格编辑生成的 UPDATE 不再写 NULL")
+    func blobUpdateStatement() {
+        let manager = makeManager()
+        let row: [DatabaseValue] = [.integer(1), .string("ann"), .data(Data([0x01]))]
+        let columns = ["id", "name", "avatar"]
+        manager.stageCellUpdate(column: "avatar", newValue: .data(Data([0xAB, 0xCD])), rowValues: row, columns: columns)
+
+        let statements = manager.generatedUpdateStatements(for: .sqlite)
+        #expect(statements.count == 1)
+        #expect(statements[0].contains("X'abcd'"))
+        #expect(!statements[0].contains("NULL"))
+    }
+
+    @Test("DELETE→INSERT→UPDATE 顺序与主键定位")
+    func statementOrderAndPK() {
+        let manager = makeManager()
+        let row: [DatabaseValue] = [.integer(7), .string("bob"), .null]
+        let columns = ["id", "name", "avatar"]
+        manager.stageCellUpdate(column: "name", newValue: .string("bobby"), rowValues: row, columns: columns)
+        manager.toggleRowDeletion(rowValues: [.integer(9), .string("gone"), .null], columns: columns)
+        let insertId = manager.addInsert()
+        manager.setInsertColumn(insertId: insertId, column: "name", value: .string("new"))
+
+        let all = manager.generatedAllStatements(for: .sqlite)
+        #expect(all.count == 3)
+        #expect(all[0].hasPrefix("DELETE"))
+        #expect(all[1].hasPrefix("INSERT"))
+        #expect(all[2].hasPrefix("UPDATE"))
+        #expect(all[2].contains("WHERE \"id\" = 7"))
+    }
+
+    @Test("undo/redo 恢复变更队列")
+    func undoRedo() {
+        let manager = makeManager()
+        let row: [DatabaseValue] = [.integer(1), .string("ann"), .null]
+        let columns = ["id", "name", "avatar"]
+        manager.stageCellUpdate(column: "name", newValue: .string("x"), rowValues: row, columns: columns)
+        #expect(manager.changedCellCount == 1)
+        manager.undo()
+        #expect(manager.changedCellCount == 0)
+        manager.redo()
+        #expect(manager.changedCellCount == 1)
+    }
+
+    @Test("无主键表不可编辑（现状守卫，后续全列匹配方案替换）")
+    func noPrimaryKeyNotEditable() {
+        let table = DatabaseObject(kind: .table, name: "logs")
+        let schema = TableSchema(table: table, columns: [
+            TableColumn(name: "message", dataType: "TEXT", isNullable: true, isPrimaryKey: false, defaultValue: nil, position: 0),
+        ])
+        let manager = TableChangeManager(table: table, schema: schema)
+        #expect(!manager.isEditable)
+        #expect(manager.rowKey(rowValues: [.string("x")], columns: ["message"]) == nil)
+    }
+
+    @Test("列类型查询助手")
+    func columnTypeLookup() {
+        let manager = makeManager()
+        #expect(manager.columnType(of: "avatar") == "BLOB")
+        #expect(manager.columnType(of: "missing") == nil)
+    }
+}
