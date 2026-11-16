@@ -261,7 +261,6 @@ public struct MySQLIntrospector: DatabaseIntrospector {
         guard let database = object.database else {
             return TableSchema(table: object, columns: [])
         }
-        let qualified = "`\(Self.escape(database))`.`\(Self.escape(object.name))`"
         // column_type 带长度/精度修饰符（如 tinyint(1)、varchar(255)）；
         // data_type 只有裸类型名，会丢掉 MySQL 用 tinyint(1) 表示 BOOLEAN 的约定。
         let sql = """
@@ -284,16 +283,132 @@ public struct MySQLIntrospector: DatabaseIntrospector {
                 enumValues: mysqlEnumValues(in: dataType)
             )
         }
-        let ddl = try? await connection.query("SHOW CREATE TABLE \(qualified);", params: nil)
-        let ddlString = ddl?.rows.first.flatMap { SchemaRowDecoder.string($0, at: 1) }
-        return TableSchema(table: object, columns: columns, ddl: ddlString)
+        let indexes = await Self.indexes(in: connection, database: database, table: object.name)
+        let foreignKeys = await Self.foreignKeys(in: connection, database: database, table: object.name)
+        let triggers = await Self.triggers(in: connection, database: database, table: object.name)
+        let ddl = try? await loadDDL(for: object, in: connection)
+        return TableSchema(
+            table: object,
+            columns: columns,
+            indexes: indexes,
+            foreignKeys: foreignKeys,
+            triggers: triggers,
+            ddl: ddl
+        )
+    }
+
+    /// information_schema.statistics 按索引名聚合列（seq_in_index 排序）。
+    private static func indexes(in connection: any DatabaseConnection, database: String, table: String) async -> [TableIndex] {
+        let sql = """
+        SELECT index_name, non_unique, seq_in_index, column_name, index_type
+        FROM information_schema.statistics
+        WHERE table_schema = '\(escape(database))' AND table_name = '\(escape(table))'
+        ORDER BY index_name, seq_in_index;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [] }
+        var order: [String] = []
+        var grouped: [String: (isUnique: Bool, columns: [String], indexType: String?)] = [:]
+        for row in result.rows {
+            guard let name = SchemaRowDecoder.string(row, at: 0),
+                  let column = SchemaRowDecoder.string(row, at: 3) else { continue }
+            let isUnique = SchemaRowDecoder.int(row, at: 1) == 0
+            if grouped[name] == nil {
+                order.append(name)
+                grouped[name] = (isUnique, [], SchemaRowDecoder.string(row, at: 4))
+            }
+            grouped[name]?.columns.append(column)
+        }
+        return order.compactMap { name in
+            guard let entry = grouped[name] else { return nil }
+            return TableIndex(name: name, columns: entry.columns, isUnique: entry.isUnique, indexType: entry.indexType)
+        }
+    }
+
+    /// 外键：key_column_usage 提供列映射，referential_constraints 提供级联规则。
+    private static func foreignKeys(in connection: any DatabaseConnection, database: String, table: String) async -> [ForeignKey] {
+        let sql = """
+        SELECT kcu.constraint_name, kcu.column_name, kcu.referenced_table_name,
+               kcu.referenced_column_name, rc.delete_rule, rc.update_rule
+        FROM information_schema.key_column_usage kcu
+        JOIN information_schema.referential_constraints rc
+          ON rc.constraint_schema = kcu.table_schema
+         AND rc.constraint_name = kcu.constraint_name
+         AND rc.table_name = kcu.table_name
+        WHERE kcu.table_schema = '\(escape(database))' AND kcu.table_name = '\(escape(table))'
+          AND kcu.referenced_table_name IS NOT NULL
+        ORDER BY kcu.constraint_name, kcu.ordinal_position;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [] }
+        var order: [String] = []
+        var grouped: [String: ForeignKey] = [:]
+        for row in result.rows {
+            guard let name = SchemaRowDecoder.string(row, at: 0),
+                  let column = SchemaRowDecoder.string(row, at: 1),
+                  let refTable = SchemaRowDecoder.string(row, at: 2),
+                  let refColumn = SchemaRowDecoder.string(row, at: 3) else { continue }
+            if var existing = grouped[name] {
+                existing = ForeignKey(
+                    name: name,
+                    columns: existing.columns + [column],
+                    referencesTable: refTable,
+                    referencesColumns: existing.referencesColumns + [refColumn],
+                    onDelete: existing.onDelete,
+                    onUpdate: existing.onUpdate
+                )
+                grouped[name] = existing
+            } else {
+                order.append(name)
+                grouped[name] = ForeignKey(
+                    name: name,
+                    columns: [column],
+                    referencesTable: refTable,
+                    referencesColumns: [refColumn],
+                    onDelete: SchemaRowDecoder.string(row, at: 4),
+                    onUpdate: SchemaRowDecoder.string(row, at: 5)
+                )
+            }
+        }
+        return order.compactMap { grouped[$0] }
+    }
+
+    private static func triggers(in connection: any DatabaseConnection, database: String, table: String) async -> [TableTrigger] {
+        let sql = """
+        SELECT trigger_name, action_timing, event_manipulation, action_statement
+        FROM information_schema.triggers
+        WHERE trigger_schema = '\(escape(database))' AND event_object_table = '\(escape(table))'
+        ORDER BY trigger_name;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [] }
+        return result.rows.compactMap { row in
+            guard let name = SchemaRowDecoder.string(row, at: 0) else { return nil }
+            return TableTrigger(
+                name: name,
+                timing: SchemaRowDecoder.string(row, at: 1),
+                event: SchemaRowDecoder.string(row, at: 2),
+                statement: SchemaRowDecoder.string(row, at: 3)
+            )
+        }
     }
 
     public func loadDDL(for object: DatabaseObject, in connection: any DatabaseConnection) async throws -> String? {
         guard let database = object.database else { return nil }
         let qualified = "`\(Self.escape(database))`.`\(Self.escape(object.name))`"
-        let result = try await connection.query("SHOW CREATE TABLE \(qualified);", params: nil)
-        return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 1) }
+        switch object.kind {
+        case .table:
+            let result = try await connection.query("SHOW CREATE TABLE \(qualified);", params: nil)
+            return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 1) }
+        case .view:
+            let result = try await connection.query("SHOW CREATE VIEW \(qualified);", params: nil)
+            return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 1) }
+        case .procedure:
+            let result = try await connection.query("SHOW CREATE PROCEDURE \(qualified);", params: nil)
+            return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 2) }
+        case .function:
+            let result = try await connection.query("SHOW CREATE FUNCTION \(qualified);", params: nil)
+            return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 2) }
+        case .index, .trigger, .materializedView:
+            return nil
+        }
     }
 
     private static func escape(_ s: String) -> String {
@@ -342,10 +457,11 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
             default: tableType = "FOREIGN"  // 占位，物化视图走 pg_class 分支
             }
             if kind == .materializedView {
+                let schemaPredicate = schema.map { "n.nspname = '\(Self.escape($0))'" } ?? "n.nspname = current_schema()"
                 let sql = """
                 SELECT relname, n.nspname FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE c.relkind = 'm' AND n.nspname = current_schema()
+                WHERE c.relkind = 'm' AND \(schemaPredicate)
                 ORDER BY relname;
                 """
                 let result = try await connection.query(sql, params: nil)
@@ -426,7 +542,151 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
                 }
             }
         }
-        return TableSchema(table: object, columns: columns)
+        let indexes = await Self.indexes(in: connection, schema: schema, table: object.name)
+        let foreignKeys = await Self.foreignKeys(in: connection, schema: schema, table: object.name)
+        let triggers = await Self.triggers(in: connection, schema: schema, table: object.name)
+        let ddl = try? await loadDDL(for: object, in: connection)
+        return TableSchema(
+            table: object,
+            columns: columns,
+            indexes: indexes,
+            foreignKeys: foreignKeys,
+            triggers: triggers,
+            ddl: ddl
+        )
+    }
+
+    /// pg_index + pg_get_indexdef 逐键取列名/表达式，聚合为表索引。
+    /// int2vector::int[] 是 0 基数组（generate_subscripts 从 0 起），
+    /// 而 pg_get_indexdef 的列号参数是 1 起，故 +1。
+    private static func indexes(in connection: any DatabaseConnection, schema: String, table: String) async -> [TableIndex] {
+        let sql = """
+        SELECT i.relname, ix.indisunique, am.amname, pg_get_indexdef(ix.indexrelid, k.ord + 1, false)
+        FROM pg_index ix
+        JOIN pg_class i ON i.oid = ix.indexrelid
+        JOIN pg_class t ON t.oid = ix.indrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+        JOIN pg_am am ON am.oid = i.relam
+        CROSS JOIN LATERAL generate_subscripts(ix.indkey::int[], 1) AS k(ord)
+        WHERE n.nspname = '\(escape(schema))' AND t.relname = '\(escape(table))'
+        ORDER BY i.relname, k.ord;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [] }
+        var order: [String] = []
+        var grouped: [String: (isUnique: Bool, columns: [String], indexType: String?)] = [:]
+        for row in result.rows {
+            guard let name = SchemaRowDecoder.string(row, at: 0),
+                  let column = SchemaRowDecoder.string(row, at: 3) else { continue }
+            if grouped[name] == nil {
+                order.append(name)
+                grouped[name] = (
+                    SchemaRowDecoder.string(row, at: 1) == "true",
+                    [],
+                    SchemaRowDecoder.string(row, at: 2)
+                )
+            }
+            grouped[name]?.columns.append(column)
+        }
+        return order.compactMap { name in
+            guard let entry = grouped[name] else { return nil }
+            return TableIndex(name: name, columns: entry.columns, isUnique: entry.isUnique, indexType: entry.indexType)
+        }
+    }
+
+    /// pg_constraint 外键：conkey/confkey 逐位展开为列名对，级联规则按代码映射。
+    private static func foreignKeys(in connection: any DatabaseConnection, schema: String, table: String) async -> [ForeignKey] {
+        let sql = """
+        SELECT con.conname, sa.attname, ta.attname, conf.relname, con.confdeltype, con.confupdtype
+        FROM pg_constraint con
+        JOIN pg_class t ON t.oid = con.conrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+        JOIN pg_class conf ON conf.oid = con.confrelid
+        CROSS JOIN LATERAL generate_subscripts(con.conkey::int[], 1) AS k(ord)
+        JOIN pg_attribute sa ON sa.attrelid = con.conrelid AND sa.attnum = con.conkey[k.ord]
+        JOIN pg_attribute ta ON ta.attrelid = con.confrelid AND ta.attnum = con.confkey[k.ord]
+        WHERE con.contype = 'f' AND n.nspname = '\(escape(schema))' AND t.relname = '\(escape(table))'
+        ORDER BY con.conname, k.ord;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [] }
+        var order: [String] = []
+        var grouped: [String: ForeignKey] = [:]
+        for row in result.rows {
+            guard let name = SchemaRowDecoder.string(row, at: 0),
+                  let column = SchemaRowDecoder.string(row, at: 1),
+                  let refColumn = SchemaRowDecoder.string(row, at: 2),
+                  let refTable = SchemaRowDecoder.string(row, at: 3) else { continue }
+            if var existing = grouped[name] {
+                existing = ForeignKey(
+                    name: name,
+                    columns: existing.columns + [column],
+                    referencesTable: refTable,
+                    referencesColumns: existing.referencesColumns + [refColumn],
+                    onDelete: existing.onDelete,
+                    onUpdate: existing.onUpdate
+                )
+                grouped[name] = existing
+            } else {
+                order.append(name)
+                grouped[name] = ForeignKey(
+                    name: name,
+                    columns: [column],
+                    referencesTable: refTable,
+                    referencesColumns: [refColumn],
+                    onDelete: fkAction(SchemaRowDecoder.string(row, at: 4)),
+                    onUpdate: fkAction(SchemaRowDecoder.string(row, at: 5))
+                )
+            }
+        }
+        return order.compactMap { grouped[$0] }
+    }
+
+    /// pg_constraint 的 confdeltype/confupdtype 单字符代码 → SQL 动作。
+    private static func fkAction(_ code: String?) -> String? {
+        switch code {
+        case "a": return "NO ACTION"
+        case "r": return "RESTRICT"
+        case "c": return "CASCADE"
+        case "n": return "SET NULL"
+        case "d": return "SET DEFAULT"
+        default: return nil
+        }
+    }
+
+    /// 用户触发器（排除内部约束触发器）；tgtype 位标志解析时机/事件。
+    private static func triggers(in connection: any DatabaseConnection, schema: String, table: String) async -> [TableTrigger] {
+        let sql = """
+        SELECT tg.tgname, tg.tgtype, tg.tgenabled, pg_get_triggerdef(tg.oid)
+        FROM pg_trigger tg
+        JOIN pg_class t ON t.oid = tg.tgrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+        WHERE NOT tg.tgisinternal AND n.nspname = '\(escape(schema))' AND t.relname = '\(escape(table))'
+        ORDER BY tg.tgname;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [] }
+        return result.rows.compactMap { row in
+            guard let name = SchemaRowDecoder.string(row, at: 0) else { return nil }
+            let type = SchemaRowDecoder.int(row, at: 1) ?? 0
+            let timing: String
+            if type & 64 != 0 {
+                timing = "INSTEAD OF"
+            } else if type & 2 != 0 {
+                timing = "BEFORE"
+            } else {
+                timing = "AFTER"
+            }
+            var events: [String] = []
+            if type & 4 != 0 { events.append("INSERT") }
+            if type & 8 != 0 { events.append("DELETE") }
+            if type & 16 != 0 { events.append("UPDATE") }
+            if type & 32 != 0 { events.append("TRUNCATE") }
+            return TableTrigger(
+                name: name,
+                timing: timing,
+                event: events.isEmpty ? nil : events.joined(separator: " OR "),
+                statement: SchemaRowDecoder.string(row, at: 3),
+                isEnabled: SchemaRowDecoder.string(row, at: 2) != "D"
+            )
+        }
     }
 
     /// 当前 schema 下全部 enum 类型的取值（按 enumsortorder），以类型名为键。
@@ -451,12 +711,140 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
 
     public func loadDDL(for object: DatabaseObject, in connection: any DatabaseConnection) async throws -> String? {
         let schema = object.schema ?? "public"
-        let result = try await connection.query(
-            "SELECT pg_get_tabledef('\(Self.escape(schema))'::text, '\(Self.escape(object.name))'::text, false);",
-            params: nil
-        )
-        // pg_get_tabledef 可能不可用（非默认扩展），失败时返回 nil，由上层用列信息兜底
-        return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 0) }
+        switch object.kind {
+        case .table:
+            return await Self.tableDDL(name: object.name, schema: schema, in: connection)
+        case .view, .materializedView:
+            let sql = """
+            SELECT quote_ident(n.nspname) || '.' || quote_ident(c.relname), pg_get_viewdef(c.oid, true)
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = '\(Self.escape(schema))' AND c.relname = '\(Self.escape(object.name))'
+              AND c.relkind IN ('v', 'm');
+            """
+            guard let row = try await connection.query(sql, params: nil).rows.first,
+                  let qualified = SchemaRowDecoder.string(row, at: 0),
+                  var definition = SchemaRowDecoder.string(row, at: 1) else { return nil }
+            definition = definition.trimmingCharacters(in: .whitespacesAndNewlines)
+            if definition.hasSuffix(";") { definition.removeLast() }
+            let keyword = object.kind == .materializedView ? "MATERIALIZED VIEW" : "VIEW"
+            return "CREATE \(keyword) \(qualified) AS\n\(definition);"
+        case .procedure, .function:
+            let kindFilter = object.kind == .procedure ? "p" : "f"
+            let sql = """
+            SELECT pg_get_functiondef(p.oid)
+            FROM pg_proc p
+            JOIN pg_namespace n ON n.oid = p.pronamespace
+            WHERE n.nspname = '\(Self.escape(schema))' AND p.proname = '\(Self.escape(object.name))'
+              AND p.prokind = '\(kindFilter)'
+            LIMIT 1;
+            """
+            return try await connection.query(sql, params: nil).rows.first.flatMap { SchemaRowDecoder.string($0, at: 0) }
+        case .index:
+            let sql = """
+            SELECT pg_get_indexdef(c.oid)
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = '\(Self.escape(schema))' AND c.relname = '\(Self.escape(object.name))'
+              AND c.relkind = 'i';
+            """
+            return try await connection.query(sql, params: nil).rows.first.flatMap { SchemaRowDecoder.string($0, at: 0) }
+        case .trigger:
+            let sql = """
+            SELECT pg_get_triggerdef(tg.oid)
+            FROM pg_trigger tg
+            JOIN pg_class c ON c.oid = tg.tgrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = '\(Self.escape(schema))' AND tg.tgname = '\(Self.escape(object.name))'
+              AND NOT tg.tgisinternal
+            LIMIT 1;
+            """
+            return try await connection.query(sql, params: nil).rows.first.flatMap { SchemaRowDecoder.string($0, at: 0) }
+        }
+    }
+
+    /// 从 catalog 拼装 CREATE TABLE：列（类型/默认值/identity/generated/NOT NULL）+
+    /// 约束（pg_get_constraintdef）+ 非约束索引（pg_get_indexdef）。
+    /// 不依赖 pg_get_tabledef 等扩展，原生 PostgreSQL 即可用。
+    private static func tableDDL(name: String, schema: String, in connection: any DatabaseConnection) async -> String? {
+        let predicate = "n.nspname = '\(escape(schema))' AND c.relname = '\(escape(name))'"
+        let headerSQL = """
+        SELECT quote_ident(n.nspname) || '.' || quote_ident(c.relname)
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE \(predicate) AND c.relkind IN ('r', 'p');
+        """
+        guard let headerRow = try? await connection.query(headerSQL, params: nil).rows.first,
+              let qualified = SchemaRowDecoder.string(headerRow, at: 0) else { return nil }
+
+        let columnsSQL = """
+        SELECT quote_ident(a.attname), format_type(a.atttypid, a.atttypmod), a.attnotnull,
+               pg_get_expr(ad.adbin, ad.adrelid), a.attidentity, a.attgenerated
+        FROM pg_attribute a
+        JOIN pg_class c ON c.oid = a.attrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        LEFT JOIN pg_attrdef ad ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
+        WHERE \(predicate) AND a.attnum > 0 AND NOT a.attisdropped
+        ORDER BY a.attnum;
+        """
+        guard let columnRows = try? await connection.query(columnsSQL, params: nil).rows, !columnRows.isEmpty else { return nil }
+        var lines: [String] = columnRows.compactMap { row in
+            guard let columnName = SchemaRowDecoder.string(row, at: 0),
+                  let typeName = SchemaRowDecoder.string(row, at: 1) else { return nil }
+            var line = "    \(columnName) \(typeName)"
+            let defaultValue = SchemaRowDecoder.string(row, at: 3)
+            let identity = SchemaRowDecoder.string(row, at: 4) ?? ""
+            let generated = SchemaRowDecoder.string(row, at: 5) ?? ""
+            if generated == "s", let expression = defaultValue {
+                line += " GENERATED ALWAYS AS (\(expression)) STORED"
+            } else if identity == "a" {
+                line += " GENERATED ALWAYS AS IDENTITY"
+            } else if identity == "d" {
+                line += " GENERATED BY DEFAULT AS IDENTITY"
+            } else if let defaultValue {
+                line += " DEFAULT \(defaultValue)"
+            }
+            if SchemaRowDecoder.string(row, at: 2) == "true" {
+                line += " NOT NULL"
+            }
+            return line
+        }
+
+        let constraintsSQL = """
+        SELECT quote_ident(con.conname), pg_get_constraintdef(con.oid)
+        FROM pg_constraint con
+        JOIN pg_class c ON c.oid = con.conrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE \(predicate) AND con.contype IN ('p', 'u', 'f', 'c')
+        ORDER BY CASE con.contype WHEN 'p' THEN 0 WHEN 'u' THEN 1 WHEN 'f' THEN 2 ELSE 3 END, con.conname;
+        """
+        if let constraintRows = try? await connection.query(constraintsSQL, params: nil).rows {
+            for row in constraintRows {
+                guard let constraintName = SchemaRowDecoder.string(row, at: 0),
+                      let definition = SchemaRowDecoder.string(row, at: 1) else { continue }
+                lines.append("    CONSTRAINT \(constraintName) \(definition)")
+            }
+        }
+
+        var ddl = "CREATE TABLE \(qualified) (\n" + lines.joined(separator: ",\n") + "\n);"
+
+        let indexesSQL = """
+        SELECT pg_get_indexdef(i.oid)
+        FROM pg_index ix
+        JOIN pg_class i ON i.oid = ix.indexrelid
+        JOIN pg_class c ON c.oid = ix.indrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE \(predicate)
+          AND NOT EXISTS (SELECT 1 FROM pg_constraint con WHERE con.conindid = ix.indexrelid)
+        ORDER BY i.relname;
+        """
+        if let indexRows = try? await connection.query(indexesSQL, params: nil).rows {
+            for row in indexRows {
+                guard let definition = SchemaRowDecoder.string(row, at: 0) else { continue }
+                ddl += "\n\n\(definition);"
+            }
+        }
+        return ddl
     }
 
     private static func escape(_ s: String) -> String {
