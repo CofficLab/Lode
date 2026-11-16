@@ -36,7 +36,12 @@ public actor DatabaseManagerCore {
 
     public func connect(config: DatabaseConfig) async throws -> any DatabaseConnection {
         let driver = try getDriver(for: config.type)
-        let connection = try await driver.connect(config: config)
+        let raw = try await driver.connect(config: config)
+        // 非 off 档套一层安全模式连接：readOnly 在驱动层硬拒绝写语句，
+        // 覆盖 getConnection 的所有调用方（编辑器、变更队列、DDL、Agent）。
+        let connection: any DatabaseConnection = config.safeMode == .off
+            ? raw
+            : SafeModeConnection(wrapped: raw, safeMode: config.safeMode, type: config.type)
         if let existingConnection = activeConnections[config.id] {
             await existingConnection.close()
         }

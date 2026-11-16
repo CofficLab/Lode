@@ -134,6 +134,7 @@ struct ConnectionsListView: View {
 
                 Spacer(minLength: 4)
 
+                safeModeTag(config.safeMode)
                 statusIndicator(isSelected: isSelected, isConnected: isConnected)
             }
         }
@@ -148,6 +149,32 @@ struct ConnectionsListView: View {
             } label: {
                 Label(pluginLocalization.string("Delete"), systemImage: "trash")
             }
+        }
+    }
+
+    /// 安全模式彩色标签：readOnly 用 error 语义色、confirmWrites 用 warning 语义色，
+    /// 提示生产/受保护连接。off 档不显示。沿用 ConflictResolutionSheet 徽章的视觉语言
+    /// （AppTag 当前仅提供 subtle/accent 两档，无语义色变体，故按主题语义色自绘 chip）。
+    @ViewBuilder
+    private func safeModeTag(_ mode: ConnectionSafeMode) -> some View {
+        switch mode {
+        case .off:
+            EmptyView()
+        case .confirmWrites, .readOnly:
+            let color = mode == .readOnly ? theme.error : theme.warning
+            let icon = mode == .readOnly ? "lock.fill" : "exclamationmark.shield"
+            HStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .semibold))
+                Text(pluginLocalization.string(mode.displayTitle))
+                    .font(.appMicro)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.12), in: .rect(cornerRadius: 6))
+            .help(pluginLocalization.string(mode.helpText))
         }
     }
 

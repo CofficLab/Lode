@@ -48,5 +48,45 @@ public struct DatabaseWorkspaceView: View {
             .padding(.top, 6)
             .padding(.trailing, 6)
         }
+        .confirmationDialog(
+            writeConfirmationTitle,
+            isPresented: Binding(
+                get: { viewModel.writeConfirmation != nil },
+                set: { if !$0 { viewModel.resolveWriteConfirmation(false) } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(writeConfirmationButtonTitle) { viewModel.resolveWriteConfirmation(true) }
+            Button(pluginLocalization.string("Cancel"), role: .cancel) { viewModel.resolveWriteConfirmation(false) }
+        } message: {
+            if let request = viewModel.writeConfirmation {
+                Text(pluginLocalization.string("This connection asks for confirmation before writes."))
+                Text("\(request.writeCount) " + pluginLocalization.string("write statement(s) will be executed."))
+                if let preview = request.previewSQL {
+                    Text(preview).font(.monospaced(.caption)())
+                }
+            }
+        }
+    }
+
+    // MARK: - 写确认文案
+
+    private var writeConfirmationTitle: String {
+        switch viewModel.writeConfirmation?.kind {
+        case .query: return pluginLocalization.string("Run this write statement?")
+        case .batch: return pluginLocalization.string("Run these write statements?")
+        case .tableEdit: return pluginLocalization.string("Save changes to the database?")
+        case .schemaChange: return pluginLocalization.string("Apply structure changes?")
+        case nil: return pluginLocalization.string("Confirm write")
+        }
+    }
+
+    private var writeConfirmationButtonTitle: String {
+        switch viewModel.writeConfirmation?.kind {
+        case .query, .batch: return pluginLocalization.string("Run")
+        case .tableEdit: return pluginLocalization.string("Save")
+        case .schemaChange: return pluginLocalization.string("Apply Changes")
+        case nil: return pluginLocalization.string("Confirm")
+        }
     }
 }

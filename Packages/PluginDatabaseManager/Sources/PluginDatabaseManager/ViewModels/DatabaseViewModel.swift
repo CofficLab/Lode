@@ -63,6 +63,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 是否正在展示冲突解决面板。
     @Published public var showConflictSheet: Bool = false
 
+    /// 待确认的写操作（confirmWrites 档）；非 nil 时弹出确认对话框，写流程挂起等待用户决定。
+    @Published public private(set) var writeConfirmation: WriteConfirmationRequest?
+    /// 写确认的挂起续体；用户决定后恢复写流程。
+    private var writeConfirmationContinuation: CheckedContinuation<Bool, Never>?
+
     /// 多语句执行的结果（每语句一条）；为空时表示当前是单语句模式。
     @Published public var multiExecutions: [StatementExecution] = []
     /// 多结果当前选中的 tab 索引。
@@ -301,6 +306,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             changeManager = nil
             pendingConflicts = []
             showConflictSheet = false
+            cancelPendingWriteConfirmation()
             schemaChangeManager = nil
             // 切换连接时清掉旧连接的结构缓存
             schemaCache.invalidate(configId: config.id)
@@ -401,6 +407,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         changeManager = nil
         pendingConflicts = []
         showConflictSheet = false
+        cancelPendingWriteConfirmation()
         schemaChangeManager = nil
         schemaCache.invalidate(configId: config.id)
         // 显式断开后，下次不再自动重连这个连接
@@ -547,6 +554,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         // 取连接期间用户可能已经切走：旧连接的结果不允许再落到界面上。
         guard isCurrentConnection(generation, configId: config.id) else { return }
 
+        // 写权限闸门：readOnly 拒绝、confirmWrites 弹确认（读语句直接放行）。
+        switch await authorizeWrites([sql], type: config.type, kind: .query) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: presentReadOnlyError(); return
+        }
+
         if Self.verbose {
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.info("\(self.t)执行查询: \(sql.prefix(50))...")
@@ -679,6 +693,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             return
         }
         guard isCurrentConnection(generation, configId: config.id) else { return }
+
+        // 写权限闸门：批量中任一写语句即触发（readOnly 整批拒绝、confirmWrites 确认一次）。
+        switch await authorizeWrites(statements, type: config.type, kind: .batch) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: presentReadOnlyError(); return
+        }
 
         isLoading = true
         errorMessage = nil
@@ -972,6 +993,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             changeManager = nil
             pendingConflicts = []
             showConflictSheet = false
+            cancelPendingWriteConfirmation()
             schemaChangeManager = nil
             // 兼容旧 UI（空状态判断等）
             if config.type == .sqlite { selectedSQLiteTable = object.name }
@@ -1065,6 +1087,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             changeManager = nil
             pendingConflicts = []
             showConflictSheet = false
+            cancelPendingWriteConfirmation()
             schemaChangeManager = nil
             tableSchemaError = error.localizedDescription
         }
@@ -1120,6 +1143,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
 
         let statements = manager.statements(for: config.type)
+        // 写权限闸门：DDL 属写操作；readOnly 拒绝（错误落到结构面板），confirmWrites 弹确认。
+        switch await authorizeWrites(statements, type: config.type, kind: .schemaChange) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: tableSchemaError = readOnlySchemaErrorMessage; return
+        }
         isLoadingTableSchema = true
         tableSchemaError = nil
         do {
@@ -1364,6 +1393,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             return
         }
         let plan = cm.writePlan(for: config.type)
+        // 写权限闸门：变更队列提交（含冲突「覆盖/放弃」后的再次提交）统一在此拦截。
+        switch await authorizeWrites(plan.map(\.sql), type: config.type, kind: .tableEdit) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: presentReadOnlyError(); return
+        }
         isLoading = true
         errorMessage = nil
         do {
@@ -1444,6 +1479,68 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     public func cancelConflictResolution() {
         pendingConflicts = []
         showConflictSheet = false
+    }
+
+    // MARK: - 写权限闸门（连接级安全模式）
+
+    /// 写确认请求的展示模型。
+    public struct WriteConfirmationRequest: Identifiable, Sendable {
+        public let id = UUID()
+        public let kind: WriteOperationKind
+        public let writeCount: Int
+        public let previewSQL: String?
+    }
+
+    /// 对一批待执行语句应用写闸门（VM 层 UX）。
+    ///
+    /// 仅对写语句生效：off 放行；readOnly 返回 ``WriteAuthorization/blocked``（调用方给出本地化错误）；
+    /// confirmWrites 弹确认并挂起，用户确认返回 authorized、取消返回 cancelled。
+    /// 驱动层另有 readOnly 硬保证（``SafeModeConnection``），此处负责友好提示与确认流程。
+    func authorizeWrites(_ sqls: [String], type: DatabaseType, kind: WriteOperationKind) async -> WriteAuthorization {
+        let writes = sqls.filter { WriteGate.isWriteStatement($0, type: type) }
+        guard !writes.isEmpty, let config = selectedConfig else { return .authorized }
+        switch WriteGate.decision(safeMode: config.safeMode, isWrite: true) {
+        case .proceed:
+            return .authorized
+        case .blocked:
+            return .blocked
+        case .requiresConfirmation:
+            let approved = await requestWriteConfirmation(kind: kind, writeCount: writes.count, preview: writes.first)
+            return approved ? .authorized : .cancelled
+        }
+    }
+
+    /// readOnly 拒绝写操作时的本地化错误（归类为权限不足，恢复动作「编辑连接」可改安全模式）。
+    func presentReadOnlyError() {
+        let message = pluginLocalization.string("This connection is read-only. Writes are blocked. Edit the connection to change its safe mode.")
+        classifiedError = ClassifiedDatabaseError(category: .permissionDenied, detail: message)
+        errorMessage = message
+    }
+
+    /// readOnly 拒绝写操作时用于结构变更面板的本地化错误文案。
+    var readOnlySchemaErrorMessage: String {
+        pluginLocalization.string("This connection is read-only. Structure changes are blocked. Edit the connection to change its safe mode.")
+    }
+
+    private func requestWriteConfirmation(kind: WriteOperationKind, writeCount: Int, preview: String?) async -> Bool {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            writeConfirmationContinuation = continuation
+            writeConfirmation = WriteConfirmationRequest(kind: kind, writeCount: writeCount, previewSQL: preview)
+        }
+    }
+
+    /// 用户对写确认弹窗的决定：true 继续执行，false 取消。续体只消费一次，重复调用安全。
+    public func resolveWriteConfirmation(_ approved: Bool) {
+        writeConfirmation = nil
+        let continuation = writeConfirmationContinuation
+        writeConfirmationContinuation = nil
+        continuation?.resume(returning: approved)
+    }
+
+    /// 连接切换/断开时取消仍在挂起的写确认，避免续体泄漏导致写流程永久挂起。
+    private func cancelPendingWriteConfirmation() {
+        guard writeConfirmationContinuation != nil else { return }
+        resolveWriteConfirmation(false)
     }
 
     /// 按方言引用单个标识符（SQLite/PG 用双引号，MySQL 用反引号）。

@@ -26,6 +26,7 @@ struct ConnectionFormView: View {
     @State private var password = ""
     @State private var sqlitePath = ""
     @State private var sslOption: ConnectionSSLOption = .require
+    @State private var safeMode: ConnectionSafeMode = .off
     @State private var isTesting = false
     @State private var testMessage: String?
     @State private var testSuccess = false
@@ -75,6 +76,8 @@ struct ConnectionFormView: View {
                             sslPicker
                         }
                     }
+
+                    safeModePicker
                 }
             }
 
@@ -129,6 +132,30 @@ struct ConnectionFormView: View {
         }
     }
 
+    /// 安全模式选择：off / confirmWrites / readOnly，适用于所有引擎（含 SQLite）。
+    @ViewBuilder
+    private var safeModePicker: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(pluginLocalization.string("Safe Mode"))
+                    .font(.appCaption)
+                    .foregroundColor(theme.textSecondary)
+                Text(pluginLocalization.string(safeMode.helpText))
+                    .font(.appMicro)
+                    .foregroundColor(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Picker("", selection: $safeMode) {
+                ForEach(ConnectionSafeMode.allCases, id: \.self) { mode in
+                    Text(pluginLocalization.string(mode.displayTitle)).tag(mode)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 160)
+        }
+    }
+
     // MARK: - Derived
 
     private var title: String {
@@ -159,6 +186,7 @@ struct ConnectionFormView: View {
         if let ssl = editing.sslOption {
             sslOption = ssl
         }
+        safeMode = editing.safeMode
     }
 
     // MARK: - Actions
@@ -236,6 +264,8 @@ struct ConnectionFormView: View {
         } else {
             config = config.withSSLOption(nil)
         }
+        // 安全模式适用于所有引擎（off 档移除该键，回退默认）。
+        config = config.withSafeMode(safeMode)
         return config
     }
 }
