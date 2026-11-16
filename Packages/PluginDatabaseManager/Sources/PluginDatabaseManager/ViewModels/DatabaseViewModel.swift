@@ -26,6 +26,21 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published var isConnected: Bool = false
     @Published var isLoading: Bool = false
     @Published var redisKeys: [String] = []
+    /// 命名空间键树（由 ``redisKeys`` 按分隔符聚合），侧边栏类型化浏览的数据源。
+    @Published public private(set) var redisKeyTree: [RedisKeyTreeNode] = []
+    /// 键名分隔符（默认 `:`）；改变后重建键树。
+    @Published public var redisKeySeparator: String = ":" {
+        didSet { rebuildRedisKeyTree() }
+    }
+    /// SCAN 游标分页状态：当前游标、是否还有更多键、是否正在扫描。
+    @Published public private(set) var redisScanCursor: String = "0"
+    @Published public private(set) var redisHasMoreKeys: Bool = false
+    @Published public private(set) var isLoadingRedisKeys: Bool = false
+    /// 当前打开的键元信息（类型 + TTL）与类型化值；nil 表示未打开键详情。
+    @Published public private(set) var selectedRedisKey: RedisKeyInfo?
+    @Published public private(set) var selectedRedisValue: RedisKeyValue?
+    @Published public private(set) var isLoadingRedisValue: Bool = false
+    @Published public private(set) var redisValueError: String?
     @Published var sqliteTables: [String] = []
     @Published var selectedSQLiteTable: String?
     /// 侧边栏当前展示的内容：数据浏览（Tables/Keys）或连接列表。
@@ -394,7 +409,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             resetEditorPaging()
             queryResult = nil
             workspace.clearAllResults()
-            redisKeys = []
+            clearRedisBrowserState()
             sqliteTables = []
             selectedSQLiteTable = nil
             openTableObject = nil
@@ -504,7 +519,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         resetEditorPaging()
         workspace.clearAllResults()
         syncActiveSnapshot()
-        redisKeys = []
+        clearRedisBrowserState()
         sqliteTables = []
         selectedSQLiteTable = nil
         openTableObject = nil
@@ -1112,39 +1127,172 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             || upper.hasPrefix("DROP") || upper.hasPrefix("TRUNCATE")
     }
 
-    /// 加载 Redis 键列表（循环 SCAN 直到游标归零，带安全上限避免巨型键空间卡死）。
+    /// 单页 SCAN 的目标键数与每次 SCAN 的工作量提示。分页加载解除「一次扫完整库」的呈现瓶颈：
+    /// 首屏只取一页，用户可「加载更多」逐页深入数百万键的键空间而不冻结界面。
+    private static let redisScanPageTarget = 1000
+    private static let redisScanCountHint = 200
+
+    /// 重建命名空间键树（键集合或分隔符变化时调用）。
+    private func rebuildRedisKeyTree() {
+        redisKeyTree = RedisKeyTreeBuilder.build(keys: redisKeys, separator: redisKeySeparator)
+    }
+
+    /// 连接切换/断开时清空键浏览器全部状态，避免旧连接的键/详情泄漏到新连接。
+    private func clearRedisBrowserState() {
+        redisKeys = []
+        redisKeyTree = []
+        redisScanCursor = "0"
+        redisHasMoreKeys = false
+        selectedRedisKey = nil
+        selectedRedisValue = nil
+        redisValueError = nil
+    }
+
+    /// 加载 Redis 键列表首页（重置游标后扫描一页），并重建命名空间键树。
     public func loadRedisKeys() async {
+        redisKeys = []
+        redisScanCursor = "0"
+        redisHasMoreKeys = false
+        rebuildRedisKeyTree()
+        await scanRedisKeysPage(reset: true)
+    }
+
+    /// 从当前游标继续扫描下一页键（侧边栏「加载更多」）。
+    public func loadMoreRedisKeys() async {
+        guard redisHasMoreKeys, !isLoadingRedisKeys else { return }
+        await scanRedisKeysPage(reset: false)
+    }
+
+    /// SCAN 分页核心：经 ``RedisCursorScanning`` 协议穿透安全模式/SSH 包装连接，
+    /// 累计到一页目标或游标归零即停，去重保序后更新键集合与树。
+    private func scanRedisKeysPage(reset: Bool) async {
         let generation = connectionGeneration
         guard let config = selectedConfig, config.type == .redis else { return }
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
-        guard let redis = connection as? RedisConnection else {
+        guard let redis = connection as? RedisCursorScanning else {
             presentError(DatabaseError.connectionFailed("Unexpected Redis connection type"))
             return
         }
+        isLoadingRedisKeys = true
+        defer { isLoadingRedisKeys = false }
         do {
-            var cursor = "0"
-            var keys: [String] = []
-            /// 单次加载的安全上限，避免在生产键空间（数百万键）里无止境扫描。
-            let safetyCap = 10_000
+            var cursor = reset ? "0" : redisScanCursor
+            var collected = reset ? [] : redisKeys
+            let startCount = collected.count
             repeat {
-                let step = try await redis.scanKeys(cursor: cursor, match: "*", count: 200)
+                let step = try await redis.scanKeys(cursor: cursor, match: "*", count: Self.redisScanCountHint)
                 guard isCurrentConnection(generation, configId: config.id) else { return }
-                keys.append(contentsOf: step.keys)
+                collected.append(contentsOf: step.keys)
                 cursor = step.nextCursor
-            } while cursor != "0" && keys.count < safetyCap
+            } while cursor != "0" && (collected.count - startCount) < Self.redisScanPageTarget
             guard isCurrentConnection(generation, configId: config.id) else { return }
-            redisKeys = keys
+            // SCAN 跨迭代可能重复返回同一键：去重并保持首次出现顺序。
+            var seen = Set<String>()
+            redisKeys = collected.filter { seen.insert($0).inserted }
+            redisScanCursor = cursor
+            redisHasMoreKeys = cursor != "0"
+            rebuildRedisKeyTree()
         } catch {
             guard isCurrentConnection(generation, configId: config.id) else { return }
             presentError(error)
         }
     }
-    
-    /// 打开指定 Redis 键（设置查询并执行 GET）
+
+    /// 打开指定 Redis 键：读取 TYPE + TTL + 类型化值，落入键详情面板。
+    /// 读命令经 params 通道传键，避免键名含空格/引号时的转义问题。
     public func openRedisKey(_ key: String) async {
-        queryText = "GET \(key)"
-        await executeQuery()
+        let generation = connectionGeneration
+        guard let config = selectedConfig, config.type == .redis else { return }
+        guard let connection = await manager.getConnection(for: config.id) else {
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        isLoadingRedisValue = true
+        redisValueError = nil
+        defer { isLoadingRedisValue = false }
+        do {
+            let typeResult = try await connection.query("TYPE", params: [.string(key)])
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            let type = RedisKeyType(commandResult: Self.redisScalarString(typeResult))
+            let ttlResult = try await connection.query("TTL", params: [.string(key)])
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            let ttl = Self.redisScalarInt(ttlResult) ?? -1
+            selectedRedisKey = RedisKeyInfo(key: key, type: type, ttl: ttl)
+            if let read = RedisKeyCommands.read(type: type, key: key) {
+                let valueResult = try await connection.query(read.command, params: read.params)
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                selectedRedisValue = RedisKeyValue.from(type: type, result: valueResult)
+            } else {
+                selectedRedisValue = .string(.null)
+            }
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            redisValueError = error.localizedDescription
+        }
+    }
+
+    /// 重新读取当前打开键的类型/TTL/值（编辑后或手动刷新）。
+    public func refreshSelectedRedisValue() async {
+        guard let key = selectedRedisKey?.key else { return }
+        await openRedisKey(key)
+    }
+
+    /// 关闭键详情，回到命令编辑器。
+    public func closeRedisKey() {
+        selectedRedisKey = nil
+        selectedRedisValue = nil
+        redisValueError = nil
+    }
+
+    /// 执行一次类型化键编辑：经写闸门（confirmWrites 确认 / readOnly 拒绝）后下发命令，
+    /// 成功后本地更新键集合与树并刷新当前键值，避免整库重扫。
+    public func applyRedisEdit(_ edit: RedisKeyEdit) async {
+        let generation = connectionGeneration
+        guard let config = selectedConfig, config.type == .redis else { return }
+        guard let connection = await manager.getConnection(for: config.id) else {
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        switch await authorizeWrites([edit.command], type: .redis, kind: .tableEdit) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: presentReadOnlyError(); return
+        }
+        do {
+            _ = try await connection.execute(edit.command, params: edit.params)
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            if case .delete = edit {
+                redisKeys.removeAll { $0 == edit.key }
+                if selectedRedisKey?.key == edit.key { closeRedisKey() }
+            } else {
+                if !redisKeys.contains(edit.key) { redisKeys.append(edit.key) }
+                if selectedRedisKey?.key == edit.key { await refreshSelectedRedisValue() }
+            }
+            rebuildRedisKeyTree()
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            presentError(error)
+        }
+    }
+
+    /// 取整形结果首行首列的字符串标量（TYPE 等）。
+    private static func redisScalarString(_ result: QueryResult) -> String {
+        guard let value = result.rows.first?.first else { return "" }
+        if case .string(let s) = value { return s }
+        return value.description
+    }
+
+    /// 取整形结果首行首列的整数标量（TTL 等）。
+    private static func redisScalarInt(_ result: QueryResult) -> Int? {
+        guard let value = result.rows.first?.first else { return nil }
+        switch value {
+        case .integer(let i): return i
+        case .string(let s): return Int(s)
+        default: return nil
+        }
     }
 
     /// 加载当前连接在侧边栏可见的对象分类（表/视图/例程…），结果写入 ``schemaCache``。

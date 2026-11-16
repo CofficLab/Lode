@@ -228,3 +228,111 @@ public enum RedisKeyValue: Sendable, Equatable {
         }
     }
 }
+
+/// 类型化键的读取命令映射（纯函数）。
+///
+/// 键与动态参数一律经 ``DatabaseConnection/query(_:params:)`` 的 params 通道传入，
+/// 由驱动按字面量拼接，避免键名含空格/引号时的转义与注入问题。
+public enum RedisKeyCommands {
+    /// 返回类型对应的读取命令与参数；键不存在/未知类型返回 nil（无可读值）。
+    public static func read(type: RedisKeyType, key: String) -> (command: String, params: [DatabaseValue])? {
+        switch type {
+        case .string: return ("GET", [.string(key)])
+        case .hash: return ("HGETALL", [.string(key)])
+        case .list: return ("LRANGE", [.string(key), .string("0"), .string("-1")])
+        case .set: return ("SMEMBERS", [.string(key)])
+        case .zset: return ("ZRANGE", [.string(key), .string("0"), .string("-1"), .string("WITHSCORES")])
+        case .stream: return ("XRANGE", [.string(key), .string("-"), .string("+")])
+        case .none, .unknown: return nil
+        }
+    }
+}
+
+/// 类型化键编辑操作（纯模型）：把 UI 意图映射为 Redis 写命令 + 参数。
+///
+/// 所有 case 均为写操作，VM 经写闸门（confirmWrites 确认 / readOnly 拒绝）后执行。
+/// 命令字符串只含动词，键/字段/值/分数经 params 通道传入，杜绝注入。
+public enum RedisKeyEdit: Sendable, Equatable {
+    case setString(key: String, value: String)
+    case setTTL(key: String, seconds: Int)
+    case persist(key: String)
+    case delete(key: String)
+    case hashSet(key: String, field: String, value: String)
+    case hashDelete(key: String, field: String)
+    case listPush(key: String, value: String)
+    case listSet(key: String, index: Int, value: String)
+    /// 按值移除列表元素（LREM count 0：移除所有匹配项）。
+    case listRemove(key: String, value: String)
+    case setAdd(key: String, member: String)
+    case setRemove(key: String, member: String)
+    case zsetAdd(key: String, member: String, score: Double)
+    case zsetRemove(key: String, member: String)
+    /// 追加 Stream 条目（XADD key * field value …，ID 自动生成）。
+    case streamAdd(key: String, fields: [RedisHashEntry])
+    case streamDelete(key: String, id: String)
+
+    public var key: String {
+        switch self {
+        case .setString(let key, _), .setTTL(let key, _), .persist(let key), .delete(let key),
+             .hashSet(let key, _, _), .hashDelete(let key, _),
+             .listPush(let key, _), .listSet(let key, _, _), .listRemove(let key, _),
+             .setAdd(let key, _), .setRemove(let key, _),
+             .zsetAdd(let key, _, _), .zsetRemove(let key, _),
+             .streamAdd(let key, _), .streamDelete(let key, _):
+            return key
+        }
+    }
+
+    /// 命令动词（写闸门按动词判定 Redis 写）。
+    public var command: String {
+        switch self {
+        case .setString: return "SET"
+        case .setTTL: return "EXPIRE"
+        case .persist: return "PERSIST"
+        case .delete: return "DEL"
+        case .hashSet: return "HSET"
+        case .hashDelete: return "HDEL"
+        case .listPush: return "RPUSH"
+        case .listSet: return "LSET"
+        case .listRemove: return "LREM"
+        case .setAdd: return "SADD"
+        case .setRemove: return "SREM"
+        case .zsetAdd: return "ZADD"
+        case .zsetRemove: return "ZREM"
+        case .streamAdd: return "XADD"
+        case .streamDelete: return "XDEL"
+        }
+    }
+
+    /// 动词之后的动态参数（键优先，随后按命令语义排列）。
+    public var params: [DatabaseValue] {
+        switch self {
+        case .setString(let key, let value):
+            return [.string(key), .string(value)]
+        case .setTTL(let key, let seconds):
+            return [.string(key), .integer(seconds)]
+        case .persist(let key), .delete(let key):
+            return [.string(key)]
+        case .hashSet(let key, let field, let value):
+            return [.string(key), .string(field), .string(value)]
+        case .hashDelete(let key, let field):
+            return [.string(key), .string(field)]
+        case .listPush(let key, let value):
+            return [.string(key), .string(value)]
+        case .listSet(let key, let index, let value):
+            return [.string(key), .integer(index), .string(value)]
+        case .listRemove(let key, let value):
+            return [.string(key), .integer(0), .string(value)]
+        case .setAdd(let key, let member), .setRemove(let key, let member):
+            return [.string(key), .string(member)]
+        case .zsetAdd(let key, let member, let score):
+            return [.string(key), .double(score), .string(member)]
+        case .zsetRemove(let key, let member):
+            return [.string(key), .string(member)]
+        case .streamAdd(let key, let fields):
+            return [.string(key), .string("*")] + fields.flatMap { [.string($0.field), $0.value] }
+        case .streamDelete(let key, let id):
+            return [.string(key), .string(id)]
+        }
+    }
+}
