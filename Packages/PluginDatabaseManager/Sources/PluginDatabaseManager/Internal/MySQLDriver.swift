@@ -30,7 +30,8 @@ public final class MySQLDriver: DatabaseDriver, Sendable {
             username: user,
             password: config.password,
             database: config.database,
-            sslOption: config.sslOption
+            sslOption: config.sslOption,
+            connectTimeoutSeconds: config.connectTimeoutSeconds
         )
     }
 }
@@ -50,29 +51,41 @@ public actor MySQLConnection: DatabaseConnection {
         let sslOption: ConnectionSSLOption?
     }
 
-    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil) async throws {
+    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil, connectTimeoutSeconds: Int = 10) async throws {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         cancelContext = CancelContext(
             host: host, port: port, username: username,
             password: password, database: database, sslOption: sslOption
         )
-        let socketAddress = try SocketAddress.makeAddressResolvingHost(host, port: port)
-        let tlsConfiguration: TLSConfiguration? = {
-            guard let ssl = sslOption, ssl.enablesTLS else { return nil }
-            return ssl.makeTLSConfiguration()
-        }()
-        let future = MySQLNIO.MySQLConnection.connect(
-            to: socketAddress,
-            username: username,
-            database: database,
-            password: password,
-            tlsConfiguration: tlsConfiguration,
-            serverHostname: sslOption?.enablesTLS == true ? host : nil,
-            on: group.next()
-        )
-        conn = try await future.get()
-        let idRows = try await conn?.query("SELECT CONNECTION_ID() AS id").get()
-        connectionID = idRows?.first?.column("id")?.int
+        do {
+            let socketAddress = try SocketAddress.makeAddressResolvingHost(host, port: port)
+            let tlsConfiguration: TLSConfiguration? = {
+                guard let ssl = sslOption, ssl.enablesTLS else { return nil }
+                return ssl.makeTLSConfiguration()
+            }()
+            let future = MySQLNIO.MySQLConnection.connect(
+                to: socketAddress,
+                username: username,
+                database: database,
+                password: password,
+                tlsConfiguration: tlsConfiguration,
+                serverHostname: sslOption?.enablesTLS == true ? host : nil,
+                on: group.next()
+            )
+            let raced = ConnectTimeout.race(
+                future,
+                seconds: connectTimeoutSeconds,
+                on: group.next(),
+                error: { DatabaseError.connectionFailed("MySQL connect timed out after \(connectTimeoutSeconds)s") },
+                dispose: { conn in _ = conn.close() }
+            )
+            conn = try await raced.get()
+            let idRows = try await conn?.query("SELECT CONNECTION_ID() AS id").get()
+            connectionID = idRows?.first?.column("id")?.int
+        } catch {
+            try? await group.shutdownGracefully()
+            throw error
+        }
     }
 
     /// 主连接被长查询占住时，用第二条连接发 `KILL QUERY` 中止它，主连接保持可用。

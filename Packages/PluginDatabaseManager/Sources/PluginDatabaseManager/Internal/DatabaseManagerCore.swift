@@ -95,7 +95,7 @@ public actor DatabaseManagerCore {
     /// 借出连接 → 执行闭包 → 归还（无论成功或抛错）。这是推荐的池使用方式。
     public func withConnection<T>(
         for config: DatabaseConfig,
-        _ body: (any DatabaseConnection) async throws -> T
+        _ body: @Sendable (any DatabaseConnection) async throws -> T
     ) async throws -> T {
         let connection = try await acquireConnection(for: config)
         do {

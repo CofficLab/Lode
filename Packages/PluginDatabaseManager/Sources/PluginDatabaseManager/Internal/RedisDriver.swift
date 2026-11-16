@@ -273,7 +273,7 @@ public final class RedisDriver: DatabaseDriver, Sendable {
             throw DatabaseError.invalidConfiguration("Redis 需要有效的主机地址")
         }
         let port = try config.validatedNetworkPort(default: 6379, serviceName: "Redis")
-        return try await RedisConnection(host: host, port: port, password: config.password)
+        return try await RedisConnection(host: host, port: port, password: config.password, connectTimeoutSeconds: config.connectTimeoutSeconds)
     }
 }
 
@@ -282,7 +282,7 @@ public actor RedisConnection: DatabaseConnection {
     private var alive = false
     private var cancelRequested = false
 
-    public init(host: String, port: Int = 6379, password: String? = nil) async throws {
+    public init(host: String, port: Int = 6379, password: String? = nil, connectTimeoutSeconds: Int = 10) async throws {
         guard let networkPort = UInt16(exactly: port), networkPort > 0 else {
             throw DatabaseError.invalidConfiguration("Redis 需要 1 到 65535 之间的端口")
         }
@@ -294,12 +294,22 @@ public actor RedisConnection: DatabaseConnection {
 
         connection.start(queue: DispatchQueue(label: "databasekit.redis.connection"))
         do {
-            try await waitForReady()
+            try await waitForReady(timeout: TimeInterval(connectTimeoutSeconds))
         } catch {
             connection.cancel()
             throw error
         }
         alive = true
+        // 服务端断开（CLIENT KILL / 重启）时及时标记死亡，
+        // 让心跳与连接池的 isAlive 检查能立刻发现，而不是等下一次发送。
+        connection.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .failed, .cancelled:
+                Task { await self?.markDead() }
+            default:
+                break
+            }
+        }
 
         if let password, !password.isEmpty {
             let authResponse = try await send(["AUTH", password])
@@ -506,13 +516,19 @@ public actor RedisConnection: DatabaseConnection {
                 }
             }
 
-            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
-                readyState.resume(
-                    continuation,
-                    with: .failure(DatabaseError.connectionFailed("Redis connection timed out"))
-                )
+            if timeout > 0 {
+                DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
+                    readyState.resume(
+                        continuation,
+                        with: .failure(DatabaseError.connectionFailed("Redis connection timed out"))
+                    )
+                }
             }
         }
+    }
+
+    private func markDead() {
+        alive = false
     }
 
     private func flattenArray(_ values: [RespValue]) -> [DatabaseValue] {

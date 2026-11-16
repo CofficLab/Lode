@@ -79,6 +79,17 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 执行序列号：每次新执行自增，迟到的旧结果（含增量加载）凭此丢弃。
     private var executionSequence: UInt64 = 0
 
+    // MARK: - 连接健康与自动重连
+
+    /// 后台心跳任务（仅网络引擎）；未连接或 SQLite 时为 nil。
+    private var heartbeatTask: Task<Void, Never>?
+    /// 本次断线是否已尝试过一次自动重连；连接成功后重置。
+    private var didAttemptAutoReconnect = false
+    /// 心跳间隔（秒）。
+    static let heartbeatInterval: TimeInterval = 30
+    /// 心跳是否激活（测试用）。
+    var isHeartbeatActive: Bool { heartbeatTask != nil }
+
     /// 是否可为当前编辑器结果加载更多行。
     public var canLoadMoreEditorResults: Bool {
         editorBaseSQL != nil && editorHasMore && !isLoading && !isLoadingMore
@@ -165,6 +176,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     }
 
     deinit {
+        heartbeatTask?.cancel()
         let configId = connectedConfigId
         Task { [manager, configId] in
             guard let configId else { return }
@@ -234,7 +246,15 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     }
 
     public func connect(config: DatabaseConfig) async {
+        await connect(config: config, isReconnect: false)
+    }
+
+    /// 建立连接。`isReconnect` 为 true 时保留编辑器文本与当前打开表的上下文。
+    private func connect(config: DatabaseConfig, isReconnect: Bool) async {
         lastAttemptedConfig = config
+        stopHeartbeat()
+        let preservedQueryText = queryText
+        let preservedTable = openTableObject
         let generation = beginConnectionGeneration()
         await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         guard connectionGeneration == generation else { return }
@@ -275,26 +295,50 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             // 记住这次连接，下次自动重连
             DatabaseConnectionStore.lastSelectedConfigID = config.id
             
-            // 根据类型设置默认查询/命令
+            // 根据类型设置默认查询/命令；重连时保留用户正在编辑的文本。
             switch config.type {
             case .postgresql:
-                queryText = "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
+                if !isReconnect {
+                    queryText = "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
+                }
             case .mysql:
-                queryText = "SHOW TABLES;"
+                if !isReconnect {
+                    queryText = "SHOW TABLES;"
+                }
             case .redis:
-                queryText = "SCAN 0 MATCH * COUNT 50"
+                if !isReconnect {
+                    queryText = "SCAN 0 MATCH * COUNT 50"
+                }
                 await loadRedisKeys()
             case .sqlite:
-                if config.database == ":memory:" {
+                if !isReconnect, config.database == ":memory:" {
                     try await initDemoData(configId: config.id)
                 }
                 await loadSQLiteTables()
+            }
+
+            if isReconnect {
+                queryText = preservedQueryText
+                // 恢复断线前打开的表/视图上下文（结构 + 当前页数据）。
+                if let table = preservedTable {
+                    switch table.kind {
+                    case .table, .view, .materializedView:
+                        openTableObject = table
+                        await loadSelectedTableSchema()
+                        await loadTablePage()
+                    default:
+                        break
+                    }
+                }
             }
 
             // 为侧边栏对象树预加载可见分类（表/视图/例程），MySQL/PG 由此不再空白。
             await refreshSidebarObjects()
 
             guard connectionGeneration == generation else { return }
+
+            didAttemptAutoReconnect = false
+            startHeartbeat()
 
             if let previousConfigId, previousConfigId != config.id {
                 await manager.disconnect(configId: previousConfigId)
@@ -310,6 +354,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)数据库连接失败: \(error.localizedDescription)")
             }
+            // 重连失败时旧连接已不可用，必须落回未连接态，避免界面误判仍在线。
+            isConnected = false
+            stopHeartbeat()
             presentError(error)
         }
         isLoading = false
@@ -317,6 +364,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     public func disconnect() async {
         guard let config = selectedConfig else { return }
+        stopHeartbeat()
         let generation = beginConnectionGeneration()
         if Self.verbose {
             if DatabaseManagerPluginSupport.verbose {
@@ -377,7 +425,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         if isConnected, selectedConfig != nil {
             await executeQuery()
         } else if let config = selectedConfig ?? lastAttemptedConfig {
-            await connect(config: config)
+            // 重连保留编辑器文本与打开表上下文，避免重试把用户查询重置成默认语句。
+            await connect(config: config, isReconnect: true)
         }
     }
 
@@ -386,7 +435,72 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         configPendingEdit = selectedConfig ?? lastAttemptedConfig
     }
 
+    // MARK: - 心跳与断线重连
+
+    private func startHeartbeat() {
+        stopHeartbeat()
+        guard let config = selectedConfig, config.type != .sqlite else { return }
+        heartbeatTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(Self.heartbeatInterval))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                await self?.checkConnectionHealth()
+            }
+        }
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+    }
+
+    /// 心跳探测：经连接池用独立连接发 SELECT 1 / PING，
+    /// 不排在主连接的长查询后面；执行中（isLoading）跳过以免误判。
+    func checkConnectionHealth() async {
+        guard isConnected, !isLoading, let config = selectedConfig else { return }
+        let generation = connectionGeneration
+        let probeSQL = config.type == .redis ? "PING" : "SELECT 1"
+        let healthy: Bool
+        do {
+            _ = try await manager.withConnection(for: config) { connection in
+                try await connection.query(probeSQL, params: nil)
+            }
+            healthy = true
+        } catch {
+            healthy = false
+        }
+        guard connectionGeneration == generation, isConnected, !isLoading else { return }
+        if !healthy {
+            await handleConnectionLoss(generation: generation)
+        }
+    }
+
+    /// 断线后的一次自动重连；失败则给出分类错误，不再反复尝试。
+    private func handleConnectionLoss(generation: Int) async {
+        guard let config = selectedConfig, connectionGeneration == generation else { return }
+        if didAttemptAutoReconnect {
+            isConnected = false
+            stopHeartbeat()
+            presentError(DatabaseError.connectionFailed("Connection lost; automatic reconnect failed"))
+            return
+        }
+        didAttemptAutoReconnect = true
+        await connect(config: config, isReconnect: true)
+        if !isConnected {
+            stopHeartbeat()
+        }
+    }
+
     public func executeQuery() async {
+        await executeQuery(isRetry: false)
+    }
+
+    /// `isRetry` 为 true 时不再触发断线重连，避免重连-重试无限循环。
+    private func executeQuery(isRetry: Bool) async {
         let generation = connectionGeneration
         let sql = queryText
         guard let config = selectedConfig else {
@@ -455,6 +569,17 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)查询执行失败: \(error.localizedDescription)")
+            }
+            // 断线类错误：一次自动重连并重跑当前语句（保留编辑器上下文）。
+            let classified = DatabaseErrorClassifier.classify(error)
+            if classified.category == .connectionLost, !isRetry, !didAttemptAutoReconnect {
+                didAttemptAutoReconnect = true
+                await connect(config: config, isReconnect: true)
+                if isConnected {
+                    isLoading = false
+                    await executeQuery(isRetry: true)
+                    return
+                }
             }
             presentError(error)
         }

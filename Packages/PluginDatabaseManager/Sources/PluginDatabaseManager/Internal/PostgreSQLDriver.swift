@@ -30,7 +30,8 @@ public final class PostgreSQLDriver: DatabaseDriver, Sendable {
             username: user,
             password: config.password,
             database: config.database,
-            sslOption: config.sslOption
+            sslOption: config.sslOption,
+            connectTimeoutSeconds: config.connectTimeoutSeconds
         )
     }
 }
@@ -51,31 +52,47 @@ public actor PGConnection: DatabaseConnection {
         let sslOption: ConnectionSSLOption?
     }
 
-    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil) async throws {
+    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil, connectTimeoutSeconds: Int = 10) async throws {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         cancelContext = CancelContext(
             host: host, port: port, username: username,
             password: password, database: database, sslOption: sslOption
         )
 
-        let config = PostgresConnection.Configuration(
-            host: host,
-            port: port,
-            username: username,
-            password: password ?? "",
-            database: database,
-            tls: try Self.makeTLS(sslOption)
-        )
+        do {
+            var config = PostgresConnection.Configuration(
+                host: host,
+                port: port,
+                username: username,
+                password: password ?? "",
+                database: database,
+                tls: try Self.makeTLS(sslOption)
+            )
+            // 原生 connectTimeout 设为极大值，把超时裁决统一交给 ConnectTimeout.race，
+            // 避免默认 10s 与可配超时（含 0=不限制）相互干扰。
+            config.options.connectTimeout = .hours(24 * 365)
 
-        conn = try await PostgresConnection.connect(
-            on: group.next(),
-            configuration: config,
-            id: 1,
-            logger: logger
-        ).get()
+            let future: EventLoopFuture<PostgresConnection> = PostgresConnection.connect(
+                on: group.next(),
+                configuration: config,
+                id: 1,
+                logger: logger
+            )
+            let raced = ConnectTimeout.race(
+                future,
+                seconds: connectTimeoutSeconds,
+                on: group.next(),
+                error: { DatabaseError.connectionFailed("PostgreSQL connect timed out after \(connectTimeoutSeconds)s") },
+                dispose: { conn in _ = conn.close() as EventLoopFuture<Void> }
+            )
+            conn = try await raced.get()
 
-        let pidResult = try await conn.query("SELECT pg_backend_pid()", []).get()
-        backendPID = pidResult.rows.first?.first.flatMap { try? $0.decode(Int.self) }
+            let pidResult = try await conn.query("SELECT pg_backend_pid()", []).get()
+            backendPID = pidResult.rows.first?.first.flatMap { try? $0.decode(Int.self) }
+        } catch {
+            try? await group.shutdownGracefully()
+            throw error
+        }
     }
 
     static func makeTLS(_ sslOption: ConnectionSSLOption?) throws -> PostgresConnection.Configuration.TLS {
@@ -129,6 +146,7 @@ public actor PGConnection: DatabaseConnection {
     }
 
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
+        try ensureOpen()
         do {
             let result = try await conn.query(sql, toPostgresData(params ?? [])).get()
             return result.metadata.rows ?? result.rows.count
@@ -138,6 +156,7 @@ public actor PGConnection: DatabaseConnection {
     }
 
     public func query(_ sql: String, params: [DatabaseValue]?) async throws -> QueryResult {
+        try ensureOpen()
         do {
             let rowSequence = try await conn.query(
                 PostgresQuery(unsafeSQL: sql, binds: toPostgresBindings(params ?? [])),
@@ -169,6 +188,7 @@ public actor PGConnection: DatabaseConnection {
     }
 
     public func beginTransaction() async throws -> any DatabaseTransaction {
+        try ensureOpen()
         let query = PostgresQuery(unsafeSQL: "BEGIN")
         _ = try await conn.query(query, logger: Logger(label: "com.lumi.postgres.transaction")).get()
         return PGTransaction(connection: self)
@@ -181,6 +201,14 @@ public actor PGConnection: DatabaseConnection {
 
     public func isAlive() async -> Bool {
         !conn.isClosed
+    }
+
+    /// 连接已关闭时立即抛错：PostgresNIO 的异步 row sequence 在「请求时连接已关闭」
+    /// 的情况下不会完成也不会抛错，会永久挂起，必须先于 conn.query 拦截。
+    private func ensureOpen() throws {
+        guard !conn.isClosed else {
+            throw DatabaseError.connectionFailed("PostgreSQL connection is closed")
+        }
     }
 
     /// 按线上类型分派而不是字符串优先：String 解码对 int4 等类型同样成功，

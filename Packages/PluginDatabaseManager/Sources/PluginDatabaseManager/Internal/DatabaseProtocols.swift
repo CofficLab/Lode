@@ -48,6 +48,12 @@ extension DatabaseConfig {
         }
         return port
     }
+
+    /// 连接超时（秒）。经 `options["connectTimeoutSeconds"]` 配置，默认 10；0 表示不限制。
+    public var connectTimeoutSeconds: Int {
+        guard let raw = options?["connectTimeoutSeconds"], let value = Int(raw) else { return 10 }
+        return max(0, value)
+    }
 }
 
 public enum DatabaseError: Error, LocalizedError, Sendable {
