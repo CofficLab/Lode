@@ -35,6 +35,9 @@ struct ConnectionFormView: View {
     @State private var sshPassword = ""
     @State private var sshPrivateKeyPath = ""
     @State private var sshPassphrase = ""
+    @State private var caCertPath = ""
+    @State private var clientCertPath = ""
+    @State private var clientKeyPath = ""
     @State private var isTesting = false
     @State private var testMessage: String?
     @State private var testSuccess = false
@@ -74,14 +77,15 @@ struct ConnectionFormView: View {
                     } else {
                         GlassTextField(title: pluginLocalization.string("Host"), text: $host, placeholder: "127.0.0.1")
                         GlassTextField(title: pluginLocalization.string("Port"), text: $portText, placeholder: "\(type.defaultPort ?? 0)")
-                        if type != .redis {
-                            GlassTextField(title: pluginLocalization.string("Database"), text: $database, placeholder: type == .postgresql ? "postgres" : "test")
-                            GlassTextField(title: pluginLocalization.string("Username"), text: $username, placeholder: "user")
-                        }
+                        GlassTextField(title: pluginLocalization.string("Database"), text: $database, placeholder: databasePlaceholder)
+                        GlassTextField(title: pluginLocalization.string("Username"), text: $username, placeholder: type == .redis ? "default" : "user")
                         GlassTextField(title: pluginLocalization.string("Password"), text: $password, placeholder: passwordPlaceholder, isSecure: true, allowsReveal: true)
 
                         if type.capabilities.supportsSSL {
                             sslPicker
+                            if sslOption != .disable {
+                                tlsCertFields
+                            }
                         }
                         if type.capabilities.supportsSSH {
                             sshSection
@@ -127,7 +131,7 @@ struct ConnectionFormView: View {
                 Text(pluginLocalization.string("SSL / TLS"))
                     .font(.appCaption)
                     .foregroundColor(theme.textSecondary)
-                Text(sslOption.helpText)
+                Text(pluginLocalization.string(sslOption.helpText))
                     .font(.appMicro)
                     .foregroundColor(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -135,11 +139,25 @@ struct ConnectionFormView: View {
             Spacer(minLength: 8)
             Picker("", selection: $sslOption) {
                 ForEach(ConnectionSSLOption.allCases, id: \.self) { mode in
-                    Text(mode.displayTitle).tag(mode)
+                    Text(pluginLocalization.string(mode.displayTitle)).tag(mode)
                 }
             }
             .pickerStyle(.menu)
             .frame(width: 160)
+        }
+    }
+
+    /// TLS 证书材料：自定义 CA（自签服务器 verify-ca/verify-full 所需）。
+    /// 客户端证书/私钥用于双向 TLS，仅 MySQL/PostgreSQL（NIOSSL）支持；
+    /// Redis 走 Network.framework，仅做服务端认证。
+    @ViewBuilder
+    private var tlsCertFields: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            GlassTextField(title: pluginLocalization.string("CA Certificate Path"), text: $caCertPath, placeholder: pluginLocalization.string("Optional, for self-signed servers"))
+            if type != .redis {
+                GlassTextField(title: pluginLocalization.string("Client Certificate Path"), text: $clientCertPath, placeholder: pluginLocalization.string("Optional, for mutual TLS"))
+                GlassTextField(title: pluginLocalization.string("Client Key Path"), text: $clientKeyPath, placeholder: pluginLocalization.string("Optional, for mutual TLS"))
+            }
         }
     }
 
@@ -236,6 +254,15 @@ struct ConnectionFormView: View {
         editing == nil ? "••••••••" : pluginLocalization.string("Leave blank to keep current")
     }
 
+    private var databasePlaceholder: String {
+        switch type {
+        case .redis: return "0"
+        case .postgresql: return "postgres"
+        case .mysql: return "testdb"
+        case .sqlite: return ""
+        }
+    }
+
     private var sshPasswordPlaceholder: String {
         editing == nil ? "••••••••" : pluginLocalization.string("Leave blank to keep current")
     }
@@ -264,6 +291,11 @@ struct ConnectionFormView: View {
         sqlitePath = editing.type == .sqlite ? editing.database : ""
         if let ssl = editing.sslOption {
             sslOption = ssl
+        }
+        if let tls = editing.tlsConfig {
+            caCertPath = tls.caCertPath ?? ""
+            clientCertPath = tls.clientCertPath ?? ""
+            clientKeyPath = tls.clientKeyPath ?? ""
         }
         safeMode = editing.safeMode
         if let ssh = editing.sshConfig {
@@ -349,8 +381,16 @@ struct ConnectionFormView: View {
         // SSL 仅对支持 TLS 的网络库有意义
         if type.capabilities.supportsSSL {
             config = config.withSSLOption(sslOption)
+            // TLS 证书材料：Redis 走 Network.framework，仅服务端认证，忽略客户端证书/密钥。
+            let tls = ConnectionTLSConfig(
+                caCertPath: caCertPath.isEmpty ? nil : caCertPath,
+                clientCertPath: type == .redis ? nil : (clientCertPath.isEmpty ? nil : clientCertPath),
+                clientKeyPath: type == .redis ? nil : (clientKeyPath.isEmpty ? nil : clientKeyPath)
+            )
+            config = config.withTLSConfig(try tls.validated())
         } else {
             config = config.withSSLOption(nil)
+            config = config.withTLSConfig(nil)
         }
         // SSH 隧道仅对支持的网络引擎有意义；启用时校验字段，关闭时移除该键。
         if type.capabilities.supportsSSH, sshEnabled {

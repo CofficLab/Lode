@@ -105,6 +105,43 @@ struct DatabaseManagerV2PluginTests {
             _ = try sqliteDraft(path: "  \n ").makeConfig()
         }
     }
+
+    private func redisDraft(database: String, username: String, password: String = "") -> DatabaseConnectionDraft {
+        DatabaseConnectionDraft(
+            name: "Cache",
+            type: .redis,
+            host: "127.0.0.1",
+            portText: "6379",
+            database: database,
+            username: username,
+            password: password,
+            sqlitePath: ""
+        )
+    }
+
+    @Test func redisEmptyDatabaseDefaultsToZero() throws {
+        #expect(try redisDraft(database: "", username: "").makeConfig().database == "0")
+        #expect(try redisDraft(database: "   ", username: "").makeConfig().database == "0")
+    }
+
+    @Test func redisDatabaseIndexIsTrimmed() throws {
+        #expect(try redisDraft(database: " 2 ", username: "").makeConfig().database == "2")
+    }
+
+    @Test func redisBlankUsernameBecomesNil() throws {
+        #expect(try redisDraft(database: "0", username: "").makeConfig().username == nil)
+        #expect(try redisDraft(database: "0", username: "  ").makeConfig().username == nil)
+    }
+
+    @Test func redisACLUsernameIsTrimmedAndKept() throws {
+        let config = try redisDraft(database: "0", username: " testuser ").makeConfig()
+        #expect(config.username == "testuser")
+    }
+
+    @Test func redisPasswordEmptyBecomesNil() throws {
+        #expect(try redisDraft(database: "0", username: "", password: "").makeConfig().password == nil)
+        #expect(try redisDraft(database: "0", username: "", password: "secret").makeConfig().password == "secret")
+    }
 }
 
 @Suite("Redis handshake")

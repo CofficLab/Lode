@@ -31,6 +31,7 @@ public final class MySQLDriver: DatabaseDriver, Sendable {
             password: config.password,
             database: config.database,
             sslOption: config.sslOption,
+            tlsConfig: config.tlsConfig,
             connectTimeoutSeconds: config.connectTimeoutSeconds
         )
     }
@@ -49,19 +50,20 @@ public actor MySQLConnection: DatabaseConnection {
         let password: String?
         let database: String
         let sslOption: ConnectionSSLOption?
+        let tlsConfig: ConnectionTLSConfig?
     }
 
-    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil, connectTimeoutSeconds: Int = 10) async throws {
+    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil, tlsConfig: ConnectionTLSConfig? = nil, connectTimeoutSeconds: Int = 10) async throws {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         cancelContext = CancelContext(
             host: host, port: port, username: username,
-            password: password, database: database, sslOption: sslOption
+            password: password, database: database, sslOption: sslOption, tlsConfig: tlsConfig
         )
         do {
             let socketAddress = try SocketAddress.makeAddressResolvingHost(host, port: port)
             let tlsConfiguration: TLSConfiguration? = {
                 guard let ssl = sslOption, ssl.enablesTLS else { return nil }
-                return ssl.makeTLSConfiguration()
+                return ssl.makeTLSConfiguration(tls: tlsConfig)
             }()
             let future = MySQLNIO.MySQLConnection.connect(
                 to: socketAddress,
@@ -96,7 +98,7 @@ public actor MySQLConnection: DatabaseConnection {
             let socketAddress = try SocketAddress.makeAddressResolvingHost(context.host, port: context.port)
             let tlsConfiguration: TLSConfiguration? = {
                 guard let ssl = context.sslOption, ssl.enablesTLS else { return nil }
-                return ssl.makeTLSConfiguration()
+                return ssl.makeTLSConfiguration(tls: context.tlsConfig)
             }()
             let killConnection = try await MySQLNIO.MySQLConnection.connect(
                 to: socketAddress,

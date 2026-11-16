@@ -31,6 +31,7 @@ public final class PostgreSQLDriver: DatabaseDriver, Sendable {
             password: config.password,
             database: config.database,
             sslOption: config.sslOption,
+            tlsConfig: config.tlsConfig,
             connectTimeoutSeconds: config.connectTimeoutSeconds
         )
     }
@@ -50,13 +51,14 @@ public actor PGConnection: DatabaseConnection {
         let password: String?
         let database: String
         let sslOption: ConnectionSSLOption?
+        let tlsConfig: ConnectionTLSConfig?
     }
 
-    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil, connectTimeoutSeconds: Int = 10) async throws {
+    public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil, tlsConfig: ConnectionTLSConfig? = nil, connectTimeoutSeconds: Int = 10) async throws {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         cancelContext = CancelContext(
             host: host, port: port, username: username,
-            password: password, database: database, sslOption: sslOption
+            password: password, database: database, sslOption: sslOption, tlsConfig: tlsConfig
         )
 
         do {
@@ -66,7 +68,7 @@ public actor PGConnection: DatabaseConnection {
                 username: username,
                 password: password ?? "",
                 database: database,
-                tls: try Self.makeTLS(sslOption)
+                tls: try Self.makeTLS(sslOption, tls: tlsConfig)
             )
             // 原生 connectTimeout 设为极大值，把超时裁决统一交给 ConnectTimeout.race，
             // 避免默认 10s 与可配超时（含 0=不限制）相互干扰。
@@ -95,18 +97,18 @@ public actor PGConnection: DatabaseConnection {
         }
     }
 
-    static func makeTLS(_ sslOption: ConnectionSSLOption?) throws -> PostgresConnection.Configuration.TLS {
+    static func makeTLS(_ sslOption: ConnectionSSLOption?, tls: ConnectionTLSConfig? = nil) throws -> PostgresConnection.Configuration.TLS {
         switch sslOption {
         case nil, .disable:
             return .disable
         case .prefer:
             // prefer：尽量加密，握手失败则回退明文（postgres-nio 内部处理回退）。
-            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration())
+            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration(tls: tls))
             return .prefer(ctx)
         case .require, .verifyCA, .verifyFull:
             // require/verify-ca/verify-full：强制加密，证书校验强度由 makeTLSConfiguration 决定。
             // postgres-nio 的 TLS 枚举没有 verifyFull case，校验差异通过 TLSConfiguration 表达。
-            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration())
+            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration(tls: tls))
             return .require(ctx)
         }
     }
@@ -122,7 +124,7 @@ public actor PGConnection: DatabaseConnection {
                 username: context.username,
                 password: context.password ?? "",
                 database: context.database,
-                tls: try Self.makeTLS(context.sslOption)
+                tls: try Self.makeTLS(context.sslOption, tls: context.tlsConfig)
             )
             let cancelConnection = try await PostgresConnection.connect(
                 on: group.next(),

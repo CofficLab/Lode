@@ -62,12 +62,16 @@ struct DatabaseConnectionDraft {
                 password: password.isEmpty ? nil : password
             )
         case .redis:
+            // ACL 用户名可选（缺省走 default 用户）；database 是库索引，缺省 0。
+            let user = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            let dbIndex = database.trimmingCharacters(in: .whitespacesAndNewlines)
             return DatabaseConfig(
                 name: configName,
                 type: type,
                 host: try normalizedHost(),
                 port: try normalizedPort(),
-                database: "",
+                database: dbIndex.isEmpty ? "0" : dbIndex,
+                username: user.isEmpty ? nil : user,
                 password: password.isEmpty ? nil : password
             )
         case .postgresql, .mysql:

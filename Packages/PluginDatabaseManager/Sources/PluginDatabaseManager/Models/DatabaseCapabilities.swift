@@ -171,7 +171,7 @@ extension DatabaseCapabilities {
         supportsViews: false,
         supportsMaterializedViews: false,
         supportsRoutines: false,
-        supportsSSL: false,
+        supportsSSL: true,
         supportsSSH: true,
         supportsPasswordSources: false,
         supportsExplain: false,

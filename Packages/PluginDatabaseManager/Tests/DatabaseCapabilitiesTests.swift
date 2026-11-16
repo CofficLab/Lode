@@ -3,7 +3,7 @@ import Testing
 @testable import DatabaseManagerPlugin
 
 /// 能力声明一致性守卫：声明必须与实现同步。
-/// 未实现的特性（密码来源、Redis TLS）一律 false；
+/// 未实现的特性（密码来源）一律 false；
 /// 对应功能落地时更新本快照并在同一提交翻 true。
 struct DatabaseCapabilitiesTests {
     @Test("SSH 隧道：网络引擎支持，SQLite 本地文件不支持", arguments: DatabaseType.allCases)
@@ -16,9 +16,9 @@ struct DatabaseCapabilitiesTests {
         #expect(type.capabilities.supportsPasswordSources == false)
     }
 
-    @Test("Redis 尚无 TLS：supportsSSL 为 false")
-    func redisNoTLS() {
-        #expect(DatabaseType.redis.capabilities.supportsSSL == false)
+    @Test("TLS：网络引擎支持（含 Redis），SQLite 本地文件不支持", arguments: DatabaseType.allCases)
+    func sslSupport(type: DatabaseType) {
+        #expect(type.capabilities.supportsSSL == (type != .sqlite))
     }
 
     @Test("SQLite 本地文件：无 SSL/多库/schema")

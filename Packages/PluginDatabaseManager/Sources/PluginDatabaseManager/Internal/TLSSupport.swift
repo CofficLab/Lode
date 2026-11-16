@@ -9,7 +9,11 @@ import NIOSSL
 /// - verifyFull：`certificateVerification = .fullVerification`（最严格）
 extension ConnectionSSLOption {
     /// 构造客户端 TLS 配置。
-    public func makeTLSConfiguration() -> TLSConfiguration {
+    ///
+    /// - Parameter tls: 可选的自定义证书材料。CA 文件作为信任根（自签服务器
+    ///   通过 verify-ca / verify-full 所需）；客户端证书与私钥用于双向 TLS。
+    ///   未提供 CA 时沿用系统默认信任根。
+    public func makeTLSConfiguration(tls: ConnectionTLSConfig? = nil) -> TLSConfiguration {
         var config = TLSConfiguration.makeClientConfiguration()
         switch self {
         case .disable, .prefer, .require:
@@ -18,6 +22,15 @@ extension ConnectionSSLOption {
             config.certificateVerification = .noHostnameVerification
         case .verifyFull:
             config.certificateVerification = .fullVerification
+        }
+        if let ca = tls?.normalizedCA {
+            config.trustRoots = .file(ca)
+        }
+        if let cert = tls?.normalizedClientCert {
+            config.certificateChain = [.file(cert)]
+        }
+        if let key = tls?.normalizedClientKey {
+            config.privateKey = .file(key)
         }
         return config
     }

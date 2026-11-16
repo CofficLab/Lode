@@ -273,7 +273,31 @@ public final class RedisDriver: DatabaseDriver, Sendable {
             throw DatabaseError.invalidConfiguration("Redis 需要有效的主机地址")
         }
         let port = try config.validatedNetworkPort(default: 6379, serviceName: "Redis")
-        return try await RedisConnection(host: host, port: port, password: config.password, connectTimeoutSeconds: config.connectTimeoutSeconds)
+        let username = config.username?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let database = config.database.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ssl = config.sslOption
+
+        // prefer：尽量加密，握手失败则回退明文。其余模式按声明执行。
+        if ssl == .prefer {
+            do {
+                return try await RedisConnection(
+                    host: host, port: port, username: username, password: config.password,
+                    database: database, sslOption: .prefer, tlsConfig: config.tlsConfig,
+                    connectTimeoutSeconds: config.connectTimeoutSeconds
+                )
+            } catch {
+                return try await RedisConnection(
+                    host: host, port: port, username: username, password: config.password,
+                    database: database, sslOption: nil, tlsConfig: nil,
+                    connectTimeoutSeconds: config.connectTimeoutSeconds
+                )
+            }
+        }
+        return try await RedisConnection(
+            host: host, port: port, username: username, password: config.password,
+            database: database, sslOption: ssl, tlsConfig: config.tlsConfig,
+            connectTimeoutSeconds: config.connectTimeoutSeconds
+        )
     }
 }
 
@@ -282,14 +306,20 @@ public actor RedisConnection: DatabaseConnection {
     private var alive = false
     private var cancelRequested = false
 
-    public init(host: String, port: Int = 6379, password: String? = nil, connectTimeoutSeconds: Int = 10) async throws {
+    public init(host: String, port: Int = 6379, username: String? = nil, password: String? = nil, database: String? = nil, sslOption: ConnectionSSLOption? = nil, tlsConfig: ConnectionTLSConfig? = nil, connectTimeoutSeconds: Int = 10) async throws {
         guard let networkPort = UInt16(exactly: port), networkPort > 0 else {
             throw DatabaseError.invalidConfiguration("Redis 需要 1 到 65535 之间的端口")
+        }
+        let parameters: NWParameters
+        if let ssl = sslOption, ssl.enablesTLS {
+            parameters = RedisTLSSupport.makeParameters(mode: ssl, tls: tlsConfig, host: host)
+        } else {
+            parameters = .tcp
         }
         connection = NWConnection(
             host: NWEndpoint.Host(host),
             port: NWEndpoint.Port(integerLiteral: networkPort),
-            using: .tcp
+            using: parameters
         )
 
         connection.start(queue: DispatchQueue(label: "databasekit.redis.connection"))
@@ -312,9 +342,26 @@ public actor RedisConnection: DatabaseConnection {
         }
 
         if let password, !password.isEmpty {
-            let authResponse = try await send(["AUTH", password])
+            // ACL：提供用户名时用 `AUTH username password`，否则旧式 `AUTH password`。
+            var authArgs = ["AUTH"]
+            if let username, !username.isEmpty {
+                authArgs.append(username)
+            }
+            authArgs.append(password)
+            let authResponse = try await send(authArgs)
             do {
                 try Self.validateHandshake(authResponse, context: "Redis 认证失败")
+            } catch {
+                connection.cancel()
+                alive = false
+                throw error
+            }
+        }
+        // SELECT db：空或 "0" 沿用默认库，其余显式选库。
+        if let database, !database.isEmpty, database != "0" {
+            let selectResponse = try await send(["SELECT", database])
+            do {
+                try Self.validateHandshake(selectResponse, context: "Redis 选库失败")
             } catch {
                 connection.cancel()
                 alive = false
