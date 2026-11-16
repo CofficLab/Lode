@@ -24,6 +24,8 @@ struct ConnectionsListView: View {
     @State private var editingConfig: DatabaseConfig?
     /// 等待删除确认的连接。
     @State private var configPendingDeletion: DatabaseConfig?
+    /// 连接导入面板是否展示。
+    @State private var showImportSheet: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +71,9 @@ struct ConnectionsListView: View {
                 set: { if !$0 { editingConfig = nil } }
             ), editing: config)
         }
+        .sheet(isPresented: $showImportSheet) {
+            ConnectionImportSheet(viewModel: viewModel, isPresented: $showImportSheet)
+        }
         .confirmationDialog(
             pluginLocalization.string("Delete this connection?"),
             isPresented: Binding(
@@ -110,6 +115,13 @@ struct ConnectionsListView: View {
                 action: { showAddConfigSheet = true }
             )
             .padding(.top, 4)
+            AppButton(
+                pluginLocalization.string("Import Connections"),
+                systemImage: "square.and.arrow.down",
+                style: .ghost,
+                size: .small,
+                action: { showImportSheet = true }
+            )
         }
     }
 
@@ -281,6 +293,13 @@ struct ConnectionsListView: View {
                 fillsWidth: true,
                 action: { showAddConfigSheet = true }
             )
+            AppIconButton(
+                systemImage: "square.and.arrow.down",
+                label: pluginLocalization.string("Import Connections"),
+                size: .compact
+            ) {
+                showImportSheet = true
+            }
             if viewModel.isConnected {
                 AppButton(
                     pluginLocalization.string("Disconnect"),

@@ -350,6 +350,27 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
     }
 
+    /// 批量导入连接：跳过与现有配置同名+同引擎+同主机+同库的重复项（含批次内重复），
+    /// 一次性保存。返回实际新增数量。导入只还原非秘密字段，密码/SSH 由用户后续补填。
+    @discardableResult
+    public func importConfigs(_ imported: [DatabaseConfig]) -> Int {
+        var added = 0
+        for config in imported {
+            let isDuplicate = configs.contains {
+                $0.name == config.name && $0.type == config.type
+                    && $0.host == config.host && $0.database == config.database
+            }
+            if isDuplicate { continue }
+            configs.append(config)
+            added += 1
+            Task { await DatabaseAgentConnectionRegistry.shared.upsert(config) }
+        }
+        if added > 0 {
+            DatabaseConnectionStore.saveConfigs(configs)
+        }
+        return added
+    }
+
     /// 编辑已存在的连接配置（保留 id）。若表单里密码留空，沿用已存密码，避免误清空。
     /// 若当前正连着该连接，则用新配置断开重连。
     public func updateConfig(_ config: DatabaseConfig) {
