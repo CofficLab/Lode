@@ -79,7 +79,7 @@ public struct SidebarView: View {
         VStack(spacing: 0) {
             switch viewModel.selectedConfig?.type {
             case .redis:
-                keysBrowser
+                RedisKeyTreeView(viewModel: viewModel, onToggleMode: { toggleMode() })
             case .sqlite, .mysql, .postgresql:
                 DatabaseObjectTreeView(viewModel: viewModel, onToggleMode: { toggleMode() })
             case nil:
@@ -87,42 +87,6 @@ public struct SidebarView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private var keysBrowser: some View {
-        VStack(spacing: 0) {
-            DatabaseSidebarHeaderBar(
-                title: pluginLocalization.string("Keys"),
-                systemImage: "key",
-                onLoad: { Task { await viewModel.loadRedisKeys() } },
-                onToggleMode: { toggleMode() },
-                toggleMode: viewModel.sidebarMode
-            )
-
-            if viewModel.redisKeys.isEmpty {
-                SidebarEmptyView(
-                    systemImage: "key",
-                    title: pluginLocalization.string("No keys"),
-                    description: pluginLocalization.string("Click Reload to refresh the key list.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 4) {
-                        ForEach(viewModel.redisKeys, id: \.self) { key in
-                            DatabaseKeyRow(key: key) {
-                                Task { await viewModel.openRedisKey(key) }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                }
-                .scrollIndicators(.hidden)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// 未连接到任何数据库时的占位视图。

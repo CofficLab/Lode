@@ -80,6 +80,10 @@ public struct RedisKeyTreeNode: Identifiable, Equatable, Sendable {
     }
 
     public var isLeaf: Bool { fullKey != nil }
+
+    /// OutlineGroup 的子节点键路径：无子节点返回 nil（纯叶子），有子节点则可展开。
+    /// 「既是叶子又是分支」的节点（a 与 a:b 共存）仍可展开，同时整行可点击打开键 a。
+    public var outlineChildren: [RedisKeyTreeNode]? { children.isEmpty ? nil : children }
 }
 
 /// 把扁平键列表聚合成命名空间树（纯函数，确定性排序，便于快照测试）。

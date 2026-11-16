@@ -83,6 +83,9 @@ public struct MainView: View {
         if viewModel.openTableObject != nil {
             // 从侧边栏打开了表/视图 → 统一分页浏览
             TableDataView(viewModel: viewModel)
+        } else if viewModel.selectedRedisKey != nil {
+            // 从键树打开了 Redis 键 → 类型化查看/编辑面板
+            RedisKeyDetailView(viewModel: viewModel)
         } else {
             VStack(spacing: 0) {
                 QueryTabStrip(viewModel: viewModel)

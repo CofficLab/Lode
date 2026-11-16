@@ -3,7 +3,7 @@ import LumiUI
 
 /// 侧边栏连接列表视图。
 ///
-/// 复用 ``AppListRow`` 的行样式（与 ``DatabaseKeyRow`` 一致），
+/// 复用 ``AppListRow`` 的行样式，
 /// 行点击即 ``viewModel.connect(config:)``；连接成功后由调用方触发翻牌回到数据浏览。
 ///
 /// 风格参考 `ConnectionPopoverView`，但作为侧边栏列表使用：
