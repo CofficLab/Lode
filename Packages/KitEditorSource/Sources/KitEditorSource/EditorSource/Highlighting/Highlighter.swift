@@ -89,8 +89,8 @@ class Highlighter: NSObject {
     /// Debounce task for highlight updates to avoid excessive re-highlighting
     private var highlightDebounceTask: Task<Void, Never>?
     
-    /// Duration for debouncing highlight updates (16ms = ~60fps)
-    private let highlightDebounceDuration: Duration = .milliseconds(16)
+    /// Duration for debouncing highlight updates (16ms = ~60fps by default; configurable per editor).
+    var highlightDebounceDuration: Duration = .milliseconds(16)
     
     /// Flag to track if visible range has actually changed
     private var lastVisibleRange: NSRange?

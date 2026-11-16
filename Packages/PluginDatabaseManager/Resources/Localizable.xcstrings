@@ -4401,6 +4401,40 @@
         }
       }
     },
+    "Large document: syntax highlighting, folding and parsing are disabled to keep editing responsive." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large document: syntax highlighting, folding and parsing are disabled to keep editing responsive."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超大文件：已關閉語法高亮、摺疊與剖析，以保持編輯流暢。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超大文档：已关闭语法高亮、折叠与解析，以保持编辑流畅。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超大文件：已關閉語法高亮、摺疊與剖析，以保持編輯流暢。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超大文件：已關閉語法高亮、摺疊與剖析，以保持編輯流暢。"
+          }
+        }
+      }
+    },
     "Leave blank to keep current" : {
       "localizations" : {
         "en" : {

@@ -80,6 +80,7 @@ public struct MainView: View {
             VStack(spacing: 0) {
                 QueryTabStrip(viewModel: viewModel)
                 AppDivider()
+                largeDocumentNotice
                 queryEditor
                 if !viewModel.activeParameterNames.isEmpty {
                     QueryParameterPanel(viewModel: viewModel)
@@ -97,13 +98,35 @@ public struct MainView: View {
     private var queryEditor: some View {
         EmbeddedCodeEditorView(
             text: $viewModel.queryText,
-            options: EditorEmbeddedEditorOptions(languageID: "sql", completionProvider: viewModel.sqlCompletionProvider),
+            options: EditorEmbeddedEditorOptions(
+                languageID: "sql",
+                completionProvider: viewModel.sqlCompletionProvider,
+                foldRanges: { SQLFoldRangeCalculator.foldRanges(in: $0).map(\.range) }
+            ),
             provider: viewModel.embeddedEditorProvider,
             cursorLocation: $viewModel.editorCursorLocation,
             selectionRange: $viewModel.editorSelectionRange
         )
             .frame(minHeight: 100, maxHeight: 200)
             .border(theme.appSubtleBorder)
+    }
+
+    /// 超大文档降级提示：达到阈值时高亮/折叠/解析已关闭，仅保留纯文本编辑。
+    @ViewBuilder
+    private var largeDocumentNotice: some View {
+        if EditorDocumentGuard.isLargeDocument(viewModel.queryText) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(theme.warning)
+                Text(pluginLocalization.string("Large document: syntax highlighting, folding and parsing are disabled to keep editing responsive."))
+                    .font(.appCaption)
+                    .foregroundColor(theme.textSecondary)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.warning.opacity(0.12))
+        }
     }
 
     private var toolbar: some View {

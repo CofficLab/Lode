@@ -20,16 +20,22 @@ extension SourceEditorConfiguration {
         /// The column to reformat at.
         public var reformatAtColumn: Int = 80
 
+        /// Debounce window (milliseconds) before edit-driven re-highlighting runs.
+        /// Defaults to 16ms (~60fps); larger documents can raise it to coalesce rapid edits.
+        public var highlightDebounceMilliseconds: Int = 16
+
         public init(
             isEditable: Bool = true,
             isSelectable: Bool = true,
             indentOption: IndentOption = .spaces(count: 4),
-            reformatAtColumn: Int = 80
+            reformatAtColumn: Int = 80,
+            highlightDebounceMilliseconds: Int = 16
         ) {
             self.isEditable = isEditable
             self.isSelectable = isSelectable
             self.indentOption = indentOption
             self.reformatAtColumn = reformatAtColumn
+            self.highlightDebounceMilliseconds = highlightDebounceMilliseconds
         }
 
         @MainActor
@@ -56,6 +62,10 @@ extension SourceEditorConfiguration {
                 controller.reformattingGuideView.column = reformatAtColumn
                 controller.reformattingGuideView.updatePosition(in: controller)
                 controller.view.updateConstraintsForSubtreeIfNeeded()
+            }
+
+            if oldConfig?.highlightDebounceMilliseconds != highlightDebounceMilliseconds {
+                controller.highlighter?.highlightDebounceDuration = .milliseconds(highlightDebounceMilliseconds)
             }
         }
     }

@@ -22,6 +22,9 @@ public struct EditorEmbeddedEditorOptions {
     public var useThemeBackground: Bool
     /// 补全 Provider（如 SQL schema 补全）；nil 表示不启用补全弹层。
     public var completionProvider: (any EditorCompletionProvider)?
+    /// 折叠区间 Provider：给定文档文本返回可折叠块的 UTF-16 范围（如 SQL 语句/CTE/BEGIN 块）。
+    /// nil 表示不启用语法折叠（退回宿主默认行为）。范围须跨多行才会产生折叠。
+    public var foldRanges: (@Sendable (String) -> [NSRange])?
 
     public init(
         languageID: String,
@@ -31,7 +34,8 @@ public struct EditorEmbeddedEditorOptions {
         showGutter: Bool = true,
         fontSize: CGFloat = 0,
         useThemeBackground: Bool = true,
-        completionProvider: (any EditorCompletionProvider)? = nil
+        completionProvider: (any EditorCompletionProvider)? = nil,
+        foldRanges: (@Sendable (String) -> [NSRange])? = nil
     ) {
         self.languageID = languageID
         self.isEditable = isEditable
@@ -41,7 +45,14 @@ public struct EditorEmbeddedEditorOptions {
         self.fontSize = fontSize
         self.useThemeBackground = useThemeBackground
         self.completionProvider = completionProvider
+        self.foldRanges = foldRanges
     }
+}
+
+/// 编辑器文档规模限制（宿主与插件共用，避免阈值两处漂移）。
+public enum EditorDocumentLimits {
+    /// 超大文档阈值：2,000,000 个 UTF-16 码元。达到/超过即关闭高亮/折叠/解析，仅保留纯文本编辑。
+    public static let largeDocumentUTF16Threshold = 2_000_000
 }
 
 /// 嵌入式编辑器能力（重构方案 §17.2）。

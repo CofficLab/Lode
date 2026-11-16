@@ -34,6 +34,7 @@ public struct SourceEditor: NSViewControllerRepresentable {
         configuration: SourceEditorConfiguration,
         state: Binding<SourceEditorState>,
         highlightProviders: [any HighlightProviding]? = nil,
+        foldProvider: LineFoldProvider? = nil,
         undoManager: CEUndoManager? = nil,
         coordinators: [any TextViewCoordinator] = [],
         completionDelegate: CodeSuggestionDelegate? = nil,
@@ -44,6 +45,7 @@ public struct SourceEditor: NSViewControllerRepresentable {
         self.configuration = configuration
         self._state = state
         self.highlightProviders = highlightProviders
+        self.foldProvider = foldProvider
         self.undoManager = undoManager
         self.coordinators = coordinators
         self.completionDelegate = completionDelegate
@@ -67,6 +69,7 @@ public struct SourceEditor: NSViewControllerRepresentable {
         configuration: SourceEditorConfiguration,
         state: Binding<SourceEditorState>,
         highlightProviders: [any HighlightProviding]? = nil,
+        foldProvider: LineFoldProvider? = nil,
         undoManager: CEUndoManager? = nil,
         coordinators: [any TextViewCoordinator] = [],
         completionDelegate: CodeSuggestionDelegate? = nil,
@@ -77,6 +80,7 @@ public struct SourceEditor: NSViewControllerRepresentable {
         self.configuration = configuration
         self._state = state
         self.highlightProviders = highlightProviders
+        self.foldProvider = foldProvider
         self.undoManager = undoManager
         self.coordinators = coordinators
         self.completionDelegate = completionDelegate
@@ -88,6 +92,7 @@ public struct SourceEditor: NSViewControllerRepresentable {
     var configuration: SourceEditorConfiguration
     @Binding var state: SourceEditorState
     var highlightProviders: [any HighlightProviding]?
+    var foldProvider: LineFoldProvider?
     var undoManager: CEUndoManager?
     var coordinators: [any TextViewCoordinator]
     weak var completionDelegate: CodeSuggestionDelegate?
@@ -102,6 +107,7 @@ public struct SourceEditor: NSViewControllerRepresentable {
             configuration: configuration,
             cursorPositions: state.cursorPositions ?? [],
             highlightProviders: context.coordinator.highlightProviders,
+            foldProvider: foldProvider,
             undoManager: undoManager,
             coordinators: coordinators
         )

@@ -131,6 +131,8 @@ private struct EmbeddedEditorHostView: View {
     var selectionRange: Binding<NSRange>? = nil
     @State private var editorState = SourceEditorState()
     @State private var completionAdapter: EditorCompletionSuggestionAdapter?
+    /// 稳定的高亮 Provider 实例：超大文档降级时切到空数组，恢复时切回，避免每次渲染重建。
+    @State private var treeSitterClient = TreeSitterClient()
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -151,9 +153,30 @@ private struct EmbeddedEditorHostView: View {
     }
 
     var body: some View {
-        SourceEditor($text, language: language, configuration: configuration, state: $editorState, completionDelegate: completionAdapter)
+        SourceEditor(
+            $text,
+            language: language,
+            configuration: configuration,
+            state: $editorState,
+            highlightProviders: isLargeDocument ? [] : [treeSitterClient],
+            foldProvider: makeFoldProvider(),
+            completionDelegate: completionAdapter
+        )
             .onAppear { publishPositions(editorState.cursorPositions) }
             .onChange(of: editorState.cursorPositions) { _, newValue in publishPositions(newValue) }
+    }
+
+    /// 文档是否达到超大文档阈值（关闭高亮/折叠/解析）。
+    private var isLargeDocument: Bool {
+        text.utf16.count >= EditorDocumentLimits.largeDocumentUTF16Threshold
+    }
+
+    /// 由插件提供的折叠区间构造通用折叠 Provider；超大文档时返回空区间自行禁用折叠。
+    private func makeFoldProvider() -> RangeLineFoldProvider? {
+        guard let foldRanges = options.foldRanges else { return nil }
+        return RangeLineFoldProvider { text in
+            text.utf16.count >= EditorDocumentLimits.largeDocumentUTF16Threshold ? [] : foldRanges(text)
+        }
     }
 
     /// 把编辑器光标（caret/选区起点）与选区范围换算成 UTF-16 偏移回写给消费方。
@@ -199,13 +222,13 @@ private struct EmbeddedEditorHostView: View {
                 wrapLines: options.wrapLines,
                 tabWidth: 4
             ),
-            behavior: .init(isEditable: options.isEditable, isSelectable: options.isSelectable),
+            behavior: .init(isEditable: options.isEditable, isSelectable: options.isSelectable, highlightDebounceMilliseconds: 150),
             layout: .init(additionalTextInsets: NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)),
             peripherals: .init(
                 showGutter: options.showGutter,
                 showMinimap: false,
                 showReformattingGuide: false,
-                showFoldingRibbon: false,
+                showFoldingRibbon: options.foldRanges != nil && !isLargeDocument,
                 codeSuggestionTriggerCharacters: Set((options.completionProvider?.triggerCharacters ?? []).map { String($0) })
             )
         )

@@ -22,6 +22,7 @@ extension TextViewController {
             attributeProvider: self,
             language: language
         )
+        highlighter.highlightDebounceDuration = .milliseconds(configuration.behavior.highlightDebounceMilliseconds)
         textView.addStorageDelegate(highlighter)
         self.highlighter = highlighter
     }
