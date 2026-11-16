@@ -1,0 +1,4 @@
+module COpenSSL {
+  umbrella "openssl"
+  export *
+}

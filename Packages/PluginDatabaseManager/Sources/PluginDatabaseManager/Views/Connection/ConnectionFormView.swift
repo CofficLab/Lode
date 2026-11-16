@@ -27,6 +27,14 @@ struct ConnectionFormView: View {
     @State private var sqlitePath = ""
     @State private var sslOption: ConnectionSSLOption = .require
     @State private var safeMode: ConnectionSafeMode = .off
+    @State private var sshEnabled = false
+    @State private var sshHost = ""
+    @State private var sshPortText = ""
+    @State private var sshUsername = ""
+    @State private var sshAuthMethod: SSHAuthMethod = .password
+    @State private var sshPassword = ""
+    @State private var sshPrivateKeyPath = ""
+    @State private var sshPassphrase = ""
     @State private var isTesting = false
     @State private var testMessage: String?
     @State private var testSuccess = false
@@ -74,6 +82,9 @@ struct ConnectionFormView: View {
 
                         if type.capabilities.supportsSSL {
                             sslPicker
+                        }
+                        if type.capabilities.supportsSSH {
+                            sshSection
                         }
                     }
 
@@ -132,6 +143,59 @@ struct ConnectionFormView: View {
         }
     }
 
+    /// SSH 跳板隧道：开关 + 折叠字段。仅对支持 SSH 的网络引擎显示。
+    /// 编辑模式下密码/passphrase 不回显，留空保存表示沿用已存值。
+    @ViewBuilder
+    private var sshSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle(isOn: $sshEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pluginLocalization.string("SSH Tunnel"))
+                        .font(.appCaption)
+                        .foregroundColor(theme.textSecondary)
+                    Text(pluginLocalization.string("Connect through an SSH jump host"))
+                        .font(.appMicro)
+                        .foregroundColor(theme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .toggleStyle(.switch)
+            .tint(theme.primary)
+
+            if sshEnabled {
+                GlassTextField(title: pluginLocalization.string("SSH Host"), text: $sshHost, placeholder: "bastion.example.com")
+                GlassTextField(title: pluginLocalization.string("SSH Port"), text: $sshPortText, placeholder: "22")
+                GlassTextField(title: pluginLocalization.string("SSH Username"), text: $sshUsername, placeholder: "user")
+
+                HStack {
+                    Text(pluginLocalization.string("Authentication"))
+                        .foregroundColor(theme.textSecondary)
+                    Spacer()
+                    Picker("", selection: $sshAuthMethod) {
+                        ForEach(SSHAuthMethod.allCases, id: \.self) { method in
+                            Text(method.displayTitle).tag(method)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 160)
+                }
+
+                switch sshAuthMethod {
+                case .password:
+                    GlassTextField(title: pluginLocalization.string("SSH Password"), text: $sshPassword, placeholder: sshPasswordPlaceholder, isSecure: true, allowsReveal: true)
+                case .privateKey:
+                    GlassTextField(title: pluginLocalization.string("Private Key Path"), text: $sshPrivateKeyPath, placeholder: "~/.ssh/id_ed25519")
+                    GlassTextField(title: pluginLocalization.string("Passphrase"), text: $sshPassphrase, placeholder: pluginLocalization.string("Optional"), isSecure: true, allowsReveal: true)
+                case .agent:
+                    Text(pluginLocalization.string("Uses identities from your SSH agent (SSH_AUTH_SOCK)."))
+                        .font(.appMicro)
+                        .foregroundColor(theme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
     /// 安全模式选择：off / confirmWrites / readOnly，适用于所有引擎（含 SQLite）。
     @ViewBuilder
     private var safeModePicker: some View {
@@ -172,6 +236,21 @@ struct ConnectionFormView: View {
         editing == nil ? "••••••••" : pluginLocalization.string("Leave blank to keep current")
     }
 
+    private var sshPasswordPlaceholder: String {
+        editing == nil ? "••••••••" : pluginLocalization.string("Leave blank to keep current")
+    }
+
+    /// 编辑模式下 SSH 密码留空表示沿用已存值；新建时留空即为空（校验会拦截）。
+    private var effectiveSSHPassword: String? {
+        if !sshPassword.isEmpty { return sshPassword }
+        return editing?.sshConfig?.password
+    }
+
+    private var effectiveSSHPassphrase: String? {
+        if !sshPassphrase.isEmpty { return sshPassphrase }
+        return editing?.sshConfig?.passphrase
+    }
+
     // MARK: - Lifecycle
 
     private func prefill() {
@@ -187,6 +266,15 @@ struct ConnectionFormView: View {
             sslOption = ssl
         }
         safeMode = editing.safeMode
+        if let ssh = editing.sshConfig {
+            sshEnabled = true
+            sshHost = ssh.host
+            sshPortText = String(ssh.port)
+            sshUsername = ssh.username
+            sshAuthMethod = ssh.authMethod
+            sshPrivateKeyPath = ssh.privateKeyPath ?? ""
+            // 密码与 passphrase 不回显；留空保存时沿用已存值。
+        }
     }
 
     // MARK: - Actions
@@ -263,6 +351,30 @@ struct ConnectionFormView: View {
             config = config.withSSLOption(sslOption)
         } else {
             config = config.withSSLOption(nil)
+        }
+        // SSH 隧道仅对支持的网络引擎有意义；启用时校验字段，关闭时移除该键。
+        if type.capabilities.supportsSSH, sshEnabled {
+            let trimmedPort = sshPortText.trimmingCharacters(in: .whitespaces)
+            let sshPort: Int
+            if trimmedPort.isEmpty {
+                sshPort = 22
+            } else if let parsed = Int(trimmedPort) {
+                sshPort = parsed
+            } else {
+                throw ConnectionSSHConfigError.invalidPort
+            }
+            let ssh = ConnectionSSHConfig(
+                host: sshHost,
+                port: sshPort,
+                username: sshUsername,
+                authMethod: sshAuthMethod,
+                password: effectiveSSHPassword,
+                privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
+                passphrase: effectiveSSHPassphrase
+            )
+            config = config.withSSHConfig(try ssh.validated())
+        } else {
+            config = config.withSSHConfig(nil)
         }
         // 安全模式适用于所有引擎（off 档移除该键，回退默认）。
         config = config.withSafeMode(safeMode)

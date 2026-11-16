@@ -1,0 +1,18 @@
+# Pinned vendored component versions. See README.md for provenance and rebuild.
+
+[libssh2]
+version = 1.11.2_DEV
+commit = e75fa9a539d21e82d4920c126662e36984e97d61
+upstream = https://github.com/libssh2/libssh2.git
+license = BSD-3-Clause
+form = source (Sources/CLibSSH2)
+
+[openssl]
+version = 3.5.4
+upstream = https://www.openssl.org/source/openssl-3.5.4.tar.gz
+mirror = https://github.com/openssl/openssl/releases/download/openssl-3.5.4/openssl-3.5.4.tar.gz
+sha256 = 967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99
+license = Apache-2.0
+form = universal static libcrypto.a (Vendor/COpenSSL.xcframework)
+deployment_target = macOS 14.0
+build_flags = no-asm no-shared no-tests no-docs no-legacy no-apps no-module

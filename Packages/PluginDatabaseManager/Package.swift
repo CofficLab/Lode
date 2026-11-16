@@ -53,6 +53,7 @@ let package = Package(
                 .product(name: "LumiLocalizationKit", package: "LumiLocalization"),
                 .product(name: "LumiUI", package: "LumiUI"),
                 "TreeSitterSQL",
+                "CLibSSH2",
                 .product(name: "LumiLoggingKit", package: "LumiLogging"),
                 .product(name: "KitKeychain", package: "KitKeychain"),
                 .product(name: "MySQLNIO", package: "mysql-nio"),
@@ -74,6 +75,26 @@ let package = Package(
             path: "Sources/PluginDatabaseManager/TreeSitterSQL",
             publicHeadersPath: "include",
             cSettings: [.headerSearchPath("vendored-headers")]
+        ),
+        // Vendored SSH cryptography. COpenSSL is a source-built universal static
+        // libcrypto (see Vendor/README.md + Scripts/build-openssl-xcframework.sh);
+        // CLibSSH2 compiles vendored libssh2 source against it. macOS-only slice.
+        .binaryTarget(
+            name: "COpenSSL",
+            path: "Vendor/COpenSSL.xcframework"
+        ),
+        .target(
+            name: "CLibSSH2",
+            dependencies: ["COpenSSL"],
+            path: "Sources/CLibSSH2",
+            sources: ["src"],
+            publicHeadersPath: "include",
+            cSettings: [
+                .headerSearchPath("src"),
+                .define("HAVE_CONFIG_H"),
+                .define("LIBSSH2_OPENSSL"),
+            ],
+            linkerSettings: [.linkedLibrary("z")]
         ),
         .testTarget(
             name: "DatabaseManagerPluginTests",
