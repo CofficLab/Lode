@@ -45,6 +45,8 @@ public actor DatabaseManagerCore {
         if let existingConnection = activeConnections[config.id] {
             await existingConnection.close()
         }
+        // 重连/切换库（同 id）时排空旧池：池按 id 缓存且存旧 config，留着会借出指向旧库的陈旧连接。
+        await shutdownPool(configId: config.id)
         activeConnections[config.id] = connection
         return connection
     }
@@ -58,6 +60,8 @@ public actor DatabaseManagerCore {
             await connection.close()
             activeConnections.removeValue(forKey: configId)
         }
+        // 池内空闲连接（心跳等借出后归还）也必须关闭，否则随 manager 释放时未 close 触发驱动 deinit 断言。
+        await shutdownPool(configId: configId)
     }
 
     public func disconnectAll() async {
@@ -67,6 +71,7 @@ public actor DatabaseManagerCore {
         for connection in connections {
             await connection.close()
         }
+        await shutdownAllPools()
     }
 
     public func getPool(for config: DatabaseConfig, maxConnections: Int = 5) throws -> ConnectionPool {
