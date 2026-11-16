@@ -135,6 +135,16 @@ public actor MySQLConnection: DatabaseConnection {
                 }
             ).get()
         } catch {
+            // CREATE TRIGGER/PROCEDURE/FUNCTION 等不支持预处理协议（ER_UNSUPPORTED_PS）；
+            // 无绑定参数时改走文本协议。有参数时不能安全内插，保留原错误。
+            if Self.isUnsupportedPreparedStatement(error), (params ?? []).isEmpty {
+                do {
+                    _ = try await conn.simpleQuery(sql).get()
+                } catch {
+                    throw Self.mapCancellation(error)
+                }
+                return 0
+            }
             throw Self.mapCancellation(error)
         }
         return metadataStore.affectedRows
@@ -144,33 +154,55 @@ public actor MySQLConnection: DatabaseConnection {
         guard let conn else { throw DatabaseError.connectionFailed("Not connected") }
         do {
             let rows = try await conn.query(sql, toMySQLData(params ?? [])).get()
-
-            var resultRows: [[DatabaseValue]] = []
-            var columns: [String] = []
-            if let first = rows.first {
-                columns = first.columnDefinitions.map(\.name)
-            }
-
-            for row in rows {
-                var values: [DatabaseValue] = []
-                for colDef in row.columnDefinitions {
-                    if let data = row.column(colDef.name) {
-                        values.append(Self.convertValue(data, columnType: colDef.columnType))
-                    } else {
-                        values.append(.null)
-                    }
-                }
-                resultRows.append(values)
-            }
-
-            if columns.isEmpty, let probeSQL = Self.normalizedSelectForColumnProbe(sql) {
-                columns = try await queryColumnNames(for: probeSQL, params: params ?? [])
-            }
-
-            return QueryResult(columns: columns, rows: resultRows, rowsAffected: 0)
+            return try await Self.queryResult(from: rows, sql: sql, params: params, connection: self)
         } catch {
+            if Self.isUnsupportedPreparedStatement(error), (params ?? []).isEmpty {
+                do {
+                    let rows = try await conn.simpleQuery(sql).get()
+                    return try await Self.queryResult(from: rows, sql: sql, params: params, connection: self)
+                } catch {
+                    throw Self.mapCancellation(error)
+                }
+            }
             throw Self.mapCancellation(error)
         }
+    }
+
+    private static func isUnsupportedPreparedStatement(_ error: any Error) -> Bool {
+        guard let mysqlError = error as? MySQLError,
+              case .server(let packet) = mysqlError else { return false }
+        return packet.errorCode == .UNSUPPORTED_PS
+    }
+
+    private static func queryResult(
+        from rows: [MySQLRow],
+        sql: String,
+        params: [DatabaseValue]?,
+        connection: MySQLConnection
+    ) async throws -> QueryResult {
+        var resultRows: [[DatabaseValue]] = []
+        var columns: [String] = []
+        if let first = rows.first {
+            columns = first.columnDefinitions.map(\.name)
+        }
+
+        for row in rows {
+            var values: [DatabaseValue] = []
+            for colDef in row.columnDefinitions {
+                if let data = row.column(colDef.name) {
+                    values.append(convertValue(data, columnType: colDef.columnType))
+                } else {
+                    values.append(.null)
+                }
+            }
+            resultRows.append(values)
+        }
+
+        if columns.isEmpty, let probeSQL = normalizedSelectForColumnProbe(sql) {
+            columns = try await connection.queryColumnNames(for: probeSQL, params: params ?? [])
+        }
+
+        return QueryResult(columns: columns, rows: resultRows, rowsAffected: 0)
     }
 
     public func beginTransaction() async throws -> any DatabaseTransaction {
