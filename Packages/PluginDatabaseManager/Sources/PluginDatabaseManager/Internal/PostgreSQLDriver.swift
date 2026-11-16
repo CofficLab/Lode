@@ -39,24 +39,24 @@ public actor PGConnection: DatabaseConnection {
     private let group: EventLoopGroup
     private let conn: PostgresConnection
     private let logger = Logger(label: "com.lumi.postgres")
+    private let cancelContext: CancelContext
+    private var backendPID: Int?
+
+    private struct CancelContext: Sendable {
+        let host: String
+        let port: Int
+        let username: String
+        let password: String?
+        let database: String
+        let sslOption: ConnectionSSLOption?
+    }
 
     public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil) async throws {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-
-        let tls: PostgresConnection.Configuration.TLS
-        switch sslOption {
-        case nil, .disable:
-            tls = .disable
-        case .prefer:
-            // prefer：尽量加密，握手失败则回退明文（postgres-nio 内部处理回退）。
-            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration())
-            tls = .prefer(ctx)
-        case .require, .verifyCA, .verifyFull:
-            // require/verify-ca/verify-full：强制加密，证书校验强度由 makeTLSConfiguration 决定。
-            // postgres-nio 的 TLS 枚举没有 verifyFull case，校验差异通过 TLSConfiguration 表达。
-            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration())
-            tls = .require(ctx)
-        }
+        cancelContext = CancelContext(
+            host: host, port: port, username: username,
+            password: password, database: database, sslOption: sslOption
+        )
 
         let config = PostgresConnection.Configuration(
             host: host,
@@ -64,7 +64,7 @@ public actor PGConnection: DatabaseConnection {
             username: username,
             password: password ?? "",
             database: database,
-            tls: tls
+            tls: try Self.makeTLS(sslOption)
         )
 
         conn = try await PostgresConnection.connect(
@@ -73,38 +73,99 @@ public actor PGConnection: DatabaseConnection {
             id: 1,
             logger: logger
         ).get()
+
+        let pidResult = try await conn.query("SELECT pg_backend_pid()", []).get()
+        backendPID = pidResult.rows.first?.first.flatMap { try? $0.decode(Int.self) }
+    }
+
+    static func makeTLS(_ sslOption: ConnectionSSLOption?) throws -> PostgresConnection.Configuration.TLS {
+        switch sslOption {
+        case nil, .disable:
+            return .disable
+        case .prefer:
+            // prefer：尽量加密，握手失败则回退明文（postgres-nio 内部处理回退）。
+            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration())
+            return .prefer(ctx)
+        case .require, .verifyCA, .verifyFull:
+            // require/verify-ca/verify-full：强制加密，证书校验强度由 makeTLSConfiguration 决定。
+            // postgres-nio 的 TLS 枚举没有 verifyFull case，校验差异通过 TLSConfiguration 表达。
+            let ctx = try NIOSSLContext(configuration: sslOption!.makeTLSConfiguration())
+            return .require(ctx)
+        }
+    }
+
+    /// 主连接被长查询占住时，用第二条连接发 `pg_cancel_backend` 中止它，主连接保持可用。
+    public func cancel() async {
+        guard let backendPID, !conn.isClosed else { return }
+        let context = cancelContext
+        do {
+            let config = PostgresConnection.Configuration(
+                host: context.host,
+                port: context.port,
+                username: context.username,
+                password: context.password ?? "",
+                database: context.database,
+                tls: try Self.makeTLS(context.sslOption)
+            )
+            let cancelConnection = try await PostgresConnection.connect(
+                on: group.next(),
+                configuration: config,
+                id: 2,
+                logger: logger
+            ).get()
+            _ = try await cancelConnection.query("SELECT pg_cancel_backend(\(backendPID))", []).get()
+            try await cancelConnection.close()
+        } catch {
+            // 尽力而为：cancel 连接失败时不打断主连接，用户可重试或直接断开。
+        }
+    }
+
+    static func mapCancellation(_ error: any Error) -> any Error {
+        if let pgError = error as? PSQLError,
+           pgError.code == .queryCancelled || pgError.serverInfo?[.sqlState] == "57014" {
+            return DatabaseError.cancelled
+        }
+        return error
     }
 
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
-        let result = try await conn.query(sql, toPostgresData(params ?? [])).get()
-        return result.metadata.rows ?? result.rows.count
+        do {
+            let result = try await conn.query(sql, toPostgresData(params ?? [])).get()
+            return result.metadata.rows ?? result.rows.count
+        } catch {
+            throw Self.mapCancellation(error)
+        }
     }
 
     public func query(_ sql: String, params: [DatabaseValue]?) async throws -> QueryResult {
-        let rowSequence = try await conn.query(
-            PostgresQuery(unsafeSQL: sql, binds: toPostgresBindings(params ?? [])),
-            logger: Logger(label: "com.lumi.postgres.query")
-        )
+        do {
+            let rowSequence = try await conn.query(
+                PostgresQuery(unsafeSQL: sql, binds: toPostgresBindings(params ?? [])),
+                logger: Logger(label: "com.lumi.postgres.query")
+            )
 
-        var columns: [String] = []
-        var resultRows: [[DatabaseValue]] = []
+            var columns: [String] = []
+            var resultRows: [[DatabaseValue]] = []
 
-        for try await row in rowSequence {
-            var values: [DatabaseValue] = []
-            for cell in row {
-                if resultRows.isEmpty {
-                    columns.append(cell.columnName)
+            for try await row in rowSequence {
+                var values: [DatabaseValue] = []
+                for cell in row {
+                    if resultRows.isEmpty {
+                        columns.append(cell.columnName)
+                    }
+                    values.append(Self.convertCell(cell))
                 }
-                values.append(Self.convertCell(cell))
+                resultRows.append(values)
             }
-            resultRows.append(values)
-        }
 
-        if columns.isEmpty, let probeSQL = Self.normalizedSelectForColumnProbe(sql) {
-            columns = try await queryColumnNames(for: probeSQL, params: params ?? [])
-        }
+            if columns.isEmpty, let probeSQL = Self.normalizedSelectForColumnProbe(sql) {
+                columns = try await queryColumnNames(for: probeSQL, params: params ?? [])
+            }
 
-        return QueryResult(columns: columns, rows: resultRows, rowsAffected: resultRows.count)
+            return QueryResult(columns: columns, rows: resultRows, rowsAffected: resultRows.count)
+        } catch {
+            throw Self.mapCancellation(error)
+        }
     }
 
     public func beginTransaction() async throws -> any DatabaseTransaction {

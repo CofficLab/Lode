@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import ProviderEditor
 import LumiUI
 import SwiftUI
@@ -85,9 +86,14 @@ public struct MainView: View {
                 if viewModel.isLoading {
                     ProgressView()
                         .scaleEffect(0.5)
+                    QueryElapsedLabel()
+                    AppButton(pluginLocalization.string("Stop"), systemImage: "stop.fill", style: .secondary, size: .small, action: { Task { await viewModel.cancelRunningQuery() } })
+                        .keyboardShortcut(.return, modifiers: .command)
+                        .keyboardShortcut(".", modifiers: .command)
+                } else {
+                    AppButton(pluginLocalization.string("Run"), systemImage: "play.fill", style: .primary, size: .small, action: { Task { await viewModel.executeQuery() } })
+                        .keyboardShortcut(.return, modifiers: .command)
                 }
-                AppButton(pluginLocalization.string("Run"), systemImage: "play.fill", style: .primary, size: .small, action: { Task { await viewModel.executeQuery() } })
-                    .keyboardShortcut(.return, modifiers: .command)
                 if statementCount > 1 {
                     AppButton(
                         "\(pluginLocalization.string("Run All")) (\(statementCount))",
@@ -97,6 +103,7 @@ public struct MainView: View {
                         action: { Task { await viewModel.executeAllStatements() } }
                     )
                     .keyboardShortcut(.return, modifiers: [.command, .shift])
+                    .disabled(viewModel.isLoading)
                 }
                 AppButton(
                     pluginLocalization.string("History"),
@@ -114,6 +121,23 @@ public struct MainView: View {
 
     private var emptyState: some View {
         MainEmptyStateView(viewModel: viewModel, onAddConnection: { showAddConfigSheet = true })
+    }
+}
+
+/// 运行计时：出现即开始计时，随 isLoading 结束从视图树移除而停止。
+private struct QueryElapsedLabel: View {
+    @LumiUI.LumiTheme private var theme: any LumiUITheme
+    @State private var elapsed: TimeInterval = 0
+    private let start = Date()
+    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        Text(String(format: "%.1fs", elapsed))
+            .font(.monospaced(.caption)())
+            .foregroundStyle(theme.textSecondary)
+            .onReceive(timer) { _ in
+                elapsed = Date().timeIntervalSince(start)
+            }
     }
 }
 

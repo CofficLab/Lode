@@ -55,6 +55,8 @@ private actor ControlledConnection: DatabaseConnection {
         true
     }
 
+    func cancel() async {}
+
     func isClosed() -> Bool {
         closeCount > 0
     }
@@ -154,6 +156,8 @@ private actor QueryCountingConnection: DatabaseConnection {
     func isAlive() async -> Bool {
         true
     }
+
+    func cancel() async {}
 
     func isClosed() -> Bool {
         false

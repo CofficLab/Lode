@@ -325,6 +325,14 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         connectionGeneration == generation && connectedConfigId == configId
     }
 
+    /// 请求中止当前连接上正在执行的语句。
+    /// 正在执行的调用会抛出 ``DatabaseError/cancelled`` 并走既有错误回写路径。
+    public func cancelRunningQuery() async {
+        guard let configId = connectedConfigId,
+              let connection = await manager.getConnection(for: configId) else { return }
+        await connection.cancel()
+    }
+
     public func executeQuery() async {
         let generation = connectionGeneration
         let sql = queryText
@@ -444,6 +452,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             } catch {
                 guard isCurrentConnection(generation, configId: config.id) else { return }
                 exec.errorMessage = error.localizedDescription
+                if case DatabaseError.cancelled = error {
+                    exec.durationMs = Date().timeIntervalSince(start) * 1000
+                    executions.append(exec)
+                    break
+                }
             }
             exec.durationMs = Date().timeIntervalSince(start) * 1000
             executions.append(exec)

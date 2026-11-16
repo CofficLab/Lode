@@ -57,6 +57,7 @@ public enum DatabaseError: Error, LocalizedError, Sendable {
     case driverNotFound(DatabaseType)
     case invalidConfiguration(String)
     case notImplemented
+    case cancelled
 
     public var errorDescription: String? {
         switch self {
@@ -66,6 +67,7 @@ public enum DatabaseError: Error, LocalizedError, Sendable {
         case .driverNotFound(let type): return "Driver not found for type: \(type.rawValue)"
         case .invalidConfiguration(let msg): return "Invalid configuration: \(msg)"
         case .notImplemented: return "Feature not implemented yet"
+        case .cancelled: return "Query cancelled"
         }
     }
 }
@@ -119,6 +121,10 @@ public protocol DatabaseConnection: AnyObject, Sendable {
     func beginTransaction() async throws -> any DatabaseTransaction
     func close() async
     func isAlive() async -> Bool
+    /// 请求中止当前正在执行的语句。必须尽快返回，不能排在被中止的语句后面
+    /// （同步阻塞型驱动须用 nonisolated 实现，避免排进 actor 队列）。
+    /// 中止后正在执行的调用应抛出 ``DatabaseError/cancelled``。
+    func cancel() async
 }
 
 public protocol DatabaseTransaction: Sendable {

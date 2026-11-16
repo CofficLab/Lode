@@ -105,3 +105,21 @@ struct PGValueConversionTests {
     }
 }
 #endif
+
+// cancel 可能先于排队的语句进入 actor：连接已死是取消的结果，不是连接故障。
+@Suite
+struct RedisCancelSemanticsTests {
+    @Test func notReadyAfterCancelReportsCancelled() {
+        guard case .cancelled = RedisConnection.notReadyError(cancelRequested: true) else {
+            Issue.record("Expected .cancelled after cancel")
+            return
+        }
+    }
+
+    @Test func notReadyWithoutCancelReportsConnectionError() {
+        guard case .connectionFailed = RedisConnection.notReadyError(cancelRequested: false) else {
+            Issue.record("Expected .connectionFailed without cancel")
+            return
+        }
+    }
+}

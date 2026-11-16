@@ -18,6 +18,7 @@ public final class SQLiteDriver: DatabaseDriver, Sendable {
 
 public actor SQLiteConnection: DatabaseConnection {
     private var db: OpaquePointer?
+    private let interruptHandle = SQLiteInterruptHandle()
 
     public init(path: String) throws {
         var dbPointer: OpaquePointer?
@@ -27,6 +28,16 @@ public actor SQLiteConnection: DatabaseConnection {
             throw DatabaseError.connectionFailed(errorMsg)
         }
         self.db = dbPointer
+        interruptHandle.store(dbPointer)
+    }
+
+    /// `sqlite3_interrupt` 线程安全，但句柄的读写必须与 close 互斥，
+    /// 否则可能 interrupt 一个已经关闭的连接。
+    ///
+    /// 必须是 nonisolated：execute/query 的同步 step 循环占着 actor，
+    /// isolated 的 cancel 会永远排不上队。
+    nonisolated public func cancel() async {
+        interruptHandle.interrupt()
     }
 
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
@@ -49,6 +60,9 @@ public actor SQLiteConnection: DatabaseConnection {
         }
 
         guard stepResult == SQLITE_DONE else {
+            if sqlite3_errcode(db) == SQLITE_INTERRUPT {
+                throw DatabaseError.cancelled
+            }
             let errorMsg = String(cString: sqlite3_errmsg(db))
             throw DatabaseError.queryFailed(errorMsg)
         }
@@ -113,6 +127,9 @@ public actor SQLiteConnection: DatabaseConnection {
         }
 
         guard stepResult == SQLITE_DONE else {
+            if sqlite3_errcode(db) == SQLITE_INTERRUPT {
+                throw DatabaseError.cancelled
+            }
             let errorMsg = String(cString: sqlite3_errmsg(db))
             throw DatabaseError.queryFailed(errorMsg)
         }
@@ -126,10 +143,8 @@ public actor SQLiteConnection: DatabaseConnection {
     }
 
     public func close() async {
-        if let db {
-            sqlite3_close(db)
-            self.db = nil
-        }
+        interruptHandle.close()
+        db = nil
     }
 
     public func isAlive() async -> Bool {
@@ -197,5 +212,34 @@ public final actor SQLiteTransaction: DatabaseTransaction {
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
         guard !completed else { throw DatabaseError.transactionFailed("Transaction already completed") }
         return try await connection.execute(sql, params: params)
+    }
+}
+
+/// 跨线程共享的 SQLite 句柄：interrupt 与 close 在同一把锁下互斥。
+private final class SQLiteInterruptHandle: @unchecked Sendable {
+    private let lock = NSLock()
+    private var db: OpaquePointer?
+
+    func store(_ handle: OpaquePointer?) {
+        lock.lock()
+        db = handle
+        lock.unlock()
+    }
+
+    func interrupt() {
+        lock.lock()
+        if let db {
+            sqlite3_interrupt(db)
+        }
+        lock.unlock()
+    }
+
+    func close() {
+        lock.lock()
+        if let db {
+            sqlite3_close(db)
+        }
+        db = nil
+        lock.unlock()
     }
 }

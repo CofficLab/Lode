@@ -280,6 +280,7 @@ public final class RedisDriver: DatabaseDriver, Sendable {
 public actor RedisConnection: DatabaseConnection {
     private let connection: NWConnection
     private var alive = false
+    private var cancelRequested = false
 
     public init(host: String, port: Int = 6379, password: String? = nil) async throws {
         guard let networkPort = UInt16(exactly: port), networkPort > 0 else {
@@ -324,7 +325,7 @@ public actor RedisConnection: DatabaseConnection {
     }
 
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
-        guard alive else { throw DatabaseError.connectionFailed("Redis 连接未就绪") }
+        guard alive else { throw Self.notReadyError(cancelRequested: cancelRequested) }
         let response = try await send(RedisCommandArguments.compose(command: sql, params: params))
         switch response {
         case .simpleString(let value) where value.uppercased() == "OK":
@@ -341,7 +342,7 @@ public actor RedisConnection: DatabaseConnection {
     }
 
     public func query(_ sql: String, params: [DatabaseValue]?) async throws -> QueryResult {
-        guard alive else { throw DatabaseError.connectionFailed("Redis 连接未就绪") }
+        guard alive else { throw Self.notReadyError(cancelRequested: cancelRequested) }
         let args = try RedisCommandArguments.compose(command: sql, params: params)
         let command = args.first?.uppercased() ?? ""
         let response = try await send(args)
@@ -413,6 +414,19 @@ public actor RedisConnection: DatabaseConnection {
     public func close() async {
         connection.cancel()
         alive = false
+    }
+
+    /// Redis 没有语句级取消协议，只能断开连接；取消后需要重连才能继续执行。
+    public func cancel() async {
+        cancelRequested = true
+        connection.cancel()
+        alive = false
+    }
+
+    /// cancel 可能先于排队的 query/execute 进入 actor：
+    /// 此时连接已死是取消的结果，必须报告 cancelled 而不是连接错误。
+    static func notReadyError(cancelRequested: Bool) -> DatabaseError {
+        cancelRequested ? .cancelled : .connectionFailed("Redis 连接未就绪")
     }
 
     public func isAlive() async -> Bool {
@@ -516,19 +530,26 @@ public actor RedisConnection: DatabaseConnection {
     }
 
     private func send(_ args: [String]) async throws -> RespValue {
-        let data = RedisRESPCodec.encodeCommand(args)
+        do {
+            let data = RedisRESPCodec.encodeCommand(args)
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            connection.send(content: data, completion: .contentProcessed { error in
-                if let error {
-                    continuation.resume(throwing: DatabaseError.queryFailed(error.localizedDescription))
-                } else {
-                    continuation.resume(returning: ())
-                }
-            })
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                connection.send(content: data, completion: .contentProcessed { error in
+                    if let error {
+                        continuation.resume(throwing: DatabaseError.queryFailed(error.localizedDescription))
+                    } else {
+                        continuation.resume(returning: ())
+                    }
+                })
+            }
+
+            return try await receiveRESPValue()
+        } catch {
+            if cancelRequested {
+                throw DatabaseError.cancelled
+            }
+            throw error
         }
-
-        return try await receiveRESPValue()
     }
 
     private func receiveRESPValue() async throws -> RespValue {

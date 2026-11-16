@@ -38,9 +38,24 @@ public final class MySQLDriver: DatabaseDriver, Sendable {
 public actor MySQLConnection: DatabaseConnection {
     private let group: EventLoopGroup
     private var conn: MySQLNIO.MySQLConnection?
+    private let cancelContext: CancelContext
+    private var connectionID: Int?
+
+    private struct CancelContext: Sendable {
+        let host: String
+        let port: Int
+        let username: String
+        let password: String?
+        let database: String
+        let sslOption: ConnectionSSLOption?
+    }
 
     public init(host: String, port: Int, username: String, password: String?, database: String, sslOption: ConnectionSSLOption? = nil) async throws {
         group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        cancelContext = CancelContext(
+            host: host, port: port, username: username,
+            password: password, database: database, sslOption: sslOption
+        )
         let socketAddress = try SocketAddress.makeAddressResolvingHost(host, port: port)
         let tlsConfiguration: TLSConfiguration? = {
             guard let ssl = sslOption, ssl.enablesTLS else { return nil }
@@ -56,48 +71,93 @@ public actor MySQLConnection: DatabaseConnection {
             on: group.next()
         )
         conn = try await future.get()
+        let idRows = try await conn?.query("SELECT CONNECTION_ID() AS id").get()
+        connectionID = idRows?.first?.column("id")?.int
+    }
+
+    /// 主连接被长查询占住时，用第二条连接发 `KILL QUERY` 中止它，主连接保持可用。
+    public func cancel() async {
+        guard let connectionID, let conn, !conn.isClosed else { return }
+        let context = cancelContext
+        do {
+            let socketAddress = try SocketAddress.makeAddressResolvingHost(context.host, port: context.port)
+            let tlsConfiguration: TLSConfiguration? = {
+                guard let ssl = context.sslOption, ssl.enablesTLS else { return nil }
+                return ssl.makeTLSConfiguration()
+            }()
+            let killConnection = try await MySQLNIO.MySQLConnection.connect(
+                to: socketAddress,
+                username: context.username,
+                database: context.database,
+                password: context.password,
+                tlsConfiguration: tlsConfiguration,
+                serverHostname: context.sslOption?.enablesTLS == true ? context.host : nil,
+                on: group.next()
+            ).get()
+            _ = try await killConnection.simpleQuery("KILL QUERY \(connectionID)").get()
+            try await killConnection.close().get()
+        } catch {
+            // 尽力而为：kill 连接失败时不打断主连接，用户可重试或直接断开。
+        }
+    }
+
+    static func mapCancellation(_ error: any Error) -> any Error {
+        if let mysqlError = error as? MySQLError,
+           case .server(let packet) = mysqlError,
+           packet.errorCode == .QUERY_INTERRUPTED {
+            return DatabaseError.cancelled
+        }
+        return error
     }
 
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
         guard let conn else { throw DatabaseError.connectionFailed("Not connected") }
         let metadataStore = MySQLQueryMetadataStore()
-        _ = try await conn.query(
-            sql,
-            toMySQLData(params ?? []),
-            onMetadata: { metadata in
-                metadataStore.setAffectedRows(Int(metadata.affectedRows))
-            }
-        ).get()
+        do {
+            _ = try await conn.query(
+                sql,
+                toMySQLData(params ?? []),
+                onMetadata: { metadata in
+                    metadataStore.setAffectedRows(Int(metadata.affectedRows))
+                }
+            ).get()
+        } catch {
+            throw Self.mapCancellation(error)
+        }
         return metadataStore.affectedRows
     }
 
     public func query(_ sql: String, params: [DatabaseValue]?) async throws -> QueryResult {
         guard let conn else { throw DatabaseError.connectionFailed("Not connected") }
-        let rows = try await conn.query(sql, toMySQLData(params ?? [])).get()
+        do {
+            let rows = try await conn.query(sql, toMySQLData(params ?? [])).get()
 
-        var resultRows: [[DatabaseValue]] = []
-        var columns: [String] = []
-        if let first = rows.first {
-            columns = first.columnDefinitions.map(\.name)
-        }
-
-        for row in rows {
-            var values: [DatabaseValue] = []
-            for colDef in row.columnDefinitions {
-                if let data = row.column(colDef.name) {
-                    values.append(Self.convertValue(data, columnType: colDef.columnType))
-                } else {
-                    values.append(.null)
-                }
+            var resultRows: [[DatabaseValue]] = []
+            var columns: [String] = []
+            if let first = rows.first {
+                columns = first.columnDefinitions.map(\.name)
             }
-            resultRows.append(values)
-        }
 
-        if columns.isEmpty, let probeSQL = Self.normalizedSelectForColumnProbe(sql) {
-            columns = try await queryColumnNames(for: probeSQL, params: params ?? [])
-        }
+            for row in rows {
+                var values: [DatabaseValue] = []
+                for colDef in row.columnDefinitions {
+                    if let data = row.column(colDef.name) {
+                        values.append(Self.convertValue(data, columnType: colDef.columnType))
+                    } else {
+                        values.append(.null)
+                    }
+                }
+                resultRows.append(values)
+            }
 
-        return QueryResult(columns: columns, rows: resultRows, rowsAffected: 0)
+            if columns.isEmpty, let probeSQL = Self.normalizedSelectForColumnProbe(sql) {
+                columns = try await queryColumnNames(for: probeSQL, params: params ?? [])
+            }
+
+            return QueryResult(columns: columns, rows: resultRows, rowsAffected: 0)
+        } catch {
+            throw Self.mapCancellation(error)
+        }
     }
 
     public func beginTransaction() async throws -> any DatabaseTransaction {

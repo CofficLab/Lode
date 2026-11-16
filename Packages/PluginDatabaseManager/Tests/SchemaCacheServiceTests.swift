@@ -27,6 +27,7 @@ struct SchemaCacheServiceTests {
         func beginTransaction() async throws -> any DatabaseTransaction { fatalError("unused") }
         func close() async {}
         func isAlive() async -> Bool { true }
+        func cancel() async {}
     }
 
     private func makeService(_ introspector: MockIntrospector = MockIntrospector()) -> SchemaCacheService {
