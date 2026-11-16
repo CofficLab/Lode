@@ -272,14 +272,16 @@ public struct MySQLIntrospector: DatabaseIntrospector {
         """
         let result = try await connection.query(sql, params: nil)
         let columns: [TableColumn] = result.rows.map { row in
-            TableColumn(
+            let dataType = SchemaRowDecoder.string(row, at: 1) ?? ""
+            return TableColumn(
                 name: SchemaRowDecoder.string(row, at: 0) ?? "",
-                dataType: SchemaRowDecoder.string(row, at: 1) ?? "",
+                dataType: dataType,
                 isNullable: SchemaRowDecoder.string(row, at: 2)?.uppercased() == "YES",
                 isPrimaryKey: SchemaRowDecoder.string(row, at: 4)?.uppercased() == "PRI",
                 defaultValue: SchemaRowDecoder.string(row, at: 3),
                 position: (SchemaRowDecoder.int(row, at: 6) ?? 1) - 1,
-                comment: SchemaRowDecoder.string(row, at: 5)
+                comment: SchemaRowDecoder.string(row, at: 5),
+                enumValues: mysqlEnumValues(in: dataType)
             )
         }
         let ddl = try? await connection.query("SHOW CREATE TABLE \(qualified);", params: nil)
@@ -385,7 +387,7 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
     public func describeTable(_ object: DatabaseObject, in connection: any DatabaseConnection) async throws -> TableSchema {
         let schema = object.schema ?? "public"
         let sql = """
-        SELECT column_name, data_type, is_nullable, column_default, ordinal_position
+        SELECT column_name, data_type, is_nullable, column_default, ordinal_position, udt_name
         FROM information_schema.columns
         WHERE table_schema = '\(Self.escape(schema))' AND table_name = '\(Self.escape(object.name))'
         ORDER BY ordinal_position;
@@ -404,7 +406,7 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
             params: nil)) ?? QueryResult(columns: [], rows: [], rowsAffected: 0)
         let pkColumns = Set(pkResult.rows.compactMap { SchemaRowDecoder.string($0, at: 0) })
 
-        let columns: [TableColumn] = result.rows.map { row in
+        var columns: [TableColumn] = result.rows.map { row in
             TableColumn(
                 name: SchemaRowDecoder.string(row, at: 0) ?? "",
                 dataType: SchemaRowDecoder.string(row, at: 1) ?? "",
@@ -414,7 +416,37 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
                 position: (SchemaRowDecoder.int(row, at: 4) ?? 1) - 1
             )
         }
+        // enum 列的 data_type 只报 USER-DEFINED；取值需按 udt_name 查 pg_enum。
+        if columns.contains(where: { $0.dataType.uppercased() == "USER-DEFINED" }) {
+            let enumLabels = await Self.enumLabelsByType(in: connection, schema: schema)
+            for index in columns.indices where columns[index].dataType.uppercased() == "USER-DEFINED" {
+                let udt = SchemaRowDecoder.string(result.rows[index], at: 5) ?? ""
+                if let labels = enumLabels[udt], !labels.isEmpty {
+                    columns[index].enumValues = labels
+                }
+            }
+        }
         return TableSchema(table: object, columns: columns)
+    }
+
+    /// 当前 schema 下全部 enum 类型的取值（按 enumsortorder），以类型名为键。
+    private static func enumLabelsByType(in connection: any DatabaseConnection, schema: String) async -> [String: [String]] {
+        let sql = """
+        SELECT t.typname, e.enumlabel
+        FROM pg_enum e
+        JOIN pg_type t ON e.enumtypid = t.oid
+        JOIN pg_namespace n ON t.typnamespace = n.oid
+        WHERE n.nspname = '\(escape(schema))'
+        ORDER BY t.typname, e.enumsortorder;
+        """
+        guard let result = try? await connection.query(sql, params: nil) else { return [:] }
+        var labels: [String: [String]] = [:]
+        for row in result.rows {
+            guard let type = SchemaRowDecoder.string(row, at: 0),
+                  let label = SchemaRowDecoder.string(row, at: 1) else { continue }
+            labels[type, default: []].append(label)
+        }
+        return labels
     }
 
     public func loadDDL(for object: DatabaseObject, in connection: any DatabaseConnection) async throws -> String? {

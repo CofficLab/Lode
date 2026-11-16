@@ -30,6 +30,12 @@ struct QueryResultView: View {
     var onToggleRowDeletion: (([DatabaseValue], [String]) -> Void)? = nil
     /// 移除未保存新增行回调。
     var onRemoveInsert: ((UUID) -> Void)? = nil
+    /// NULL 单元格的显示文本（可配置为 ⟨NULL⟩）。
+    var nullText: String = "NULL"
+    /// 置回数据库默认值回调：(列名, 当前行, 全部列名)。
+    var onStageDefault: ((String, [DatabaseValue], [String]) -> Void)? = nil
+    /// 新增行某列恢复为「使用数据库默认值」回调：(insertId, 列名)。
+    var onClearInsertColumn: ((UUID, String) -> Void)? = nil
 
     // MARK: - Editing state
 
@@ -39,7 +45,6 @@ struct QueryResultView: View {
     @State private var editText: String = ""
     @State private var editingInsert: InsertCellKey? = nil
     @State private var editInsertText: String = ""
-    @FocusState private var editorFocused: Bool
 
     // MARK: - Constants
 
@@ -215,24 +220,21 @@ struct QueryResultView: View {
     private func insertCellView(insert: TableChangeManager.PendingInsert, column: String, width: CGFloat) -> some View {
         let key = InsertCellKey(insertId: insert.id, column: column)
         if editingInsert == key {
-            TextField("", text: $editInsertText)
-                .font(.monospaced(.body)())
-                .textFieldStyle(.plain)
-                .padding(8)
-                .frame(width: width, alignment: .leading)
-                .background(theme.success.opacity(0.15))
-                .border(theme.success)
-                .focused($editorFocused)
-                .onSubmit { commitInsertEdit(insertId: insert.id, column: column) }
-                .onAppear { editorFocused = true }
-                .onKeyPress(.escape) { editingInsert = nil; return .handled }
+            TypedCellEditor(
+                kind: editorKind(for: column),
+                width: width,
+                text: $editInsertText,
+                onCommit: { commitInsertEdit(insertId: insert.id, column: column) },
+                onCancel: { editingInsert = nil }
+            )
         } else {
+            let usesDefault = changeManager?.insertUsesDefault(insertId: insert.id, column: column) ?? false
             let value = changeManager?.insertDisplayValue(insertId: insert.id, column: column) ?? .null
-            let text = content(for: value)
+            let text = usesDefault ? "DEFAULT" : content(for: value)
             Text(text)
                 .font(.monospaced(.body)())
-                .foregroundColor(value == .null ? theme.textTertiary : theme.textPrimary)
-                .italic(value == .null)
+                .foregroundColor(usesDefault || value == .null ? theme.textTertiary : theme.textPrimary)
+                .italic(usesDefault || value == .null)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .padding(8)
@@ -241,12 +243,20 @@ struct QueryResultView: View {
                 .border(theme.appSubtleBorder.opacity(0.7))
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
-                    editInsertText = editRepresentation(for: value)
+                    editInsertText = usesDefault ? "" : editRepresentation(for: value)
                     editingInsert = key
                 }
                 .contextMenu {
                     Button(pluginLocalization.string("Set NULL")) {
                         onStageInsertChange?(insert.id, column, .null)
+                    }
+                    Button(pluginLocalization.string("Set Default")) {
+                        onClearInsertColumn?(insert.id, column)
+                    }
+                    if editorKind(for: column) == .text {
+                        Button(pluginLocalization.string("Set Empty String")) {
+                            onStageInsertChange?(insert.id, column, .string(""))
+                        }
                     }
                 }
         }
@@ -264,30 +274,24 @@ struct QueryResultView: View {
         let column = result.columns[colIndex]
         let displayed = displayedValue(row: row, column: column)
         let isChanged = changeManager?.isCellChanged(column: column, rowValues: row, columns: result.columns) ?? false
+        let isDefault = changeManager?.isCellDefault(column: column, rowValues: row, columns: result.columns) ?? false
         let isNull = displayed == .null
         let key = CellKey(row: rowIndex, col: colIndex)
 
         if editingCell == key {
-            TextField("", text: $editText)
-                .font(.monospaced(.body)())
-                .textFieldStyle(.plain)
-                .padding(8)
-                .frame(width: width, alignment: .leading)
-                .background(theme.warning.opacity(0.15))
-                .border(theme.warning)
-                .focused($editorFocused)
-                .onSubmit { commitEdit(row: row, column: column) }
-                .onAppear { editorFocused = true }
-                .onKeyPress(.escape) {
-                    editingCell = nil
-                    return .handled
-                }
+            TypedCellEditor(
+                kind: editorKind(for: column),
+                width: width,
+                text: $editText,
+                onCommit: { commitEdit(row: row, column: column) },
+                onCancel: { editingCell = nil }
+            )
         } else {
-            let text = content(for: displayed)
+            let text = isDefault ? "DEFAULT" : content(for: displayed)
             Text(text)
                 .font(.monospaced(.body)())
-                .foregroundColor(isNull ? theme.textTertiary : theme.textPrimary)
-                .italic(isNull)
+                .foregroundColor(isDefault ? theme.warning : (isNull ? theme.textTertiary : theme.textPrimary))
+                .italic(isNull || isDefault)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .padding(8)
@@ -297,7 +301,7 @@ struct QueryResultView: View {
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     guard changeManager?.isEditable == true else { return }
-                    editText = editRepresentation(for: displayed)
+                    editText = isDefault ? "" : editRepresentation(for: displayed)
                     editingCell = key
                 }
                 .contextMenu {
@@ -309,9 +313,23 @@ struct QueryResultView: View {
                         Button(pluginLocalization.string("Set NULL")) {
                             onStageChange?(column, row, result.columns, .null)
                         }
+                        Button(pluginLocalization.string("Set Default")) {
+                            onStageDefault?(column, row, result.columns)
+                        }
+                        if editorKind(for: column) == .text {
+                            Button(pluginLocalization.string("Set Empty String")) {
+                                onStageChange?(column, row, result.columns, .string(""))
+                            }
+                        }
                     }
                 }
         }
+    }
+
+    /// 列的编辑器种类：有变更跟踪器时按 catalog 类型与枚举取值路由，否则按文本。
+    private func editorKind(for column: String) -> CellEditorKind {
+        guard let cm = changeManager else { return .text }
+        return cellEditorKind(for: cm.columnType(of: column) ?? "", enumValues: cm.enumValues(of: column))
     }
 
     /// 显示值：优先取变更队列里的暂存值，否则取结果原始值。
@@ -351,7 +369,7 @@ struct QueryResultView: View {
         case let .string(v): return v
         case let .bool(v): return String(v)
         case let .data(v): return "<BLOB \(v.count) bytes>"
-        case .null: return "NULL"
+        case .null: return nullText
         }
     }
 }

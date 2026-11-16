@@ -79,6 +79,8 @@ public struct TableColumn: Hashable, Sendable {
     /// 在表中的序号（从 0 起）。
     public let position: Int
     public var comment: String?
+    /// 枚举列的全部合法取值（MySQL enum / PG enum）；非枚举列为 nil。
+    public var enumValues: [String]?
 
     public init(
         name: String,
@@ -87,7 +89,8 @@ public struct TableColumn: Hashable, Sendable {
         isPrimaryKey: Bool,
         defaultValue: String?,
         position: Int,
-        comment: String? = nil
+        comment: String? = nil,
+        enumValues: [String]? = nil
     ) {
         self.name = name
         self.dataType = dataType
@@ -96,6 +99,7 @@ public struct TableColumn: Hashable, Sendable {
         self.defaultValue = defaultValue
         self.position = position
         self.comment = comment
+        self.enumValues = enumValues
     }
 }
 

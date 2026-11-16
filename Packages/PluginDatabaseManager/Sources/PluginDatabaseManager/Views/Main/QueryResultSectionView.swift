@@ -89,6 +89,13 @@ struct QueryResultSectionView: View {
                     },
                     onRemoveInsert: { insertId in
                         viewModel.removePendingInsert(insertId)
+                    },
+                    nullText: viewModel.useNullSymbol ? "⟨NULL⟩" : "NULL",
+                    onStageDefault: { column, rowValues, columns in
+                        Task { await viewModel.stageCellDefault(column: column, rowValues: rowValues, columns: columns) }
+                    },
+                    onClearInsertColumn: { insertId, column in
+                        viewModel.clearPendingInsertColumn(insertId: insertId, column: column)
                     }
                 )
                 if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
@@ -208,7 +215,7 @@ struct QueryResultSectionView: View {
                 AppErrorBanner(message: LocalizedStringKey(err.isEmpty ? title : "\(title): \(err)"))
                     .padding(12)
             } else if let result = exec.result {
-                QueryResultView(result: result)
+                QueryResultView(result: result, nullText: viewModel.useNullSymbol ? "⟨NULL⟩" : "NULL")
             } else {
                 AppEmptyState(icon: "tray", title: pluginLocalization.string("No results"))
             }

@@ -160,4 +160,101 @@ struct TableChangeManagerTests {
         #expect(manager.columnType(of: "avatar") == "BLOB")
         #expect(manager.columnType(of: "missing") == nil)
     }
+
+    // MARK: - P2-2 置回默认值
+
+    private func makeDefaultManager() -> TableChangeManager {
+        let table = DatabaseObject(kind: .table, name: "items")
+        let schema = TableSchema(table: table, columns: [
+            TableColumn(name: "id", dataType: "INTEGER", isNullable: false, isPrimaryKey: true, defaultValue: nil, position: 0),
+            TableColumn(name: "status", dataType: "TEXT", isNullable: true, isPrimaryKey: false, defaultValue: "'new'", position: 1),
+            TableColumn(name: "qty", dataType: "INTEGER", isNullable: true, isPrimaryKey: false, defaultValue: "0", position: 2),
+        ])
+        return TableChangeManager(table: table, schema: schema)
+    }
+
+    @Test("置回默认值生成 DEFAULT 关键字并计入变更")
+    func stageDefaultEmitsKeyword() {
+        let manager = makeDefaultManager()
+        let row: [DatabaseValue] = [.integer(1), .string("done"), .integer(5)]
+        let columns = ["id", "status", "qty"]
+        manager.stageCellDefault(column: "status", rowValues: row, columns: columns)
+        #expect(manager.changedCellCount == 1)
+        #expect(manager.isCellChanged(column: "status", rowValues: row, columns: columns))
+        #expect(manager.isCellDefault(column: "status", rowValues: row, columns: columns))
+        #expect(!manager.isCellDefault(column: "qty", rowValues: row, columns: columns))
+        let sql = manager.generatedUpdateStatements(for: .mysql)[0]
+        #expect(sql.contains("`status` = DEFAULT"))
+        #expect(sql.contains("WHERE `id` = 1"))
+    }
+
+    @Test("具体值与默认值互斥：后暂存的覆盖先暂存的")
+    func concreteValueAndDefaultAreExclusive() {
+        let manager = makeDefaultManager()
+        let row: [DatabaseValue] = [.integer(1), .string("done"), .integer(5)]
+        let columns = ["id", "status", "qty"]
+        manager.stageCellDefault(column: "status", rowValues: row, columns: columns)
+        manager.stageCellUpdate(column: "status", newValue: .string("x"), rowValues: row, columns: columns)
+        #expect(!manager.isCellDefault(column: "status", rowValues: row, columns: columns))
+        #expect(manager.changedCellCount == 1)
+        var sql = manager.generatedUpdateStatements(for: .postgresql)[0]
+        #expect(sql.contains("\"status\" = 'x'"))
+        #expect(!sql.contains("DEFAULT"))
+
+        manager.stageCellDefault(column: "status", rowValues: row, columns: columns)
+        sql = manager.generatedUpdateStatements(for: .postgresql)[0]
+        #expect(sql.contains("\"status\" = DEFAULT"))
+        #expect(!sql.contains("'x'"))
+        #expect(manager.changedCellCount == 1)
+    }
+
+    @Test("多列 SET 子句按列名排序（含 DEFAULT）")
+    func multiColumnSetClauseSorted() {
+        let manager = makeDefaultManager()
+        let row: [DatabaseValue] = [.integer(1), .string("done"), .integer(5)]
+        let columns = ["id", "status", "qty"]
+        manager.stageCellUpdate(column: "qty", newValue: .integer(9), rowValues: row, columns: columns)
+        manager.stageCellDefault(column: "status", rowValues: row, columns: columns)
+        let sql = manager.generatedUpdateStatements(for: .mysql)[0]
+        #expect(sql.contains("SET `qty` = 9, `status` = DEFAULT"))
+        #expect(manager.changedCellCount == 2)
+    }
+
+    @Test("置回默认值可撤销/重做")
+    func defaultUndoRedo() {
+        let manager = makeDefaultManager()
+        let row: [DatabaseValue] = [.integer(1), .string("done"), .integer(5)]
+        let columns = ["id", "status", "qty"]
+        manager.stageCellDefault(column: "status", rowValues: row, columns: columns)
+        #expect(manager.hasChanges)
+        manager.undo()
+        #expect(!manager.hasChanges)
+        manager.redo()
+        #expect(manager.changedCellCount == 1)
+    }
+
+    @Test("恢复原值时同时清除该列的默认值暂存")
+    func restoringOriginalClearsDefault() {
+        let manager = makeDefaultManager()
+        let row: [DatabaseValue] = [.integer(1), .string("done"), .integer(5)]
+        let columns = ["id", "status", "qty"]
+        manager.stageCellDefault(column: "status", rowValues: row, columns: columns)
+        manager.stageCellUpdate(column: "status", newValue: .string("done"), rowValues: row, columns: columns)
+        #expect(!manager.hasChanges)
+    }
+
+    @Test("新增行清除列值即恢复使用默认值")
+    func insertClearColumnUsesDefault() {
+        let manager = makeDefaultManager()
+        let insertId = manager.addInsert()
+        #expect(manager.insertUsesDefault(insertId: insertId, column: "status"))
+        manager.setInsertColumn(insertId: insertId, column: "status", value: .string("x"))
+        #expect(!manager.insertUsesDefault(insertId: insertId, column: "status"))
+        manager.clearInsertColumn(insertId: insertId, column: "status")
+        #expect(manager.insertUsesDefault(insertId: insertId, column: "status"))
+        #expect(manager.insertDisplayValue(insertId: insertId, column: "status") == .null)
+        // 未设值的列不出现在 INSERT 列清单里，由数据库填默认值。
+        let sql = manager.generatedInsertStatements(for: .sqlite)[0]
+        #expect(sql.contains("DEFAULT VALUES"))
+    }
 }

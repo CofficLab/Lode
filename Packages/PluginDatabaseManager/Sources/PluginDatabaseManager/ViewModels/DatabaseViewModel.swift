@@ -57,6 +57,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var tableFilter: TableFilter = .empty
     /// 是否展开筛选面板。
     @Published public var showFilterPanel: Bool = false
+    /// NULL 单元格显示为 ⟨NULL⟩（否则显示 NULL）；设置持久化到 UserDefaults。
+    @Published public var useNullSymbol: Bool = UserDefaults.standard.bool(forKey: "DatabaseManager.useNullSymbol") {
+        didSet { UserDefaults.standard.set(useNullSymbol, forKey: "DatabaseManager.useNullSymbol") }
+    }
 
     /// 当前打开表的变更跟踪队列；未打开表时为 nil。
     @Published public var changeManager: TableChangeManager?
@@ -1344,6 +1348,34 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 暂存新增行的某列值。
     public func stageInsertCell(insertId: UUID, column: String, value: DatabaseValue) {
         changeManager?.setInsertColumn(insertId: insertId, column: column, value: value)
+        objectWillChange.send()
+    }
+
+    /// 暂存「置回数据库默认值」。
+    ///
+    /// MySQL/PG 直接生成 `col = DEFAULT`；SQLite 的 UPDATE 不支持 DEFAULT 关键字，
+    /// 先以 `SELECT <默认表达式>` 求出具体值再按普通单元格修改暂存（无默认值则为 NULL）。
+    public func stageCellDefault(column: String, rowValues: [DatabaseValue], columns: [String]) async {
+        guard let cm = changeManager, let config = selectedConfig else { return }
+        if config.type == .sqlite {
+            var resolved: DatabaseValue = .null
+            if let expr = cm.schema.columns.first(where: { $0.name == column })?.defaultValue,
+               !expr.isEmpty,
+               let connection = await manager.getConnection(for: config.id),
+               let result = try? await connection.query("SELECT \(expr);", params: nil),
+               let value = result.rows.first?.first {
+                resolved = value
+            }
+            cm.stageCellUpdate(column: column, newValue: resolved, rowValues: rowValues, columns: columns)
+        } else {
+            cm.stageCellDefault(column: column, rowValues: rowValues, columns: columns)
+        }
+        objectWillChange.send()
+    }
+
+    /// 清除新增行某列的暂存值（恢复为使用数据库默认值）。
+    public func clearPendingInsertColumn(insertId: UUID, column: String) {
+        changeManager?.clearInsertColumn(insertId: insertId, column: column)
         objectWillChange.send()
     }
 

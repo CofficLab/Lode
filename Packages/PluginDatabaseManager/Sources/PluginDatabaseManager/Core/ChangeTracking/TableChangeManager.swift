@@ -184,6 +184,8 @@ public final class TableChangeManager: ObservableObject {
         public let locator: RowLocator
         public let originalRow: [String: DatabaseValue]
         public var columnUpdates: [String: DatabaseValue]
+        /// 显式置回数据库默认值的列（提交时生成 `col = DEFAULT`）。
+        public var defaultColumns: Set<String> = []
     }
 
     /// 一条待删除行的定位与原始快照。
@@ -235,13 +237,18 @@ public final class TableChangeManager: ObservableObject {
         schema.columns.first { $0.name == column }?.dataType
     }
 
+    /// 列的枚举取值（MySQL enum / PG enum），供下拉编辑器。
+    public func enumValues(of column: String) -> [String]? {
+        schema.columns.first { $0.name == column }?.enumValues
+    }
+
     public var hasChanges: Bool {
         !updatesByRow.isEmpty || !pendingInserts.isEmpty || !deletedRowKeys.isEmpty
     }
 
-    /// 已修改的单元格总数（仅 UPDATE）。
+    /// 已修改的单元格总数（仅 UPDATE，含置回默认值的列）。
     public var changedCellCount: Int {
-        updatesByRow.values.reduce(0) { $0 + $1.columnUpdates.count }
+        updatesByRow.values.reduce(0) { $0 + $1.columnUpdates.count + $1.defaultColumns.count }
     }
 
     public var pendingInsertCount: Int { pendingInserts.count }
@@ -323,7 +330,14 @@ public final class TableChangeManager: ObservableObject {
 
     public func isCellChanged(column: String, rowValues: [DatabaseValue], columns: [String]) -> Bool {
         guard let key = rowKey(rowValues: rowValues, columns: columns) else { return false }
-        return updatesByRow[key]?.columnUpdates[column] != nil
+        guard let update = updatesByRow[key] else { return false }
+        return update.columnUpdates[column] != nil || update.defaultColumns.contains(column)
+    }
+
+    /// 该单元格是否被暂存为「置回数据库默认值」。
+    public func isCellDefault(column: String, rowValues: [DatabaseValue], columns: [String]) -> Bool {
+        guard let key = rowKey(rowValues: rowValues, columns: columns) else { return false }
+        return updatesByRow[key]?.defaultColumns.contains(column) ?? false
     }
 
     // MARK: - Cell updates
@@ -343,7 +357,8 @@ public final class TableChangeManager: ObservableObject {
         if newValue == original {
             if var row = updatesByRow[key] {
                 row.columnUpdates.removeValue(forKey: column)
-                if row.columnUpdates.isEmpty {
+                row.defaultColumns.remove(column)
+                if row.columnUpdates.isEmpty && row.defaultColumns.isEmpty {
                     updatesByRow.removeValue(forKey: key)
                 } else {
                     updatesByRow[key] = row
@@ -354,12 +369,33 @@ public final class TableChangeManager: ObservableObject {
 
         if var existing = updatesByRow[key] {
             existing.columnUpdates[column] = newValue
+            existing.defaultColumns.remove(column)
             updatesByRow[key] = existing
         } else {
             updatesByRow[key] = PendingRowUpdate(
                 locator: makeLocator(rowValues: rowValues, columns: columns),
                 originalRow: originalRowSnapshot(rowValues: rowValues, columns: columns),
                 columnUpdates: [column: newValue]
+            )
+        }
+    }
+
+    /// 暂存「置回数据库默认值」：提交时生成 `col = DEFAULT`（MySQL/PG）。
+    /// SQLite 不支持 UPDATE 中的 DEFAULT 关键字，由视图模型先解析默认值再按具体值暂存。
+    public func stageCellDefault(column: String, rowValues: [DatabaseValue], columns: [String]) {
+        guard let key = rowKey(rowValues: rowValues, columns: columns) else { return }
+        guard !deletedRowKeys.contains(key) else { return }
+        recordUndo()
+        if var existing = updatesByRow[key] {
+            existing.columnUpdates.removeValue(forKey: column)
+            existing.defaultColumns.insert(column)
+            updatesByRow[key] = existing
+        } else {
+            updatesByRow[key] = PendingRowUpdate(
+                locator: makeLocator(rowValues: rowValues, columns: columns),
+                originalRow: originalRowSnapshot(rowValues: rowValues, columns: columns),
+                columnUpdates: [:],
+                defaultColumns: [column]
             )
         }
     }
@@ -383,6 +419,18 @@ public final class TableChangeManager: ObservableObject {
 
     public func insertDisplayValue(insertId: UUID, column: String) -> DatabaseValue {
         pendingInserts.first(where: { $0.id == insertId })?.columnValues[column] ?? .null
+    }
+
+    /// 新增行该列是否未设值（保存时使用数据库默认值）。
+    public func insertUsesDefault(insertId: UUID, column: String) -> Bool {
+        pendingInserts.first(where: { $0.id == insertId })?.columnValues[column] == nil
+    }
+
+    /// 清除新增行某列的暂存值，恢复为「使用数据库默认值」。
+    public func clearInsertColumn(insertId: UUID, column: String) {
+        guard let index = pendingInserts.firstIndex(where: { $0.id == insertId }) else { return }
+        recordUndo()
+        pendingInserts[index].columnValues.removeValue(forKey: column)
     }
 
     public func removeInsert(_ insertId: UUID) {
@@ -467,9 +515,11 @@ public final class TableChangeManager: ObservableObject {
         for key in updatesByRow.keys.sorted() {
             guard let row = updatesByRow[key] else { continue }
             let target = RowTarget(key: key, locator: row.locator, originalRow: row.originalRow, columnUpdates: row.columnUpdates, isDelete: false)
-            let setClause = row.columnUpdates
-                .map { "\(q($0.key, type)) = \(sqlLiteral(for: $0.value, dialect: type))" }
-                .joined(separator: ", ")
+            var setParts: [(column: String, fragment: String)] = row.columnUpdates.map {
+                ($0.key, "\(q($0.key, type)) = \(sqlLiteral(for: $0.value, dialect: type))")
+            }
+            setParts += row.defaultColumns.map { ($0, "\(q($0, type)) = DEFAULT") }
+            let setClause = setParts.sorted { $0.column < $1.column }.map(\.fragment).joined(separator: ", ")
             let sql = "UPDATE \(tableExpr(type)) SET \(setClause) WHERE \(whereClause(for: row.locator, dialect: type));"
             plan.append(PlannedWrite(sql: sql, kind: .update, target: target))
         }

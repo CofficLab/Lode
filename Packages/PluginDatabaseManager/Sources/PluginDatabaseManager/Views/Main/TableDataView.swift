@@ -164,6 +164,21 @@ struct TableDataView: View {
                 size: .small,
                 action: { viewModel.switchToQueryEditor() }
             )
+            Menu {
+                Toggle(isOn: $viewModel.useNullSymbol) {
+                    Text(pluginLocalization.string("Show NULL as ⟨NULL⟩"))
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(pluginLocalization.string("Display Options"))
         }
         .padding(.horizontal, 12)
         .frame(height: 48)
