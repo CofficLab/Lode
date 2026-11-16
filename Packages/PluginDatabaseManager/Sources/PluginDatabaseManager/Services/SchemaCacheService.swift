@@ -27,13 +27,29 @@ public final class SchemaCacheService: ObservableObject {
         public let objectId: String
     }
 
+    /// schema 列表按 (连接, 库) 缓存：同一连接的不同库各有自己的 schema 集合。
+    public struct SchemaListKey: Hashable, Sendable {
+        public let configId: UUID
+        public let database: String?
+
+        public init(configId: UUID, database: String?) {
+            self.configId = configId
+            self.database = database
+        }
+    }
+
     @Published public private(set) var objectsByKey: [CacheKey: [DatabaseObject]] = [:]
     @Published public private(set) var databasesByConfig: [UUID: [String]] = [:]
-    @Published public private(set) var schemasByConfig: [UUID: [String]] = [:]
+    @Published public private(set) var schemasByKey: [SchemaListKey: [String]] = [:]
     @Published public private(set) var schemaByObject: [TableSchemaKey: TableSchema] = [:]
     @Published public private(set) var loadingKeys: Set<CacheKey> = []
 
-    public init() {}
+    /// introspector 解析入口；测试可注入 mock，生产走 `DatabaseType.introspector`。
+    private let introspectorResolver: @MainActor (DatabaseConfig) -> any DatabaseIntrospector
+
+    public init(introspectorResolver: @escaping @MainActor (DatabaseConfig) -> any DatabaseIntrospector = { $0.type.introspector }) {
+        self.introspectorResolver = introspectorResolver
+    }
 
     /// 读取某分类下的对象；`refresh == true` 时强制重新加载。
     public func objects(
@@ -50,7 +66,7 @@ public final class SchemaCacheService: ObservableObject {
         }
         loadingKeys.insert(key)
         defer { loadingKeys.remove(key) }
-        let introspector = config.type.introspector
+        let introspector = introspectorResolver(config)
         let result = try await introspector.loadObjects(
             of: kind,
             in: connection,
@@ -66,7 +82,7 @@ public final class SchemaCacheService: ObservableObject {
         if !refresh, let cached = databasesByConfig[config.id] {
             return cached
         }
-        let introspector = config.type.introspector
+        let introspector = introspectorResolver(config)
         let result = try await introspector.loadDatabases(in: connection)
         databasesByConfig[config.id] = result
         return result
@@ -74,9 +90,13 @@ public final class SchemaCacheService: ObservableObject {
 
     /// 加载某库下的 schema 列表（PG）。
     public func loadSchemas(for config: DatabaseConfig, database: String?, connection: any DatabaseConnection, refresh: Bool = false) async throws -> [String] {
-        let introspector = config.type.introspector
+        let key = SchemaListKey(configId: config.id, database: database)
+        if !refresh, let cached = schemasByKey[key] {
+            return cached
+        }
+        let introspector = introspectorResolver(config)
         let result = try await introspector.loadSchemas(in: connection, database: database)
-        databasesByConfig[config.id] = result
+        schemasByKey[key] = result
         return result
     }
 
@@ -91,7 +111,7 @@ public final class SchemaCacheService: ObservableObject {
         if !refresh, let cached = schemaByObject[key] {
             return cached
         }
-        let introspector = config.type.introspector
+        let introspector = introspectorResolver(config)
         let schema = try await introspector.describeTable(object, in: connection)
         schemaByObject[key] = schema
         return schema
@@ -101,7 +121,7 @@ public final class SchemaCacheService: ObservableObject {
     public func invalidate(configId: UUID) {
         objectsByKey = objectsByKey.filter { $0.key.configId != configId }
         databasesByConfig.removeValue(forKey: configId)
-        schemasByConfig.removeValue(forKey: configId)
+        schemasByKey = schemasByKey.filter { $0.key.configId != configId }
         schemaByObject = schemaByObject.filter { $0.key.configId != configId }
     }
 
@@ -109,7 +129,7 @@ public final class SchemaCacheService: ObservableObject {
     public func invalidateAll() {
         objectsByKey.removeAll()
         databasesByConfig.removeAll()
-        schemasByConfig.removeAll()
+        schemasByKey.removeAll()
         schemaByObject.removeAll()
     }
 }
