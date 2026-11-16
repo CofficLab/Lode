@@ -11,7 +11,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published var selectedConfig: DatabaseConfig?
     @Published var queryText: String = "SELECT * FROM sqlite_master;"
     @Published var queryResult: QueryResult?
-    @Published var errorMessage: String?
+    @Published var errorMessage: String? {
+        didSet { if errorMessage == nil { classifiedError = nil } }
+    }
+    /// 当前错误的语义分类（本地化标题 + 恢复动作），与 ``errorMessage`` 同步。
+    @Published public private(set) var classifiedError: ClassifiedDatabaseError?
+    /// 待编辑的连接；错误恢复动作「编辑连接」会置位并弹出表单。
+    @Published public var configPendingEdit: DatabaseConfig?
     @Published var isConnected: Bool = false
     @Published var isLoading: Bool = false
     @Published var redisKeys: [String] = []
@@ -116,6 +122,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 宿主注入的嵌入式编辑器能力（语法高亮）；nil 时 View 退回 TextEditor。
     @Published public var embeddedEditorProvider: (any EditorEmbeddedEditorProviding)?
     nonisolated(unsafe) private var connectedConfigId: UUID?
+    /// 最近一次尝试连接的配置（含失败的），供错误恢复「重试」重连。
+    private var lastAttemptedConfig: DatabaseConfig?
     /// 连接代际：每次连接/断开都自增。
     ///
     /// 查询、加载键列表等异步操作返回时必须校验代际，避免旧连接（或慢查询）
@@ -226,6 +234,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     }
 
     public func connect(config: DatabaseConfig) async {
+        lastAttemptedConfig = config
         let generation = beginConnectionGeneration()
         await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         guard connectionGeneration == generation else { return }
@@ -301,7 +310,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)数据库连接失败: \(error.localizedDescription)")
             }
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
         isLoading = false
     }
@@ -355,11 +364,33 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         await connection.cancel()
     }
 
+    /// 统一错误入口：分类后同步写入 ``classifiedError`` 与 ``errorMessage``。
+    private func presentError(_ error: any Error) {
+        let classified = DatabaseErrorClassifier.classify(error)
+        classifiedError = classified
+        errorMessage = classified.detail
+    }
+
+    /// 错误恢复「重试」：已连接时重跑当前编辑器语句，否则重连最近一次配置。
+    public func retryLastAction() async {
+        errorMessage = nil
+        if isConnected, selectedConfig != nil {
+            await executeQuery()
+        } else if let config = selectedConfig ?? lastAttemptedConfig {
+            await connect(config: config)
+        }
+    }
+
+    /// 错误恢复「编辑连接」：弹出当前（或最近尝试的）连接的编辑表单。
+    public func requestEditConnection() {
+        configPendingEdit = selectedConfig ?? lastAttemptedConfig
+    }
+
     public func executeQuery() async {
         let generation = connectionGeneration
         let sql = queryText
         guard let config = selectedConfig else {
-            errorMessage = "未连接到数据库"
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)执行查询失败: 未连接到数据库")
             }
@@ -367,7 +398,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
         guard let connection = await manager.getConnection(for: config.id) else {
             guard isCurrentConnection(generation, configId: config.id) else { return }
-            errorMessage = "未连接到数据库"
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)执行查询失败: 未连接到数据库")
             }
@@ -425,7 +456,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.error("\(self.t)查询执行失败: \(error.localizedDescription)")
             }
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
         guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
         isLoading = false
@@ -464,7 +495,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 isLoadingMore = false
                 return
             }
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
         isLoadingMore = false
     }
@@ -493,7 +524,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         let generation = connectionGeneration
         guard let config = selectedConfig,
               let connection = await manager.getConnection(for: config.id) else {
-            errorMessage = "未连接到数据库"
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
             return
         }
         guard isCurrentConnection(generation, configId: config.id) else { return }
@@ -532,7 +563,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 }
             } catch {
                 guard isCurrentConnection(generation, configId: config.id) else { return }
-                exec.errorMessage = error.localizedDescription
+                let classified = DatabaseErrorClassifier.classify(error)
+                exec.errorMessage = classified.detail
+                exec.errorCategory = classified.category
                 if case DatabaseError.cancelled = error {
                     exec.durationMs = Date().timeIntervalSince(start) * 1000
                     executions.append(exec)
@@ -617,7 +650,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
         guard let redis = connection as? RedisConnection else {
-            errorMessage = "Redis 连接类型异常"
+            presentError(DatabaseError.connectionFailed("Unexpected Redis connection type"))
             return
         }
         do {
@@ -635,7 +668,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             redisKeys = keys
         } catch {
             guard isCurrentConnection(generation, configId: config.id) else { return }
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
     }
     
@@ -855,7 +888,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard let config = selectedConfig, let table = openTableObject else { return }
         guard config.type.capabilities.supportsPagination else { return }
         guard let connection = await manager.getConnection(for: config.id) else {
-            errorMessage = "未连接到数据库"
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
             return
         }
         guard isCurrentConnection(generation, configId: config.id) else { return }
@@ -886,7 +919,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             queryText = sql  // 让 SQL 编辑器可见当前浏览语句
         } catch {
             guard isCurrentConnection(generation, configId: config.id) else { return }
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
         isLoading = false
 
@@ -1011,7 +1044,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     public func saveChanges() async {
         guard let config = selectedConfig, let cm = changeManager, cm.hasChanges else { return }
         guard let connection = await manager.getConnection(for: config.id) else {
-            errorMessage = "未连接到数据库"
+            presentError(DatabaseError.connectionFailed("Not connected to a database"))
             return
         }
         let statements = cm.generatedAllStatements(for: config.type)
@@ -1032,7 +1065,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             objectWillChange.send()
             await loadTablePage()
         } catch {
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
         isLoading = false
     }
@@ -1089,7 +1122,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             }
         } catch {
             guard selectedConfig?.id == configID else { return }
-            errorMessage = error.localizedDescription
+            presentError(error)
         }
     }
     

@@ -4,7 +4,7 @@ import LumiUI
 /// ``MainView`` 的查询/数据结果展示区。
 ///
 /// 三态展示：
-/// 1. `viewModel.errorMessage` 非空 → ``AppErrorBanner`` 错误条；
+/// 1. `viewModel.classifiedError` 非空 → 分类错误条（含恢复动作）；
 /// 2. `viewModel.queryResult` 非空 → ``QueryResultView`` 渲染表格；
 /// 3. 否则 → ``AppEmptyState`` 占位。
 ///
@@ -44,8 +44,8 @@ struct QueryResultSectionView: View {
 
     @ViewBuilder
     private var singleResultContent: some View {
-        if let error = viewModel.errorMessage {
-            AppErrorBanner(message: LocalizedStringKey(error))
+        if let classified = viewModel.classifiedError {
+            errorBanner(for: classified)
                 .padding(12)
         } else if let result = viewModel.queryResult {
             VStack(spacing: 0) {
@@ -83,6 +83,12 @@ struct QueryResultSectionView: View {
                     : nil
             )
         }
+    }
+
+    // MARK: - Error banner with recovery action
+
+    private func errorBanner(for classified: ClassifiedDatabaseError) -> some View {
+        DatabaseErrorBannerView(viewModel: viewModel, classified: classified)
     }
 
     // MARK: - Load more (editor result row cap)
@@ -175,7 +181,8 @@ struct QueryResultSectionView: View {
         if idx >= 0, idx < viewModel.multiExecutions.count {
             let exec = viewModel.multiExecutions[idx]
             if let err = exec.errorMessage {
-                AppErrorBanner(message: LocalizedStringKey(err))
+                let title = pluginLocalization.string((exec.errorCategory ?? .unknown).localizationKey)
+                AppErrorBanner(message: LocalizedStringKey(err.isEmpty ? title : "\(title): \(err)"))
                     .padding(12)
             } else if let result = exec.result {
                 QueryResultView(result: result)

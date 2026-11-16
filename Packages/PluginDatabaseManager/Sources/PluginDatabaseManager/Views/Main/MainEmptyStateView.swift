@@ -33,6 +33,10 @@ struct MainEmptyStateView: View {
 
     var body: some View {
         VStack(spacing: 20) {
+            if let classified = viewModel.classifiedError {
+                DatabaseErrorBannerView(viewModel: viewModel, classified: classified)
+                    .frame(maxWidth: 480)
+            }
             MainEmptyStateHeaderView(onAddConnection: onAddConnection)
             savedConnectionsSection
         }

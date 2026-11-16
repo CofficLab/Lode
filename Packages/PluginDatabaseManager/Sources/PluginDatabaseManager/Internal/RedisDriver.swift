@@ -293,7 +293,12 @@ public actor RedisConnection: DatabaseConnection {
         )
 
         connection.start(queue: DispatchQueue(label: "databasekit.redis.connection"))
-        try await waitForReady()
+        do {
+            try await waitForReady()
+        } catch {
+            connection.cancel()
+            throw error
+        }
         alive = true
 
         if let password, !password.isEmpty {
@@ -489,7 +494,11 @@ public actor RedisConnection: DatabaseConnection {
                 case .ready:
                     readyState.resume(continuation, with: .success(()))
                 case .failed(let error):
-                    readyState.resume(continuation, with: .failure(DatabaseError.connectionFailed(error.localizedDescription)))
+                    readyState.resume(continuation, with: .failure(error))
+                case .waiting(let error):
+                    // 拒绝/不可达时 NWConnection 会停在 waiting 反复重试；
+                    // 立即把真实错误抛给调用方，而不是干等到超时。
+                    readyState.resume(continuation, with: .failure(error))
                 case .cancelled:
                     readyState.resume(continuation, with: .failure(DatabaseError.connectionFailed("Redis connection was cancelled")))
                 default:

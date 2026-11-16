@@ -36,6 +36,12 @@ public struct MainView: View {
         .sheet(isPresented: $showAddConfigSheet) {
             ConnectionFormView(viewModel: viewModel, isPresented: $showAddConfigSheet)
         }
+        .sheet(item: $viewModel.configPendingEdit) { config in
+            ConnectionFormView(viewModel: viewModel, isPresented: Binding(
+                get: { viewModel.configPendingEdit != nil },
+                set: { if !$0 { viewModel.configPendingEdit = nil } }
+            ), editing: config)
+        }
         .sheet(isPresented: $viewModel.showHistory) {
             QueryHistoryView(viewModel: viewModel)
         }
