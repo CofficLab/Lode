@@ -81,6 +81,10 @@ public struct MainView: View {
                 QueryTabStrip(viewModel: viewModel)
                 AppDivider()
                 queryEditor
+                if !viewModel.activeParameterNames.isEmpty {
+                    QueryParameterPanel(viewModel: viewModel)
+                    AppDivider()
+                }
                 toolbar
                 AppDivider()
                 QueryResultSectionView(viewModel: viewModel)

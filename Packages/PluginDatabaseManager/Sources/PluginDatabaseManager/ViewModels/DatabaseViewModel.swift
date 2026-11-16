@@ -11,7 +11,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published var configs: [DatabaseConfig] = []
     @Published var selectedConfig: DatabaseConfig?
     @Published var queryText: String = "SELECT * FROM sqlite_master;" {
-        didSet { scheduleWorkspacePersist() }
+        didSet { scheduleWorkspacePersist(); refreshParameterNames() }
     }
     @Published var queryResult: QueryResult?
     @Published var errorMessage: String? {
@@ -129,6 +129,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var editorCursorLocation: Int = NSNotFound
     /// 编辑器当前选区在 ``queryText`` 中的 UTF-16 范围；length 为 0 表示无选区（仅光标）。
     @Published public var editorSelectionRange: NSRange = NSRange(location: NSNotFound, length: 0)
+    /// 命名参数面板绑定值（按参数名）；仅内存保存，不落盘（可能含敏感值）。
+    @Published public var parameterBindings: [String: QueryParameterBinding] = [:]
+    /// 当前编辑器文本中出现的命名参数（去重、首次出现顺序），驱动参数面板。
+    @Published public private(set) var activeParameterNames: [String] = []
 
     // MARK: - 编辑器查询行数上限与增量加载
 
@@ -140,6 +144,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public private(set) var editorHasMore: Bool = false
     /// 已取回的行数，作为下一次加载的 OFFSET。
     @Published public private(set) var editorFetchedRows: Int = 0
+    /// 当前编辑器结果基础 SQL 的绑定参数（命名参数改写后）；增量加载复用。
+    @Published public private(set) var editorBaseParams: [DatabaseValue]?
     /// 增量加载进行中。
     @Published public private(set) var isLoadingMore: Bool = false
     /// 执行序列号：每次新执行自增，迟到的旧结果（含增量加载）凭此丢弃。
@@ -642,6 +648,46 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
     }
 
+    /// 重新提取当前文本的命名参数，驱动参数面板。
+    ///
+    /// 保留已录入的绑定值（含当前未出现的名字），仅为新名字补默认值；
+    /// Redis 命令不是 SQL，不展示参数面板。
+    private func refreshParameterNames() {
+        guard selectedConfig?.type != .redis else {
+            activeParameterNames = []
+            return
+        }
+        let names = SQLNamedParameters.names(in: queryText)
+        for name in names where parameterBindings[name] == nil {
+            parameterBindings[name] = QueryParameterBinding()
+        }
+        activeParameterNames = names
+    }
+
+    /// 把一条语句的 `:name` 解析为引擎位置占位符 + 绑定值。
+    ///
+    /// 缺值或类型非法时抛错（执行前拦截）；Redis 与无参数语句原样返回、params 为 nil，
+    /// 保持既有行为。MySQL/SQLite 用 `?`、PostgreSQL 用 `$n`，均按出现顺序绑定。
+    private func resolveParameters(_ sql: String, type: DatabaseType) throws -> (sql: String, params: [DatabaseValue]?) {
+        guard type != .redis else { return (sql, nil) }
+        let names = SQLNamedParameters.names(in: sql)
+        guard !names.isEmpty else { return (sql, nil) }
+        var values: [String: DatabaseValue] = [:]
+        for name in names {
+            let binding = parameterBindings[name] ?? QueryParameterBinding()
+            guard binding.isSatisfied else {
+                throw DatabaseError.queryFailed("\(pluginLocalization.string("Missing value for parameter")) :\(name)")
+            }
+            guard let value = binding.databaseValue else {
+                throw DatabaseError.queryFailed("\(pluginLocalization.string("Invalid value for parameter")) :\(name)")
+            }
+            values[name] = value
+        }
+        let placeholder: (Int) -> String = type == .postgresql ? { "$\($0 + 1)" } : { _ in "?" }
+        let rewritten = SQLNamedParameters.rewrite(sql, placeholder: placeholder) { values[$0]! }
+        return (rewritten.sql, rewritten.params)
+    }
+
     /// `isRetry` 为 true 时不再触发断线重连，避免重连-重试无限循环。
     /// `sqlOverride` 非 nil 时执行该语句而非整段 ``queryText``（光标单句执行）。
     private func executeQuery(isRetry: Bool, sqlOverride: String?) async {
@@ -673,6 +719,15 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         case .blocked: presentReadOnlyError(); return
         }
 
+        // 命名参数解析：缺值/非法即拦截，不进入执行。
+        let resolved: (sql: String, params: [DatabaseValue]?)
+        do {
+            resolved = try resolveParameters(sql, type: config.type)
+        } catch {
+            presentError(error)
+            return
+        }
+
         if Self.verbose {
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.info("\(self.t)执行查询: \(sql.prefix(50))...")
@@ -688,22 +743,22 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             if Self.isReadStatement(sql, type: config.type) {
                 // Redis 命令不是 SQL，不能注入 LIMIT。
                 let limited = config.type == .redis
-                    ? SQLQueryLimitResult(sql: sql, injectedLimit: nil, baseSQL: nil)
-                    : SQLQueryLimiter.apply(sql, limit: queryRowLimit)
-                let result = try await connection.query(limited.sql, params: nil)
+                    ? SQLQueryLimitResult(sql: resolved.sql, injectedLimit: nil, baseSQL: nil)
+                    : SQLQueryLimiter.apply(resolved.sql, limit: queryRowLimit)
+                let result = try await connection.query(limited.sql, params: resolved.params)
                 guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
                 let hasMore = limited.injectedLimit.map { result.rows.count >= $0 } ?? false
-                commitQueryResult(result, origin: origin, baseSQL: limited.baseSQL, fetchedRows: result.rows.count, hasMore: hasMore)
+                commitQueryResult(result, origin: origin, baseSQL: limited.baseSQL, baseParams: resolved.params, fetchedRows: result.rows.count, hasMore: hasMore)
                 if Self.verbose {
                     if DatabaseManagerPluginSupport.verbose {
                                                 DatabaseManagerPluginSupport.logger.info("\(self.t)查询成功，返回 \(result.rows.count) 行")
                     }
                 }
             } else {
-                let affected = try await connection.execute(sql, params: nil)
+                let affected = try await connection.execute(resolved.sql, params: resolved.params)
                 guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
                 let result = QueryResult(columns: ["Result"], rows: [[.string("Success. Rows affected: \(affected)")]], rowsAffected: affected)
-                commitQueryResult(result, origin: origin, baseSQL: nil, fetchedRows: 0, hasMore: false)
+                commitQueryResult(result, origin: origin, baseSQL: nil, baseParams: nil, fetchedRows: 0, hasMore: false)
                 if Self.verbose {
                     if DatabaseManagerPluginSupport.verbose {
                                                 DatabaseManagerPluginSupport.logger.info("\(self.t)执行成功，影响 \(affected) 行")
@@ -751,7 +806,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         let pageSize = max(queryRowLimit, 1)
         let sql = "\(baseSQL)\nLIMIT \(pageSize) OFFSET \(editorFetchedRows)"
         do {
-            let result = try await connection.query(sql, params: nil)
+            let result = try await connection.query(sql, params: editorBaseParams)
             guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else {
                 isLoadingMore = false
                 return
@@ -770,6 +825,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     private func resetEditorPaging() {
         editorBaseSQL = nil
+        editorBaseParams = nil
         editorHasMore = false
         editorFetchedRows = 0
     }
@@ -805,6 +861,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         case .blocked: presentReadOnlyError(); return
         }
 
+        // 命名参数：整批预解析，缺值/非法即拦截（不进入执行）。
+        var resolved: [(sql: String, params: [DatabaseValue]?)] = []
+        for stmt in statements {
+            do { resolved.append(try resolveParameters(stmt, type: config.type)) }
+            catch { presentError(error); return }
+        }
+
         isLoading = true
         runningTabID = origin
         clearForBatch(origin: origin)
@@ -812,7 +875,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
         if batchPolicy == .wrapInTransaction {
             await executeBatchInTransaction(
-                statements: statements, config: config, connection: connection, generation: generation, origin: origin
+                statements: statements, resolved: resolved, config: config, connection: connection, generation: generation, origin: origin
             )
             return
         }
@@ -820,20 +883,20 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         var executions: [StatementExecution] = []
         var lastSuccess: QueryResult?
 
-        for stmt in statements {
+        for (stmt, res) in zip(statements, resolved) {
             let start = Date()
             var exec = StatementExecution(sql: stmt)
             do {
                 if Self.isReadStatement(stmt, type: config.type) {
                     let limited = config.type == .redis
-                        ? SQLQueryLimitResult(sql: stmt, injectedLimit: nil, baseSQL: nil)
-                        : SQLQueryLimiter.apply(stmt, limit: queryRowLimit)
-                    let result = try await connection.query(limited.sql, params: nil)
+                        ? SQLQueryLimitResult(sql: res.sql, injectedLimit: nil, baseSQL: nil)
+                        : SQLQueryLimiter.apply(res.sql, limit: queryRowLimit)
+                    let result = try await connection.query(limited.sql, params: res.params)
                     guard isCurrentConnection(generation, configId: config.id) else { return }
                     exec.result = result
                     lastSuccess = result
                 } else {
-                    let affected = try await connection.execute(stmt, params: nil)
+                    let affected = try await connection.execute(res.sql, params: res.params)
                     guard isCurrentConnection(generation, configId: config.id) else { return }
                     let result = QueryResult(
                         columns: ["Result"],
@@ -871,6 +934,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 真实回复在 EXEC 时产生，故本路径不逐句展示 Redis 读结果（MULTI 语义单独处理）。
     private func executeBatchInTransaction(
         statements: [String],
+        resolved: [(sql: String, params: [DatabaseValue]?)],
         config: DatabaseConfig,
         connection: any DatabaseConnection,
         generation: Int,
@@ -892,26 +956,26 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
 
         var failed = false
-        for stmt in statements {
+        for (stmt, res) in zip(statements, resolved) {
             let start = Date()
             var exec = StatementExecution(sql: stmt)
             do {
                 if config.type == .redis {
-                    let affected = try await transaction.execute(stmt, params: nil)
+                    let affected = try await transaction.execute(res.sql, params: res.params)
                     guard isCurrentConnection(generation, configId: config.id) else {
                         try? await transaction.rollback(); return
                     }
                     exec.result = QueryResult(columns: ["Result"], rows: [[.string("QUEUED")]], rowsAffected: affected)
                 } else if Self.isReadStatement(stmt, type: config.type) {
-                    let limited = SQLQueryLimiter.apply(stmt, limit: queryRowLimit)
-                    let result = try await connection.query(limited.sql, params: nil)
+                    let limited = SQLQueryLimiter.apply(res.sql, limit: queryRowLimit)
+                    let result = try await connection.query(limited.sql, params: res.params)
                     guard isCurrentConnection(generation, configId: config.id) else {
                         try? await transaction.rollback(); return
                     }
                     exec.result = result
                     lastSuccess = result
                 } else {
-                    let affected = try await transaction.execute(stmt, params: nil)
+                    let affected = try await transaction.execute(res.sql, params: res.params)
                     guard isCurrentConnection(generation, configId: config.id) else {
                         try? await transaction.rollback(); return
                     }
@@ -2253,12 +2317,14 @@ extension DatabaseViewModel {
             tab.multiExecutions = multiExecutions
             tab.selectedExecutionIndex = selectedExecutionIndex
             tab.baseSQL = editorBaseSQL
+            tab.baseParams = editorBaseParams
             tab.hasMore = editorHasMore
             tab.fetchedRows = editorFetchedRows
             tab.isLoadingMore = isLoadingMore
             tab.lastBatchRolledBack = lastBatchRolledBack
             tab.errorMessage = errorMessage
             tab.classifiedError = classifiedError
+            tab.parameterBindings = parameterBindings
         }
     }
 
@@ -2271,6 +2337,7 @@ extension DatabaseViewModel {
         multiExecutions = tab.multiExecutions
         selectedExecutionIndex = tab.selectedExecutionIndex
         editorBaseSQL = tab.baseSQL
+        editorBaseParams = tab.baseParams
         editorHasMore = tab.hasMore
         editorFetchedRows = tab.fetchedRows
         isLoadingMore = tab.isLoadingMore
@@ -2278,7 +2345,9 @@ extension DatabaseViewModel {
         // errorMessage 的 didSet 会在置 nil 时清掉 classifiedError，故先写 errorMessage。
         errorMessage = tab.errorMessage
         classifiedError = tab.classifiedError
+        parameterBindings = tab.parameterBindings
         isRestoringTab = false
+        refreshParameterNames()
     }
 
     /// 单语句执行起点：自增序列号并清空上一轮结果/错误/分页。
@@ -2295,6 +2364,7 @@ extension DatabaseViewModel {
                 tab.classifiedError = nil
                 tab.multiExecutions = []
                 tab.baseSQL = nil
+                tab.baseParams = nil
                 tab.hasMore = false
                 tab.fetchedRows = 0
             }
@@ -2304,11 +2374,12 @@ extension DatabaseViewModel {
 
     /// 单语句成功结果回写（读/写共用）。
     private func commitQueryResult(
-        _ result: QueryResult, origin: UUID, baseSQL: String?, fetchedRows: Int, hasMore: Bool
+        _ result: QueryResult, origin: UUID, baseSQL: String?, baseParams: [DatabaseValue]?, fetchedRows: Int, hasMore: Bool
     ) {
         if origin == workspace.activeTabID {
             queryResult = result
             editorBaseSQL = baseSQL
+            editorBaseParams = baseParams
             editorFetchedRows = fetchedRows
             editorHasMore = hasMore
             syncActiveSnapshot()
@@ -2316,6 +2387,7 @@ extension DatabaseViewModel {
             workspace.mutateTab(id: origin) { tab in
                 tab.result = result
                 tab.baseSQL = baseSQL
+                tab.baseParams = baseParams
                 tab.fetchedRows = fetchedRows
                 tab.hasMore = hasMore
             }
@@ -2382,6 +2454,7 @@ extension DatabaseViewModel {
                 tab.multiExecutions = []
                 tab.result = nil
                 tab.baseSQL = nil
+                tab.baseParams = nil
                 tab.hasMore = false
                 tab.fetchedRows = 0
             }

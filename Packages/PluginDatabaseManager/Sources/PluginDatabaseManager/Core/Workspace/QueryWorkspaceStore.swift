@@ -136,6 +136,7 @@ public final class QueryWorkspaceStore: ObservableObject {
             tabs[index].multiExecutions = []
             tabs[index].selectedExecutionIndex = 0
             tabs[index].baseSQL = nil
+            tabs[index].baseParams = nil
             tabs[index].hasMore = false
             tabs[index].fetchedRows = 0
             tabs[index].isLoadingMore = false

@@ -17,12 +17,15 @@ public struct QueryTab: Identifiable {
     public var multiExecutions: [StatementExecution]
     public var selectedExecutionIndex: Int
     public var baseSQL: String?
+    public var baseParams: [DatabaseValue]?
     public var hasMore: Bool
     public var fetchedRows: Int
     public var isLoadingMore: Bool
     public var lastBatchRolledBack: Bool
     public var errorMessage: String?
     public var classifiedError: ClassifiedDatabaseError?
+    /// 命名参数面板绑定值；仅内存保存（可能含敏感值），随标签切换保存/恢复。
+    public var parameterBindings: [String: QueryParameterBinding]
 
     public var isDirty: Bool { text != savedText }
 
@@ -36,12 +39,14 @@ public struct QueryTab: Identifiable {
         multiExecutions: [StatementExecution] = [],
         selectedExecutionIndex: Int = 0,
         baseSQL: String? = nil,
+        baseParams: [DatabaseValue]? = nil,
         hasMore: Bool = false,
         fetchedRows: Int = 0,
         isLoadingMore: Bool = false,
         lastBatchRolledBack: Bool = false,
         errorMessage: String? = nil,
-        classifiedError: ClassifiedDatabaseError? = nil
+        classifiedError: ClassifiedDatabaseError? = nil,
+        parameterBindings: [String: QueryParameterBinding] = [:]
     ) {
         self.id = id
         self.title = title
@@ -52,12 +57,14 @@ public struct QueryTab: Identifiable {
         self.multiExecutions = multiExecutions
         self.selectedExecutionIndex = selectedExecutionIndex
         self.baseSQL = baseSQL
+        self.baseParams = baseParams
         self.hasMore = hasMore
         self.fetchedRows = fetchedRows
         self.isLoadingMore = isLoadingMore
         self.lastBatchRolledBack = lastBatchRolledBack
         self.errorMessage = errorMessage
         self.classifiedError = classifiedError
+        self.parameterBindings = parameterBindings
     }
 
     /// 自动标题：取首行非空文本预览，空文本回退到给定默认名。
