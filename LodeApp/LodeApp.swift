@@ -60,6 +60,9 @@ struct LodeApp: App {
             mainView
         }
         .defaultSize(width: 1100, height: 760)
+        .commands {
+            DatabaseGridEditCommands()
+        }
 
         Window("Settings", id: "lode.settings") {
             settingsView

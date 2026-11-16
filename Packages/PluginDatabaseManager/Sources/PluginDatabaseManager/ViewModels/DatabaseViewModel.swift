@@ -1355,6 +1355,104 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         await openObject(target, initialFilter: filter)
     }
 
+    // MARK: - 网格复制与粘贴
+
+    /// 当前结果是否有可用于 UPDATE 定位的行键（主键，或 SQLite rowid 别名）。
+    public var gridHasRowKey: Bool { !gridKeyColumns.isEmpty }
+
+    private var gridKeyColumns: [String] {
+        guard let schema = selectedTableSchema else { return [] }
+        let primaryKey = schema.columns.filter(\.isPrimaryKey).map(\.name)
+        if !primaryKey.isEmpty { return primaryKey }
+        if selectedConfig?.type == .sqlite, queryResult?.columns.contains("rowid") == true {
+            return ["rowid"]
+        }
+        return []
+    }
+
+    /// 行级复制文本（JSON/CSV/INSERT/UPDATE）；复制的是显示值（含暂存编辑）。
+    public func gridCopyText(rowKind: GridRowCopyKind, row: [DatabaseValue], columns: [String]) -> String? {
+        guard let config = selectedConfig, let table = openTableObject else { return nil }
+        let tableExpr = Self.qualifiedName(for: table, type: config.type)
+        let displayed = displayedRow(row, columns: columns)
+        switch rowKind {
+        case .json:
+            return GridCopyFormat.rowJSON(columns: columns, row: displayed)
+        case .csv:
+            return GridCopyFormat.rowCSV(columns: columns, row: displayed)
+        case .insert:
+            return GridCopyFormat.insertSQL(tableExpr: tableExpr, columns: columns, row: displayed, dialect: config.type)
+        case .update:
+            return GridCopyFormat.updateSQL(
+                tableExpr: tableExpr,
+                columns: columns,
+                row: displayed,
+                keyColumns: gridKeyColumns,
+                dialect: config.type
+            )
+        }
+    }
+
+    /// 当前页某列全部值的 IN 列表（去重、跳过 NULL）。
+    public func gridInListText(column: String) -> String? {
+        guard let config = selectedConfig, let result = queryResult,
+              result.columns.contains(column) else { return nil }
+        let rows = result.rows.map { row in [displayedValue(of: column, row: row, columns: result.columns)] }
+        return GridCopyFormat.inList(column: column, columns: [column], rows: rows, dialect: config.type)
+    }
+
+    /// 页级复制文本（带表头 CSV / Markdown 表）。
+    public func gridPageText(_ kind: GridPageCopyKind) -> String? {
+        guard let result = queryResult else { return nil }
+        let rows = result.rows.map { displayedRow($0, columns: result.columns) }
+        switch kind {
+        case .csv:
+            return GridCopyFormat.csvWithHeaders(columns: result.columns, rows: rows)
+        case .markdown:
+            return GridCopyFormat.markdownTable(columns: result.columns, rows: rows)
+        }
+    }
+
+    /// 粘贴 CSV/JSON 文本为新增行（入变更队列，未保存）。返回暂存行数。
+    @discardableResult
+    public func gridPasteRows(from text: String) -> Int {
+        guard let cm = changeManager, cm.isEditable, let result = queryResult else { return 0 }
+        guard let parsed = GridPasteParser.parse(text, columns: result.columns) else {
+            errorMessage = pluginLocalization.string("Clipboard does not contain CSV or JSON rows")
+            return 0
+        }
+        for row in parsed {
+            let insertId = cm.addInsert()
+            for (index, cell) in row.enumerated() where index < result.columns.count {
+                let column = result.columns[index]
+                switch cell {
+                case .unset:
+                    continue
+                case .null:
+                    cm.setInsertColumn(insertId: insertId, column: column, value: .null)
+                case .text(let cellText):
+                    let value = parseEditedCellValue(cellText, columnType: cm.columnType(of: column), original: nil)
+                    cm.setInsertColumn(insertId: insertId, column: column, value: value)
+                }
+            }
+        }
+        objectWillChange.send()
+        return parsed.count
+    }
+
+    private func displayedRow(_ row: [DatabaseValue], columns: [String]) -> [DatabaseValue] {
+        guard let cm = changeManager else { return row }
+        return columns.map { cm.displayedValue(column: $0, rowValues: row, columns: columns) }
+    }
+
+    private func displayedValue(of column: String, row: [DatabaseValue], columns: [String]) -> DatabaseValue {
+        if let cm = changeManager {
+            return cm.displayedValue(column: column, rowValues: row, columns: columns)
+        }
+        guard let index = columns.firstIndex(of: column), index < row.count else { return .null }
+        return row[index]
+    }
+
     // MARK: - 表筛选
 
     /// 当前筛选的 WHERE 预览（供面板展示）；无过滤时为 nil。

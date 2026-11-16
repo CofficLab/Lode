@@ -44,6 +44,25 @@ struct TableDataView: View {
                 onCancel: { viewModel.cancelConflictResolution() }
             )
         }
+        .focusedSceneValue(\.gridEditActions, GridEditActions(
+            copyPageCSV: { copyToPasteboard(viewModel.gridPageText(.csv)) },
+            copyPageMarkdown: { copyToPasteboard(viewModel.gridPageText(.markdown)) },
+            pasteRows: { pasteRowsFromPasteboard() },
+            canPaste: viewModel.changeManager?.isEditable == true && viewModel.queryResult != nil
+        ))
+    }
+
+    // MARK: - Copy & Paste
+
+    private func pasteRowsFromPasteboard() {
+        guard let text = NSPasteboard.general.string(forType: .string) else { return }
+        viewModel.gridPasteRows(from: text)
+    }
+
+    private func copyToPasteboard(_ text: String?) {
+        guard let text, !text.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     // MARK: - Changes bar
@@ -135,6 +154,14 @@ struct TableDataView: View {
                     action: { viewModel.addRow() }
                 )
                 .keyboardShortcut("n", modifiers: [.command, .shift])
+                AppButton(
+                    pluginLocalization.string("Paste Rows"),
+                    systemImage: "doc.on.clipboard",
+                    style: .secondary,
+                    size: .small,
+                    action: { pasteRowsFromPasteboard() }
+                )
+                .help(pluginLocalization.string("Paste CSV or JSON rows as new rows"))
             }
             AppButton(
                 pluginLocalization.string("Refresh"),

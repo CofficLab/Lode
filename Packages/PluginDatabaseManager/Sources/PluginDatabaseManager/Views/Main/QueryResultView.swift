@@ -42,6 +42,14 @@ struct QueryResultView: View {
     var onJumpToReference: ((String, [DatabaseValue], [String]) -> Void)? = nil
     /// 新增行外键选值回调：(insertId, 列名)。
     var onChooseInsertReference: ((UUID, String) -> Void)? = nil
+    /// 行级复制回调：(格式, 行值, 列名)。
+    var onCopyRowAs: ((GridRowCopyKind, [DatabaseValue], [String]) -> Void)? = nil
+    /// IN 列表复制回调：(列名)。
+    var onCopyInList: ((String) -> Void)? = nil
+    /// 页级复制回调：(格式)。
+    var onCopyPageAs: ((GridPageCopyKind) -> Void)? = nil
+    /// UPDATE 复制是否可用（存在行键）。
+    var canCopyUpdate: Bool = false
 
     // MARK: - Editing state
 
@@ -182,6 +190,21 @@ struct QueryResultView: View {
             Spacer(minLength: 0)
         }
         .contextMenu {
+            if let onCopyRowAs {
+                Menu(pluginLocalization.string("Copy Row As")) {
+                    rowCopyButtons(row: row, onCopyRowAs: onCopyRowAs)
+                }
+            }
+            if let onCopyPageAs {
+                Menu(pluginLocalization.string("Copy Page As")) {
+                    Button(pluginLocalization.string("CSV with Headers")) {
+                        onCopyPageAs(.csv)
+                    }
+                    Button(pluginLocalization.string("Markdown Table")) {
+                        onCopyPageAs(.markdown)
+                    }
+                }
+            }
             if changeManager?.isEditable == true {
                 if isDeleted {
                     Button(pluginLocalization.string("Undelete Row")) {
@@ -196,6 +219,27 @@ struct QueryResultView: View {
                 }
             }
         }
+    }
+
+    /// 行级复制格式按钮（单元格与行右键菜单共用）。
+    @ViewBuilder
+    private func rowCopyButtons(
+        row: [DatabaseValue],
+        onCopyRowAs: @escaping (GridRowCopyKind, [DatabaseValue], [String]) -> Void
+    ) -> some View {
+        Button(pluginLocalization.string("JSON Row")) {
+            onCopyRowAs(.json, row, result.columns)
+        }
+        Button(pluginLocalization.string("CSV Row")) {
+            onCopyRowAs(.csv, row, result.columns)
+        }
+        Button(pluginLocalization.string("INSERT Statement")) {
+            onCopyRowAs(.insert, row, result.columns)
+        }
+        Button(pluginLocalization.string("UPDATE Statement")) {
+            onCopyRowAs(.update, row, result.columns)
+        }
+        .disabled(!canCopyUpdate)
     }
 
     /// 渲染一条未保存的新增行（行号显示 "+"）。
@@ -319,6 +363,17 @@ struct QueryResultView: View {
                     Button(pluginLocalization.string("Copy")) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(text, forType: .string)
+                    }
+                    if let onCopyRowAs {
+                        Menu(pluginLocalization.string("Copy As")) {
+                            rowCopyButtons(row: row, onCopyRowAs: onCopyRowAs)
+                            if let onCopyInList {
+                                Divider()
+                                Button(pluginLocalization.string("IN List (Column)")) {
+                                    onCopyInList(column)
+                                }
+                            }
+                        }
                     }
                     if changeManager?.isEditable == true {
                         Button(pluginLocalization.string("Set NULL")) {

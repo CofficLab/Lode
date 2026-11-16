@@ -116,7 +116,17 @@ struct QueryResultSectionView: View {
                     },
                     onChooseInsertReference: { insertId, column in
                         fkPicker = FKPickerRequest(column: column, rowValues: [], columns: [], insertId: insertId)
-                    }
+                    },
+                    onCopyRowAs: { kind, row, columns in
+                        copyToPasteboard(viewModel.gridCopyText(rowKind: kind, row: row, columns: columns))
+                    },
+                    onCopyInList: { column in
+                        copyToPasteboard(viewModel.gridInListText(column: column))
+                    },
+                    onCopyPageAs: { kind in
+                        copyToPasteboard(viewModel.gridPageText(kind))
+                    },
+                    canCopyUpdate: viewModel.gridHasRowKey
                 )
                 if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
                     loadMoreBar
@@ -168,6 +178,14 @@ struct QueryResultSectionView: View {
             return request.column
         }
         return "\(request.column) → \(refTable)"
+    }
+
+    // MARK: - Copy
+
+    private func copyToPasteboard(_ text: String?) {
+        guard let text, !text.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     // MARK: - Load more (editor result row cap)

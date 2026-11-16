@@ -1,4 +1,4 @@
-import DatabaseManagerPlugin
+@_exported import DatabaseManagerPlugin
 import KernelCore
 import PluginCodeEditorHost
 import ProviderExternalFile
