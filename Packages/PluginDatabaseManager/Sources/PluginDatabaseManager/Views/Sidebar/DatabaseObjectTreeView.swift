@@ -78,6 +78,8 @@ struct DatabaseObjectTreeView: View {
                 .scrollIndicators(.hidden)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
+
+            SavedQueriesSectionView(viewModel: viewModel)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
