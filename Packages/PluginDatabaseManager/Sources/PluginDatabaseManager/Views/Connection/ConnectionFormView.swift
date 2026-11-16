@@ -30,6 +30,10 @@ struct ConnectionFormView: View {
     @State private var group = ""
     @State private var color: ConnectionColor = .none
     @State private var startupSQL = ""
+    @State private var passwordSourceKind: PasswordSourceKind = .keychain
+    @State private var passwordFilePath = ""
+    @State private var passwordVariableName = ""
+    @State private var passwordCommand = ""
     @State private var sshEnabled = false
     @State private var sshHost = ""
     @State private var sshPortText = ""
@@ -82,7 +86,7 @@ struct ConnectionFormView: View {
                         GlassTextField(title: pluginLocalization.string("Port"), text: $portText, placeholder: "\(type.defaultPort ?? 0)")
                         GlassTextField(title: pluginLocalization.string("Database"), text: $database, placeholder: databasePlaceholder)
                         GlassTextField(title: pluginLocalization.string("Username"), text: $username, placeholder: type == .redis ? "default" : "user")
-                        GlassTextField(title: pluginLocalization.string("Password"), text: $password, placeholder: passwordPlaceholder, isSecure: true, allowsReveal: true)
+                        passwordSourceSection
 
                         if type.capabilities.supportsSSL {
                             sslPicker
@@ -124,7 +128,12 @@ struct ConnectionFormView: View {
         }
         .padding()
         .frame(width: 400)
-        .onAppear(perform: prefill)
+        .onAppear {
+            prefill()
+            viewModel.isConnectionFormPresented = true
+        }
+        .onDisappear { viewModel.isConnectionFormPresented = false }
+        .modifier(PasswordSourceGates(viewModel: viewModel, isActive: true))
     }
 
     // MARK: - Subviews
@@ -240,6 +249,47 @@ struct ConnectionFormView: View {
             }
             .pickerStyle(.menu)
             .frame(width: 160)
+        }
+    }
+
+    /// 密码来源：Keychain（默认，内联密码）/文件/环境变量/命令/每次询问。
+    /// 仅对需要密码的网络引擎显示；SQLite 本地文件无密码，退回内联字段（实际不可达）。
+    @ViewBuilder
+    private var passwordSourceSection: some View {
+        if type.capabilities.supportsPasswordSources {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pluginLocalization.string("Password Source"))
+                        .font(.appCaption)
+                        .foregroundColor(theme.textSecondary)
+                    Text(pluginLocalization.string(passwordSourceKind.helpText))
+                        .font(.appMicro)
+                        .foregroundColor(theme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Picker("", selection: $passwordSourceKind) {
+                    ForEach(PasswordSourceKind.allCases, id: \.self) { kind in
+                        Text(pluginLocalization.string(kind.displayTitle)).tag(kind)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 160)
+            }
+            switch passwordSourceKind {
+            case .keychain:
+                GlassTextField(title: pluginLocalization.string("Password"), text: $password, placeholder: passwordPlaceholder, isSecure: true, allowsReveal: true)
+            case .file:
+                GlassTextField(title: pluginLocalization.string("Password File Path"), text: $passwordFilePath, placeholder: "/run/secrets/db_password")
+            case .environment:
+                GlassTextField(title: pluginLocalization.string("Environment Variable Name"), text: $passwordVariableName, placeholder: "DB_PASSWORD")
+            case .command:
+                GlassTextField(title: pluginLocalization.string("Password Command"), text: $passwordCommand, placeholder: "op read op://vault/db/password")
+            case .askEveryTime:
+                EmptyView()
+            }
+        } else {
+            GlassTextField(title: pluginLocalization.string("Password"), text: $password, placeholder: passwordPlaceholder, isSecure: true, allowsReveal: true)
         }
     }
 
@@ -366,6 +416,14 @@ struct ConnectionFormView: View {
         group = editing.group ?? ""
         color = editing.connectionColor
         startupSQL = editing.startupSQL ?? ""
+        if let source = editing.passwordSource {
+            passwordSourceKind = source.kind
+            passwordFilePath = source.filePath ?? ""
+            passwordVariableName = source.variableName ?? ""
+            passwordCommand = source.command ?? ""
+        } else {
+            passwordSourceKind = .keychain
+        }
         if let ssh = editing.sshConfig {
             sshEnabled = true
             sshHost = ssh.host
@@ -490,6 +548,18 @@ struct ConnectionFormView: View {
         config = config.withGroup(group)
         config = config.withConnectionColor(color)
         config = config.withStartupSQL(startupSQL)
+        // 密码来源仅对网络引擎有意义；按来源校验必填字段，默认 Keychain 移除该键。
+        if type.capabilities.supportsPasswordSources {
+            let source = ConnectionPasswordSource(
+                kind: passwordSourceKind,
+                filePath: passwordFilePath.isEmpty ? nil : passwordFilePath,
+                variableName: passwordVariableName.isEmpty ? nil : passwordVariableName,
+                command: passwordCommand.isEmpty ? nil : passwordCommand
+            )
+            config = config.withPasswordSource(try source.validated())
+        } else {
+            config = config.withPasswordSource(nil)
+        }
         return config
     }
 }

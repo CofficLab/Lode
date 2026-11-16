@@ -23,6 +23,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public private(set) var classifiedError: ClassifiedDatabaseError?
     /// 待编辑的连接；错误恢复动作「编辑连接」会置位并弹出表单。
     @Published public var configPendingEdit: DatabaseConfig?
+    /// 连接表单是否正在展示。密码询问/命令确认闸门据此决定由表单还是工作区呈现，
+    /// 避免表单 sheet 与工作区 sheet 同时呈现同一请求而冲突。
+    @Published public var isConnectionFormPresented = false
     /// 连接级 startup SQL 执行失败的非阻塞提示（连接本身仍成功）。nil 表示无提示。
     /// 与 ``errorMessage`` 区分：后者意味着查询/连接失败，前者仅是会话引导脚本未跑通。
     @Published public private(set) var startupSQLNotice: String?
@@ -146,6 +149,21 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public private(set) var writeConfirmation: WriteConfirmationRequest?
     /// 写确认的挂起续体；用户决定后恢复写流程。
     private var writeConfirmationContinuation: CheckedContinuation<Bool, Never>?
+
+    /// 密码询问请求（askEveryTime 来源）；非 nil 时弹出密码输入面板，连接流程挂起等待输入。
+    /// 密码仅存内存、随连接配置副本下发，绝不写回已保存配置或落盘。
+    @Published public private(set) var passwordPrompt: PasswordPromptRequest?
+    /// 密码询问的挂起续体；用户输入（nil 表示取消）后恢复连接流程。
+    private var passwordPromptContinuation: CheckedContinuation<String?, Never>?
+
+    /// 命令确认请求（command 来源）；非 nil 时弹出确认对话框，连接流程挂起等待用户批准。
+    /// 本机执行命令取密码前必须经此闸门；命令输出绝不写入日志。
+    @Published public private(set) var commandConfirmation: CommandConfirmationRequest?
+    /// 命令确认的挂起续体；用户决定后恢复连接流程。
+    private var commandConfirmationContinuation: CheckedContinuation<Bool, Never>?
+
+    /// 密码来源解析器（环境表/文件读取/命令执行依赖可注入，便于离线测试）。
+    var passwordResolver = PasswordSourceResolver()
 
     /// 多语句执行的结果（每语句一条）；为空时表示当前是单语句模式。
     @Published public var multiExecutions: [StatementExecution] = []
@@ -382,7 +400,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 测试连接（供连接表单使用），复用内置驱动注册逻辑。
     public func testConnection(config: DatabaseConfig) async throws {
         await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
-        try await manager.probe(config: config)
+        let generation = connectionGeneration
+        let probeConfig = try await resolvedConnectConfig(for: config, generation: generation)
+        guard connectionGeneration == generation else { throw DatabaseError.cancelled }
+        try await manager.probe(config: probeConfig)
     }
 
     public func connect(config: DatabaseConfig) async {
@@ -398,8 +419,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         let generation = beginConnectionGeneration()
         await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         guard connectionGeneration == generation else { return }
-        await DatabaseAgentConnectionRegistry.shared.upsert(config)
-        guard connectionGeneration == generation else { return }
+        cancelPendingPasswordRequests()
         if Self.verbose {
             if DatabaseManagerPluginSupport.verbose {
                             DatabaseManagerPluginSupport.logger.info("\(self.t)连接数据库: \(config.name)")
@@ -409,7 +429,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         errorMessage = nil
         startupSQLNotice = nil
         do {
-            _ = try await manager.connect(config: config)
+            // 解析密码来源（file/env/command/每次询问）；command 与 askEveryTime 经用户确认闸门。
+            // 解析出的密码只进连接副本与 Agent 注册表，selectedConfig 仍保留原始来源配置（不落盘明文）。
+            let connectConfig = try await resolvedConnectConfig(for: config, generation: generation)
+            guard connectionGeneration == generation else { return }
+            await DatabaseAgentConnectionRegistry.shared.upsert(connectConfig)
+            guard connectionGeneration == generation else { return }
+            _ = try await manager.connect(config: connectConfig)
             // 连接期间用户已切换/断开：回收刚建立的连接，不再写任何状态。
             guard connectionGeneration == generation else {
                 await manager.disconnect(configId: config.id)
@@ -587,6 +613,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         pendingConflicts = []
         showConflictSheet = false
         cancelPendingWriteConfirmation()
+        cancelPendingPasswordRequests()
         schemaChangeManager = nil
         schemaCache.invalidate(configId: config.id)
         // 显式断开后，下次不再自动重连这个连接
@@ -2513,6 +2540,88 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     private func cancelPendingWriteConfirmation() {
         guard writeConfirmationContinuation != nil else { return }
         resolveWriteConfirmation(false)
+    }
+
+    // MARK: - 密码来源解析与确认闸门
+
+    /// 密码询问请求的展示模型（askEveryTime 来源）。
+    public struct PasswordPromptRequest: Identifiable, Sendable {
+        public let id = UUID()
+        public let connectionName: String
+        public let username: String?
+    }
+
+    /// 命令确认请求的展示模型（command 来源）。
+    public struct CommandConfirmationRequest: Identifiable, Sendable {
+        public let id = UUID()
+        public let connectionName: String
+        public let command: String
+    }
+
+    /// 解析连接的有效密码，返回一份密码已就绪的配置副本（原始配置不被修改）。
+    ///
+    /// - 默认（无 passwordSource）：直接用 config.password（Keychain 已在载入时回填）。
+    /// - command：先经用户确认闸门，批准后才本机执行；拒绝或代际失效则中止连接。
+    /// - askEveryTime：弹窗询问，密码仅存内存；取消则中止连接。
+    /// - file/environment/keychain：经 ``passwordResolver`` 静态求值。
+    ///
+    /// 安全：解析出的密码只写入返回副本，绝不写回 selectedConfig/已保存配置；命令输出不落日志。
+    private func resolvedConnectConfig(for config: DatabaseConfig, generation: Int) async throws -> DatabaseConfig {
+        guard let source = config.passwordSource else { return config }
+        if source.kind == .command {
+            let approved = await requestCommandConfirmation(command: source.command ?? "", connectionName: config.name)
+            guard connectionGeneration == generation else { throw DatabaseError.cancelled }
+            guard approved else { throw DatabaseError.cancelled }
+        }
+        let resolved: String?
+        if source.kind == .askEveryTime {
+            let entered = await requestPasswordPrompt(connectionName: config.name, username: config.username)
+            guard connectionGeneration == generation else { throw DatabaseError.cancelled }
+            guard let entered else { throw DatabaseError.cancelled }
+            resolved = entered
+        } else {
+            resolved = try await passwordResolver.resolve(source, keychainPassword: config.password)
+            guard connectionGeneration == generation else { throw DatabaseError.cancelled }
+        }
+        var copy = config
+        copy.password = resolved
+        return copy
+    }
+
+    private func requestPasswordPrompt(connectionName: String, username: String?) async -> String? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+            passwordPromptContinuation = continuation
+            passwordPrompt = PasswordPromptRequest(connectionName: connectionName, username: username)
+        }
+    }
+
+    /// 用户对密码询问面板的决定：输入密码继续连接，nil 取消。续体只消费一次，重复调用安全。
+    public func resolvePasswordPrompt(_ password: String?) {
+        passwordPrompt = nil
+        let continuation = passwordPromptContinuation
+        passwordPromptContinuation = nil
+        continuation?.resume(returning: password)
+    }
+
+    private func requestCommandConfirmation(command: String, connectionName: String) async -> Bool {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            commandConfirmationContinuation = continuation
+            commandConfirmation = CommandConfirmationRequest(connectionName: connectionName, command: command)
+        }
+    }
+
+    /// 用户对命令确认弹窗的决定：true 批准执行，false 取消。续体只消费一次，重复调用安全。
+    public func resolveCommandConfirmation(_ approved: Bool) {
+        commandConfirmation = nil
+        let continuation = commandConfirmationContinuation
+        commandConfirmationContinuation = nil
+        continuation?.resume(returning: approved)
+    }
+
+    /// 连接切换/断开时取消仍在挂起的密码询问与命令确认，避免续体泄漏导致连接流程永久挂起。
+    private func cancelPendingPasswordRequests() {
+        if passwordPromptContinuation != nil { resolvePasswordPrompt(nil) }
+        if commandConfirmationContinuation != nil { resolveCommandConfirmation(false) }
     }
 
     /// 按方言引用单个标识符（SQLite/PG 用双引号，MySQL 用反引号）。

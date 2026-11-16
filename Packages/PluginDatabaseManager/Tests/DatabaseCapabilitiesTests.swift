@@ -11,9 +11,9 @@ struct DatabaseCapabilitiesTests {
         #expect(type.capabilities.supportsSSH == (type != .sqlite))
     }
 
-    @Test("密码来源尚未实现：所有引擎声明 false", arguments: DatabaseType.allCases)
-    func passwordSourcesNotImplemented(type: DatabaseType) {
-        #expect(type.capabilities.supportsPasswordSources == false)
+    @Test("密码来源：网络引擎支持（file/env/command/每次询问），SQLite 本地文件不支持", arguments: DatabaseType.allCases)
+    func passwordSources(type: DatabaseType) {
+        #expect(type.capabilities.supportsPasswordSources == (type != .sqlite))
     }
 
     @Test("TLS：网络引擎支持（含 Redis），SQLite 本地文件不支持", arguments: DatabaseType.allCases)

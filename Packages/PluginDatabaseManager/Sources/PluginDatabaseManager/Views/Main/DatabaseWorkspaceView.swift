@@ -67,6 +67,7 @@ public struct DatabaseWorkspaceView: View {
                 }
             }
         }
+        .modifier(PasswordSourceGates(viewModel: viewModel, isActive: !viewModel.isConnectionFormPresented))
     }
 
     // MARK: - 写确认文案
