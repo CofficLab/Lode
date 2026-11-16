@@ -19,6 +19,8 @@ public struct EditorEmbeddedEditorOptions {
     public var fontSize: CGFloat
     /// 是否使用语法主题背景色。
     public var useThemeBackground: Bool
+    /// 补全 Provider（如 SQL schema 补全）；nil 表示不启用补全弹层。
+    public var completionProvider: (any EditorCompletionProvider)?
 
     public init(
         languageID: String,
@@ -27,7 +29,8 @@ public struct EditorEmbeddedEditorOptions {
         wrapLines: Bool = true,
         showGutter: Bool = true,
         fontSize: CGFloat = 0,
-        useThemeBackground: Bool = true
+        useThemeBackground: Bool = true,
+        completionProvider: (any EditorCompletionProvider)? = nil
     ) {
         self.languageID = languageID
         self.isEditable = isEditable
@@ -36,6 +39,7 @@ public struct EditorEmbeddedEditorOptions {
         self.showGutter = showGutter
         self.fontSize = fontSize
         self.useThemeBackground = useThemeBackground
+        self.completionProvider = completionProvider
     }
 }
 

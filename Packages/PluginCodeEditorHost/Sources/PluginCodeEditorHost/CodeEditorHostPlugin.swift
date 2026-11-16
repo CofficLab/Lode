@@ -119,10 +119,26 @@ private struct EmbeddedEditorHostView: View {
     let language: EditorLanguageContext
     var cursorLocation: Binding<Int>? = nil
     @State private var editorState = SourceEditorState()
+    @State private var completionAdapter: EditorCompletionSuggestionAdapter?
     @Environment(\.colorScheme) private var colorScheme
 
+    init(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        language: EditorLanguageContext,
+        cursorLocation: Binding<Int>? = nil
+    ) {
+        self._text = text
+        self.options = options
+        self.language = language
+        self.cursorLocation = cursorLocation
+        self._completionAdapter = State(initialValue: options.completionProvider.map {
+            EditorCompletionSuggestionAdapter(provider: $0, languageID: options.languageID)
+        })
+    }
+
     var body: some View {
-        SourceEditor($text, language: language, configuration: configuration, state: $editorState)
+        SourceEditor($text, language: language, configuration: configuration, state: $editorState, completionDelegate: completionAdapter)
             .onAppear { publishCursor(editorState.cursorPositions) }
             .onChange(of: editorState.cursorPositions) { _, newValue in publishCursor(newValue) }
     }
@@ -166,7 +182,13 @@ private struct EmbeddedEditorHostView: View {
             ),
             behavior: .init(isEditable: options.isEditable, isSelectable: options.isSelectable),
             layout: .init(additionalTextInsets: NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)),
-            peripherals: .init(showGutter: options.showGutter, showMinimap: false, showReformattingGuide: false, showFoldingRibbon: false)
+            peripherals: .init(
+                showGutter: options.showGutter,
+                showMinimap: false,
+                showReformattingGuide: false,
+                showFoldingRibbon: false,
+                codeSuggestionTriggerCharacters: Set((options.completionProvider?.triggerCharacters ?? []).map { String($0) })
+            )
         )
     }
 }

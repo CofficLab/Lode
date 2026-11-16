@@ -74,7 +74,7 @@ public struct MainView: View {
     private var queryEditor: some View {
         EmbeddedCodeEditorView(
             text: $viewModel.queryText,
-            options: EditorEmbeddedEditorOptions(languageID: "sql"),
+            options: EditorEmbeddedEditorOptions(languageID: "sql", completionProvider: viewModel.sqlCompletionProvider),
             provider: viewModel.embeddedEditorProvider,
             cursorLocation: $viewModel.editorCursorLocation
         )

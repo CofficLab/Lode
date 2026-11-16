@@ -194,6 +194,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     /// 宿主注入的嵌入式编辑器能力（语法高亮）；nil 时 View 退回 TextEditor。
     @Published public var embeddedEditorProvider: (any EditorEmbeddedEditorProviding)?
+    /// SQL schema 感知补全 Provider；注入嵌入式编辑器选项，由宿主桥接到补全弹层。
+    public lazy var sqlCompletionProvider: SQLCompletionProvider = SQLCompletionProvider(
+        manager: manager,
+        schemaCache: schemaCache,
+        configResolver: { [weak self] in self?.selectedConfig }
+    )
     nonisolated(unsafe) private var connectedConfigId: UUID?
     /// 最近一次尝试连接的配置（含失败的），供错误恢复「重试」重连。
     private var lastAttemptedConfig: DatabaseConfig?
@@ -962,10 +968,25 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// `config` 由调用方在执行前快照传入：查询返回时连接可能已经切换，
     /// 历史必须归属真正执行它的连接。
     private func recordExecutedSQLs(_ statements: [String], config: DatabaseConfig) async {
+        var schemaChanged = false
         for sql in statements {
             await historyStore.record(sql: sql, configName: config.name, database: config.database)
+            if Self.isSchemaChangeStatement(sql) { schemaChanged = true }
+        }
+        // DDL 后结构缓存与补全元数据失效，下次浏览/补全重新读取 catalog。
+        if schemaChanged {
+            sqlCompletionProvider.invalidate(configId: config.id)
         }
         await loadRecentHistory()
+    }
+
+    /// 是否为改变数据库结构的语句（CREATE/ALTER/DROP/TRUNCATE），用于失效结构缓存。
+    public static func isSchemaChangeStatement(_ sql: String) -> Bool {
+        let upper = SQLStatementParser.stripLiteralsAndComments(sql)
+            .uppercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return upper.hasPrefix("CREATE") || upper.hasPrefix("ALTER")
+            || upper.hasPrefix("DROP") || upper.hasPrefix("TRUNCATE")
     }
 
     /// 加载 Redis 键列表（循环 SCAN 直到游标归零，带安全上限避免巨型键空间卡死）。

@@ -343,7 +343,7 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
             }
             if kind == .materializedView {
                 let sql = """
-                SELECT relname FROM pg_class c
+                SELECT relname, n.nspname FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE c.relkind = 'm' AND n.nspname = current_schema()
                 ORDER BY relname;
@@ -351,33 +351,33 @@ public struct PostgreSQLIntrospector: DatabaseIntrospector {
                 let result = try await connection.query(sql, params: nil)
                 return result.rows.compactMap { row in
                     guard let name = SchemaRowDecoder.string(row, at: 0) else { return nil }
-                    return DatabaseObject(kind: kind, name: name, database: database, schema: schema)
+                    return DatabaseObject(kind: kind, name: name, database: database, schema: SchemaRowDecoder.string(row, at: 1) ?? schema)
                 }
             }
-            let schemaFilter = schema ?? "current_schema()"
+            let schemaPredicate = schema.map { "table_schema = '\(Self.escape($0))'" } ?? "table_schema = current_schema()"
             let sql = """
-            SELECT table_name FROM information_schema.tables
-            WHERE table_schema = '\(Self.escape(schemaFilter))' AND table_type = '\(tableType)'
+            SELECT table_name, table_schema FROM information_schema.tables
+            WHERE \(schemaPredicate) AND table_type = '\(tableType)'
             ORDER BY table_name;
             """
             let result = try await connection.query(sql, params: nil)
             return result.rows.compactMap { row in
                 guard let name = SchemaRowDecoder.string(row, at: 0) else { return nil }
-                return DatabaseObject(kind: kind, name: name, database: database, schema: schema)
+                return DatabaseObject(kind: kind, name: name, database: database, schema: SchemaRowDecoder.string(row, at: 1) ?? schema)
             }
         case .procedure, .function:
             let kindFilter = kind == .procedure ? "p" : "f"
-            let schemaFilter = schema ?? "current_schema()"
+            let schemaPredicate = schema.map { "n.nspname = '\(Self.escape($0))'" } ?? "n.nspname = current_schema()"
             let sql = """
-            SELECT p.proname FROM pg_proc p
+            SELECT p.proname, n.nspname FROM pg_proc p
             JOIN pg_namespace n ON n.oid = p.pronamespace
-            WHERE n.nspname = '\(Self.escape(schemaFilter))' AND p.prokind = '\(kindFilter)'
+            WHERE \(schemaPredicate) AND p.prokind = '\(kindFilter)'
             ORDER BY p.proname;
             """
             let result = try await connection.query(sql, params: nil)
             return result.rows.compactMap { row in
                 guard let name = SchemaRowDecoder.string(row, at: 0) else { return nil }
-                return DatabaseObject(kind: kind, name: name, database: database, schema: schema)
+                return DatabaseObject(kind: kind, name: name, database: database, schema: SchemaRowDecoder.string(row, at: 1) ?? schema)
             }
         case .index, .trigger:
             return []  // 随表结构展示

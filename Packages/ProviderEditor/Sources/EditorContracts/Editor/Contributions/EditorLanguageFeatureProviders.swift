@@ -91,16 +91,21 @@ public struct EditorCompletionRequest: Sendable {
     /// 是否处于类型位置（`let x: ` 等，由 Host 语法判定；无法判定为 false）。
     public let isTypeContext: Bool
 
+    /// 当前文档全文（嵌入式编辑器等无文档 URI 场景由 Host 传入，供 Provider 做上下文分析）。
+    public let documentText: String?
+
     public init(
         context: EditorFeatureRequestContext,
         position: EditorPosition,
         prefix: String,
-        isTypeContext: Bool
+        isTypeContext: Bool,
+        documentText: String? = nil
     ) {
         self.context = context
         self.position = position
         self.prefix = prefix
         self.isTypeContext = isTypeContext
+        self.documentText = documentText
     }
 }
 
