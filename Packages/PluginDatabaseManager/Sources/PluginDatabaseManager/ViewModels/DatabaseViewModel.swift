@@ -101,6 +101,19 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     private var importFileURL: URL?
     private var importTask: Task<Void, Never>?
 
+    // MARK: - 数据导出状态
+
+    @Published public var isExportPresented: Bool = false
+    @Published public var exportFormat: ExportFormat = .csv
+    @Published public var exportRange: ExportRowRange = .currentPage
+    @Published public private(set) var isExporting: Bool = false
+    @Published public private(set) var exportProgress: Double = 0
+    @Published public private(set) var exportedRowCount: Int = 0
+    @Published public private(set) var exportError: String?
+    @Published public private(set) var exportCompleted: Bool = false
+    @Published public private(set) var exportPresets: [ExportPreset] = []
+    private var exportTask: Task<Void, Never>?
+
     // MARK: - 表浏览状态（统一分页）
 
     /// 当前在主区打开的表/视图对象；nil 表示未打开（显示 SQL 编辑器）。
@@ -2371,6 +2384,264 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         defer { try? handle.close() }
         let data = try handle.read(upToCount: limit) ?? Data()
         return String(decoding: data, as: UTF8.self)
+    }
+
+    // MARK: - 数据导出（CSV/JSON/SQL/Markdown）
+
+    /// 打开导出面板并重置上一次状态，载入已保存的预设。
+    public func presentExport() {
+        exportError = nil
+        exportCompleted = false
+        exportedRowCount = 0
+        exportProgress = 0
+        loadExportPresets()
+        isExportPresented = true
+    }
+
+    private func loadExportPresets() {
+        guard let data = workspaceDefaults.data(forKey: "DatabaseManager.exportPresets"),
+              let saved = try? JSONDecoder().decode([ExportPreset].self, from: data) else {
+            exportPresets = []
+            return
+        }
+        exportPresets = saved
+    }
+
+    private func persistExportPresets() {
+        if let data = try? JSONEncoder().encode(exportPresets) {
+            workspaceDefaults.set(data, forKey: "DatabaseManager.exportPresets")
+        }
+    }
+
+    /// 保存预设（同名替换）；空白名忽略。
+    public func saveExportPreset(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        exportPresets.removeAll { $0.name == trimmed }
+        exportPresets.append(ExportPreset(name: trimmed, format: exportFormat, range: exportRange))
+        persistExportPresets()
+    }
+
+    public func deleteExportPreset(id: UUID) {
+        exportPresets.removeAll { $0.id == id }
+        persistExportPresets()
+    }
+
+    /// 应用预设：设置格式与行范围。
+    public func applyExportPreset(_ preset: ExportPreset) {
+        exportFormat = preset.format
+        exportRange = preset.range
+    }
+
+    /// 启动导出到指定文件（可取消）。只读 SELECT + 本地写盘，不经写闸门。
+    public func startExport(to url: URL) {
+        exportTask?.cancel()
+        exportError = nil
+        exportCompleted = false
+        exportedRowCount = 0
+        exportProgress = 0
+        isExporting = true
+        exportTask = Task { [weak self] in
+            guard let self else { return }
+            await self.performExport(to: url)
+        }
+    }
+
+    public func cancelExport() {
+        exportTask?.cancel()
+    }
+
+    /// 等待导出任务结束（测试用）。
+    func waitForExport() async {
+        await exportTask?.value
+    }
+
+    private func performExport(to url: URL) async {
+        defer { isExporting = false }
+        guard let config = selectedConfig, config.type != .redis else { return }
+        let generation = connectionGeneration
+        let format = exportFormat
+        let range = exportRange
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+        // 当前页：直接写已加载的结果，无需再查库。
+        if range == .currentPage {
+            guard let result = queryResult, !result.columns.isEmpty else {
+                exportError = pluginLocalization.string("No data to export.")
+                return
+            }
+            let tableExpr = exportTableExpr(config: config)
+            do {
+                try Self.writeExportFile(url: url, format: format, columns: result.columns, rows: result.rows, tableExpr: tableExpr, dialect: config.type)
+                exportedRowCount = result.rows.count
+                exportProgress = 1
+                exportCompleted = true
+            } catch {
+                try? FileManager.default.removeItem(at: url)
+                exportError = error.localizedDescription
+            }
+            return
+        }
+
+        // 全部行 / 筛选结果：流式分页写盘，任意行数都不整载。
+        guard let table = openTableObject else {
+            exportError = pluginLocalization.string("No data to export.")
+            return
+        }
+        guard let connection = await manager.getConnection(for: config.id) else {
+            exportError = DatabaseError.connectionFailed("No active connection").localizedDescription
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let columns = selectedTableSchema?.columns.map(\.name) ?? queryResult?.columns ?? []
+        guard !columns.isEmpty else {
+            exportError = pluginLocalization.string("No data to export.")
+            return
+        }
+        let tableExpr = Self.qualifiedName(for: table, type: config.type)
+        let filterWhere = range == .filteredRows ? effectiveWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? []) : nil
+        do {
+            let total = try await exportRowCount(connection: connection, tableExpr: tableExpr, whereClause: filterWhere)
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            if total == 0 {
+                try Self.writeExportFile(url: url, format: format, columns: columns, rows: [], tableExpr: tableExpr, dialect: config.type)
+                exportProgress = 1
+                exportCompleted = true
+                return
+            }
+            try FileManager.default.createFile(atPath: url.path, contents: nil)
+            let handle = try FileHandle(forWritingTo: url)
+            defer { try? handle.close() }
+            if let header = DataExportWriter.header(format: format, columns: columns) {
+                try handle.write(contentsOf: Data(header.utf8))
+            }
+            let pageSize = 5000
+            let keyColumn = exportKeyColumn()
+            let filterParams = filterWhere?.params ?? []
+            var exported = 0
+            var isFirst = true
+            var cursor: KeysetCursor?
+            var page = 0
+            while exported < total {
+                try Task.checkCancellation()
+                let sql: String
+                let params: [DatabaseValue]?
+                if let keyColumn {
+                    // 单一主键：keyset 游标顺序扫描，避免深 OFFSET 线性扫描。
+                    let combined = KeysetPaginator.combineWhere(
+                        filterClause: filterWhere?.clause,
+                        filterParams: filterParams,
+                        cursor: cursor,
+                        dialect: config.type,
+                        quote: { Self.quoteIdentifier($0, for: config.type) })
+                    sql = Self.exportPageSQL(tableExpr: tableExpr, columns: columns, whereClause: combined.clause, orderColumn: keyColumn, ascending: true, limit: pageSize, offset: nil, dialect: config.type)
+                    params = combined.params.isEmpty ? nil : combined.params
+                } else {
+                    sql = Self.exportPageSQL(tableExpr: tableExpr, columns: columns, whereClause: filterWhere?.clause, orderColumn: tableOrderBy?.column, ascending: tableOrderBy?.ascending ?? true, limit: pageSize, offset: page * pageSize, dialect: config.type)
+                    params = filterParams.isEmpty ? nil : filterParams
+                }
+                let result = try await connection.query(sql, params: params)
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                guard !result.rows.isEmpty else { break }
+                var chunk = ""
+                for row in result.rows {
+                    chunk += DataExportWriter.row(format: format, columns: columns, row: row, tableExpr: tableExpr, dialect: config.type, isFirst: isFirst)
+                    isFirst = false
+                }
+                try handle.write(contentsOf: Data(chunk.utf8))
+                exported += result.rows.count
+                exportedRowCount = exported
+                exportProgress = min(1, Double(exported) / Double(total))
+                if let keyColumn {
+                    guard let next = KeysetPaginator.cursor(from: result, column: keyColumn, ascending: true) else { break }
+                    cursor = next
+                } else {
+                    page += 1
+                }
+                if result.rows.count < pageSize { break }
+            }
+            if let footer = DataExportWriter.footer(format: format) {
+                try handle.write(contentsOf: Data(footer.utf8))
+            }
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            exportProgress = 1
+            exportCompleted = true
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            if error is CancellationError {
+                exportError = pluginLocalization.string("Export cancelled.")
+            } else {
+                exportError = error.localizedDescription
+            }
+        }
+    }
+
+    /// 导出流式分页可用的单一主键列（keyset 游标）；无单一主键时 nil（降级 OFFSET）。
+    private func exportKeyColumn() -> String? {
+        guard let schema = selectedTableSchema else { return nil }
+        let primaryKey = schema.columns.filter(\.isPrimaryKey).map(\.name)
+        guard primaryKey.count == 1 else { return nil }
+        return primaryKey[0]
+    }
+
+    /// 当前页导出的 SQL 表名：打开表用限定名，编辑器结果用占位名。
+    private func exportTableExpr(config: DatabaseConfig) -> String {
+        if let table = openTableObject { return Self.qualifiedName(for: table, type: config.type) }
+        return Self.quoteIdentifier("query_result", for: config.type)
+    }
+
+    private func exportRowCount(
+        connection: any DatabaseConnection,
+        tableExpr: String,
+        whereClause: (clause: String, params: [DatabaseValue])?
+    ) async throws -> Int {
+        let sql = RowCountEstimator.exactQuery(tableExpr: tableExpr, whereClause: whereClause?.clause)
+        let result = try await connection.query(sql, params: whereClause?.params)
+        guard let first = result.rows.first?.first else { return 0 }
+        switch first {
+        case .integer(let v): return v
+        case .double(let v): return Int(v)
+        case .string(let s): return Int(s) ?? 0
+        default: return 0
+        }
+    }
+
+    private nonisolated static func exportPageSQL(
+        tableExpr: String,
+        columns: [String],
+        whereClause: String?,
+        orderColumn: String?,
+        ascending: Bool,
+        limit: Int,
+        offset: Int?,
+        dialect: DatabaseType
+    ) -> String {
+        let cols = columns.map { quoteIdentifier($0, for: dialect) }.joined(separator: ", ")
+        var sql = "SELECT \(cols) FROM \(tableExpr)"
+        if let whereClause, !whereClause.isEmpty { sql += " WHERE \(whereClause)" }
+        if let orderColumn { sql += " ORDER BY \(quoteIdentifier(orderColumn, for: dialect)) \(ascending ? "ASC" : "DESC")" }
+        sql += " LIMIT \(limit)"
+        if let offset { sql += " OFFSET \(offset)" }
+        return sql
+    }
+
+    /// 整段写盘（当前页 / 空结果）：行数有限，一次性组装后原子写入。
+    private nonisolated static func writeExportFile(
+        url: URL,
+        format: ExportFormat,
+        columns: [String],
+        rows: [[DatabaseValue]],
+        tableExpr: String,
+        dialect: DatabaseType
+    ) throws {
+        var text = DataExportWriter.header(format: format, columns: columns) ?? ""
+        for (index, row) in rows.enumerated() {
+            text += DataExportWriter.row(format: format, columns: columns, row: row, tableExpr: tableExpr, dialect: dialect, isFirst: index == 0)
+        }
+        text += DataExportWriter.footer(format: format) ?? ""
+        try Data(text.utf8).write(to: url, options: .atomic)
     }
 
     /// 加载当前页数据（`SELECT * FROM ... [ORDER BY ...] LIMIT pageSize OFFSET page*pageSize`）。

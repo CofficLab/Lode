@@ -80,12 +80,17 @@ public enum GridCopyFormat {
             "| " + columns.map { _ in "---" }.joined(separator: " | ") + " |"
         ]
         for row in rows {
-            let cells = columns.indices.map { index in
-                markdownCell(index < row.count ? markdownText(row[index]) : "")
-            }
-            lines.append("| " + cells.joined(separator: " | ") + " |")
+            lines.append(rowMarkdown(columns: columns, row: row))
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// 单行 Markdown 表格行（流式导出用，与 ``markdownTable(columns:rows:)`` 逐行一致）。
+    public static func rowMarkdown(columns: [String], row: [DatabaseValue]) -> String {
+        let cells = columns.indices.map { index in
+            markdownCell(index < row.count ? markdownText(row[index]) : "")
+        }
+        return "| " + cells.joined(separator: " | ") + " |"
     }
 
     private static func markdownText(_ value: DatabaseValue) -> String {

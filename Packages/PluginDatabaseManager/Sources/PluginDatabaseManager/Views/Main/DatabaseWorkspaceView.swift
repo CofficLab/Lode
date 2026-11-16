@@ -62,6 +62,20 @@ public struct DatabaseWorkspaceView: View {
                     .buttonStyle(.plain)
                     .help(pluginLocalization.string("Import Data"))
                 }
+                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis,
+                   viewModel.queryResult != nil || viewModel.openTableObject != nil {
+                    Button {
+                        viewModel.presentExport()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(pluginLocalization.string("Export Data"))
+                }
                 if viewModel.isConnected, viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
                     Button {
                         viewModel.isERDiagramPresented = true
@@ -121,6 +135,9 @@ public struct DatabaseWorkspaceView: View {
         }
         .sheet(isPresented: $viewModel.isImportDataPresented) {
             ImportDataSheet(viewModel: viewModel, isPresented: $viewModel.isImportDataPresented)
+        }
+        .sheet(isPresented: $viewModel.isExportPresented) {
+            ExportSheet(viewModel: viewModel, isPresented: $viewModel.isExportPresented)
         }
     }
 
