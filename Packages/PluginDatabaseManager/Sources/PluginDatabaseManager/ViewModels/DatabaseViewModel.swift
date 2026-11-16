@@ -68,6 +68,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 右侧 Inspector 是否可见（结构详情 / ER 图 / EXPLAIN 等将放在这里）。
     @Published public var inspectorVisible: Bool = false
 
+    /// 只读 ER 图：当前库/schema 的表关系图（节点+边+布局）。
+    @Published private(set) var erDiagram: ERDiagram?
+    @Published public private(set) var erDiagramError: String?
+    @Published public private(set) var isLoadingERDiagram: Bool = false
+    /// ER 图面板是否展示。
+    @Published public var isERDiagramPresented: Bool = false
+
     // MARK: - 表浏览状态（统一分页）
 
     /// 当前在主区打开的表/视图对象；nil 表示未打开（显示 SQL 编辑器）。
@@ -1427,6 +1434,41 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
     }
 
+    /// 加载当前库/schema 的只读 ER 图：取表集合，逐表读结构（含外键），构建图模型。
+    /// 超大库按上限截断逐表 describe，避免一次性introspection 卡死；被引用但未描述的表由构建器补 stub。
+    public func loadERDiagram(refresh: Bool = false) async {
+        let generation = connectionGeneration
+        guard let config = selectedConfig, config.type.capabilities.supportsForeignKeys else { return }
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        isLoadingERDiagram = true
+        erDiagramError = nil
+        defer { isLoadingERDiagram = false }
+        let database: String? = config.type == .sqlite ? nil : (activeDatabase ?? config.database)
+        let schema: String? = config.type == .postgresql ? activeSchema : nil
+        do {
+            let tables = try await schemaCache.objects(
+                for: config, kind: .table, database: database, schema: schema,
+                connection: connection, refresh: refresh
+            )
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            var schemas: [TableSchema] = []
+            for object in tables.prefix(200) {
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                if let tableSchema = try? await schemaCache.tableSchema(
+                    for: object, config: config, connection: connection, refresh: refresh
+                ) {
+                    schemas.append(tableSchema)
+                }
+            }
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            erDiagram = ERDiagramBuilder.build(from: schemas)
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            erDiagramError = error.localizedDescription
+        }
+    }
+
     /// 清空库/schema 上下文（连接切换/断开时调用，避免旧连接的库/schema 泄漏到新连接）。
     private func resetSchemaContext() {
         activeDatabase = nil
@@ -1434,6 +1476,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         availableDatabases = []
         availableSchemas = []
         isLoadingSchemaContext = false
+        erDiagram = nil
+        erDiagramError = nil
     }
 
     /// 确立当前连接的库/schema 上下文：活动库默认取连接配置，PG 活动 schema 默认 public

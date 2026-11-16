@@ -34,17 +34,32 @@ public struct DatabaseWorkspaceView: View {
             }
         }
         .overlay(alignment: .topTrailing) {
-            Button {
-                viewModel.toggleInspector()
-            } label: {
-                Image(systemName: viewModel.inspectorVisible ? "sidebar.trailing.collapse" : "sidebar.trailing")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(8)
-                    .contentShape(Rectangle())
+            HStack(spacing: 2) {
+                if viewModel.isConnected, viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
+                    Button {
+                        viewModel.isERDiagramPresented = true
+                    } label: {
+                        Image(systemName: "rectangle.3.group")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(pluginLocalization.string("ER Diagram"))
+                }
+                Button {
+                    viewModel.toggleInspector()
+                } label: {
+                    Image(systemName: viewModel.inspectorVisible ? "sidebar.trailing.collapse" : "sidebar.trailing")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(8)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(pluginLocalization.string("Toggle Inspector"))
             }
-            .buttonStyle(.plain)
-            .help(pluginLocalization.string("Toggle Inspector"))
             .padding(.top, 6)
             .padding(.trailing, 6)
         }
@@ -68,6 +83,9 @@ public struct DatabaseWorkspaceView: View {
             }
         }
         .modifier(PasswordSourceGates(viewModel: viewModel, isActive: !viewModel.isConnectionFormPresented))
+        .sheet(isPresented: $viewModel.isERDiagramPresented) {
+            ERDiagramView(viewModel: viewModel, isPresented: $viewModel.isERDiagramPresented)
+        }
     }
 
     // MARK: - 写确认文案
