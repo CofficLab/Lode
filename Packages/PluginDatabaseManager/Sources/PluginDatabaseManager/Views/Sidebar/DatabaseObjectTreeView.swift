@@ -203,7 +203,7 @@ struct DatabaseObjectTreeView: View {
                 id: "kind-\(kind.rawValue)",
                 kind: kind,
                 object: nil,
-                title: "\(kind.sectionKey) (\(objects.count))",
+                title: "\(pluginLocalization.string(kind.sectionKey)) (\(objects.count))",
                 systemImage: "folder",
                 children: children
             ))

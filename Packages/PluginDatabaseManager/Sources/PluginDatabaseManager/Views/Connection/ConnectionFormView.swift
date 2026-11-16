@@ -64,7 +64,7 @@ struct ConnectionFormView: View {
 
             AppCard {
                 VStack(alignment: .leading, spacing: 8) {
-                    GlassTextField(title: "Connection Name", text: $name, placeholder: pluginLocalization.string("My Database"))
+                    GlassTextField(title: pluginLocalization.string("Connection Name"), text: $name, placeholder: pluginLocalization.string("My Database"))
 
                     HStack {
                         Text(pluginLocalization.string("Database Type"))

@@ -59,7 +59,7 @@ struct SidebarEmptyView: View {
     SidebarEmptyView(
         systemImage: "tablecells",
         title: pluginLocalization.string("No tables"),
-        description: "Click Reload to refresh the table list."
+        description: pluginLocalization.string("Click Reload to refresh the table list.")
     )
     .frame(width: 260, height: 200)
 }

@@ -137,7 +137,7 @@ public struct DatabaseInspectorView: View {
             AppEmptyState(
                 icon: object.kind.systemImage,
                 title: pluginLocalization.string("No Structure Available"),
-                description: "Refresh to load metadata for this object."
+                description: pluginLocalization.string("Refresh to load metadata for this object.")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -262,7 +262,7 @@ public struct DatabaseInspectorView: View {
         HStack(spacing: 8) {
             Image(systemName: "pencil.line")
                 .foregroundStyle(theme.warning)
-            Text("\(viewModel.schemaChangeManager?.changes.count ?? 0) structure changes")
+            Text("\(viewModel.schemaChangeManager?.changes.count ?? 0) " + pluginLocalization.string("structure changes"))
                 .font(.appMicroEmphasized)
             Spacer()
             AppButton(pluginLocalization.string("Discard"), systemImage: "trash", style: .ghost, size: .small) {
@@ -346,7 +346,7 @@ public struct DatabaseInspectorView: View {
                     AppEmptyState(
                         icon: "cylinder.split.1x2",
                         title: pluginLocalization.string("No Database Connected"),
-                        description: "Connect from the sidebar."
+                        description: pluginLocalization.string("Connect from the sidebar.")
                     )
                 }
             }
