@@ -90,6 +90,7 @@ public struct MainView: View {
                 sqlFileConflictBanner
                 largeDocumentNotice
                 queryEditor
+                sqlDiagnosticsStrip
                 if !viewModel.activeParameterNames.isEmpty {
                     QueryParameterPanel(viewModel: viewModel)
                     AppDivider()
@@ -109,7 +110,8 @@ public struct MainView: View {
             options: EditorEmbeddedEditorOptions(
                 languageID: "sql",
                 completionProvider: viewModel.sqlCompletionProvider,
-                foldRanges: { SQLFoldRangeCalculator.foldRanges(in: $0).map(\.range) }
+                foldRanges: { SQLFoldRangeCalculator.foldRanges(in: $0).map(\.range) },
+                diagnostics: { DatabaseViewModel.embeddedSQLDiagnostics($0) }
             ),
             provider: viewModel.embeddedEditorProvider,
             cursorLocation: $viewModel.editorCursorLocation,
@@ -117,6 +119,77 @@ public struct MainView: View {
         )
             .frame(minHeight: 100, maxHeight: 200)
             .border(theme.appSubtleBorder)
+    }
+
+    /// 结构化诊断条：列出编辑器文本的括号/引号/注释失配与形近/不可见字符，点击跳转到对应范围。
+    @ViewBuilder
+    private var sqlDiagnosticsStrip: some View {
+        if !viewModel.sqlDiagnostics.isEmpty {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pluginLocalization.string("Problems"))
+                        .font(.appMicroEmphasized)
+                        .foregroundStyle(theme.textTertiary)
+                    ForEach(Array(viewModel.sqlDiagnostics.enumerated()), id: \.offset) { _, diagnostic in
+                        diagnosticRow(diagnostic)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+            }
+            .frame(maxHeight: 76)
+            .background(theme.surface)
+        }
+    }
+
+    private func diagnosticRow(_ diagnostic: SQLStructuralDiagnostic) -> some View {
+        Button {
+            viewModel.jumpToSQLDiagnostic(diagnostic)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: diagnostic.severity == .error ? "xmark.octagon.fill" : "exclamationmark.triangle.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(diagnostic.severity == .error ? theme.error : theme.warning)
+                Text(diagnosticMessage(diagnostic))
+                    .font(.appMicro)
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 4)
+                Text(diagnosticLocation(diagnostic))
+                    .font(.appMicro)
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(pluginLocalization.string("Jump to this problem"))
+    }
+
+    private func diagnosticMessage(_ diagnostic: SQLStructuralDiagnostic) -> String {
+        switch diagnostic.kind {
+        case .unmatchedOpeningBracket:
+            return pluginLocalization.string("This opening bracket has no matching close.")
+        case .unexpectedClosingBracket:
+            return pluginLocalization.string("This closing bracket has no matching open.")
+        case .unterminatedString:
+            return pluginLocalization.string("This string literal is not closed.")
+        case .unterminatedComment:
+            return pluginLocalization.string("This block comment is not closed.")
+        case .confusableCharacter(let ascii):
+            return String(format: pluginLocalization.string("This character looks like '%@' but is not ASCII. Retype it."), ascii)
+        case .invisibleCharacter:
+            return pluginLocalization.string("Invisible character (zero-width or non-breaking space). Remove it.")
+        }
+    }
+
+    /// 诊断范围的行/列标签（均 1 起），按 UTF-16 偏移在原文中换算。
+    private func diagnosticLocation(_ diagnostic: SQLStructuralDiagnostic) -> String {
+        let ns = viewModel.queryText as NSString
+        let location = min(diagnostic.range.location, ns.length)
+        let lines = ns.substring(to: location).components(separatedBy: "\n")
+        let column = (lines.last ?? "").utf16.count + 1
+        return String(format: pluginLocalization.string("Ln %d, Col %d"), lines.count, column)
     }
 
     /// SQL 文件外部变更横幅：Reload（采用磁盘版本）/ Save As（本地改动另存新文件）/ Keep Editing。

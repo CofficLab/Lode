@@ -131,6 +131,8 @@ private struct EmbeddedEditorHostView: View {
     var selectionRange: Binding<NSRange>? = nil
     @State private var editorState = SourceEditorState()
     @State private var completionAdapter: EditorCompletionSuggestionAdapter?
+    /// 诊断标记 + 选区跳转协调器：稳定实例，避免每次渲染重建强调层。
+    @State private var diagnosticsCoordinator: EmbeddedEditorDiagnosticsCoordinator?
     /// 稳定的高亮 Provider 实例：超大文档降级时切到空数组，恢复时切回，避免每次渲染重建。
     @State private var treeSitterClient = TreeSitterClient()
     @Environment(\.colorScheme) private var colorScheme
@@ -150,6 +152,7 @@ private struct EmbeddedEditorHostView: View {
         self._completionAdapter = State(initialValue: options.completionProvider.map {
             EditorCompletionSuggestionAdapter(provider: $0, languageID: options.languageID)
         })
+        self._diagnosticsCoordinator = State(initialValue: EmbeddedEditorDiagnosticsCoordinator(diagnostics: options.diagnostics))
     }
 
     var body: some View {
@@ -160,10 +163,18 @@ private struct EmbeddedEditorHostView: View {
             state: $editorState,
             highlightProviders: isLargeDocument ? [] : [treeSitterClient],
             foldProvider: makeFoldProvider(),
+            coordinators: diagnosticsCoordinator.map { [$0] } ?? [],
             completionDelegate: completionAdapter
         )
-            .onAppear { publishPositions(editorState.cursorPositions) }
+            .onAppear {
+                publishPositions(editorState.cursorPositions)
+                diagnosticsCoordinator?.refresh(text: text)
+            }
             .onChange(of: editorState.cursorPositions) { _, newValue in publishPositions(newValue) }
+            .onChange(of: text) { _, newValue in diagnosticsCoordinator?.refresh(text: newValue) }
+            .onChange(of: selectionRange?.wrappedValue) { _, newValue in
+                if let newValue { diagnosticsCoordinator?.focus(newValue) }
+            }
     }
 
     /// 文档是否达到超大文档阈值（关闭高亮/折叠/解析）。

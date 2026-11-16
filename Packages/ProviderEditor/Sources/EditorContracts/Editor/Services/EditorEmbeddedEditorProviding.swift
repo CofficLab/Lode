@@ -1,6 +1,25 @@
 import SwiftUI
 import Foundation
 
+/// 嵌入式编辑器诊断标记：由消费方插件扫描文本产生，Host 负责在编辑器内绘制下划线。
+///
+/// 与 LSP 出站诊断（`EditorDiagnosticsProviding`）方向相反：这是插件 → 编辑器的入站标记，
+/// 不经过语言服务器。范围以 UTF-16 码元计（`NSRange`）。
+public struct EditorEmbeddedDiagnostic: Equatable, Sendable {
+    public enum Severity: Equatable, Sendable {
+        case error
+        case warning
+    }
+
+    public let range: NSRange
+    public let severity: Severity
+
+    public init(range: NSRange, severity: Severity) {
+        self.range = range
+        self.severity = severity
+    }
+}
+
 /// 嵌入式编辑器选项（重构方案 §17.2）。
 ///
 /// 由 Feature 插件（如 DatabaseManagerPlugin）描述其内嵌 SQL/代码编辑需求，
@@ -25,6 +44,9 @@ public struct EditorEmbeddedEditorOptions {
     /// 折叠区间 Provider：给定文档文本返回可折叠块的 UTF-16 范围（如 SQL 语句/CTE/BEGIN 块）。
     /// nil 表示不启用语法折叠（退回宿主默认行为）。范围须跨多行才会产生折叠。
     public var foldRanges: (@Sendable (String) -> [NSRange])?
+    /// 诊断 Provider：给定文档文本返回需要下划线标记的范围（如 SQL 括号/引号失配、形近字符）。
+    /// nil 表示不启用诊断标记。Host 在文本变化时重新扫描并整组替换标记。
+    public var diagnostics: (@Sendable (String) -> [EditorEmbeddedDiagnostic])?
 
     public init(
         languageID: String,
@@ -35,7 +57,8 @@ public struct EditorEmbeddedEditorOptions {
         fontSize: CGFloat = 0,
         useThemeBackground: Bool = true,
         completionProvider: (any EditorCompletionProvider)? = nil,
-        foldRanges: (@Sendable (String) -> [NSRange])? = nil
+        foldRanges: (@Sendable (String) -> [NSRange])? = nil,
+        diagnostics: (@Sendable (String) -> [EditorEmbeddedDiagnostic])? = nil
     ) {
         self.languageID = languageID
         self.isEditable = isEditable
@@ -46,6 +69,7 @@ public struct EditorEmbeddedEditorOptions {
         self.useThemeBackground = useThemeBackground
         self.completionProvider = completionProvider
         self.foldRanges = foldRanges
+        self.diagnostics = diagnostics
     }
 }
 

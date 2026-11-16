@@ -4127,6 +4127,40 @@
         }
       }
     },
+    "Invisible character (zero-width or non-breaking space). Remove it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invisible character (zero-width or non-breaking space). Remove it."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可見字元（零寬或不間斷空格），請刪除。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可见字符（零宽或不间断空格），请删除。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可見字元（零寬或不間斷空格），請刪除。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可見字元（零寬或不間斷空格），請刪除。"
+          }
+        }
+      }
+    },
     "Is Empty" : {
       "localizations" : {
         "en" : {
@@ -4366,6 +4400,40 @@
         }
       }
     },
+    "Jump to this problem" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump to this problem"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳轉到此問題"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳转到此问题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳轉到此問題"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳轉到此問題"
+          }
+        }
+      }
+    },
     "Keep Editing" : {
       "localizations" : {
         "en" : {
@@ -4601,6 +4669,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯連線時密碼留空,即可保留原本儲存的密碼。"
+          }
+        }
+      }
+    },
+    "Ln %d, Col %d" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ln %d, Col %d"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行 %d，列 %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行 %d，列 %d"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行 %d，列 %d"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行 %d，列 %d"
           }
         }
       }
@@ -6856,6 +6958,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上一個符合項目"
+          }
+        }
+      }
+    },
+    "Problems" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problems"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "問題"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "问题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "問題"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "問題"
           }
         }
       }
@@ -9520,6 +9656,40 @@
         }
       }
     },
+    "This block comment is not closed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This block comment is not closed."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個區塊註解未閉合。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个块注释未闭合。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個區塊註解未閉合。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個區塊註解未閉合。"
+          }
+        }
+      }
+    },
     "This change drops data and cannot be undone by Lumi." : {
       "localizations" : {
         "en" : {
@@ -9550,6 +9720,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此更改会丢弃数据，且无法由 Lumi 撤销。"
+          }
+        }
+      }
+    },
+    "This character looks like '%@' but is not ASCII. Retype it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This character looks like '%@' but is not ASCII. Retype it."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此字元形似 '%@' 但不是 ASCII，請重新輸入。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此字符形似 '%@' 但不是 ASCII，请重新输入。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此字元形似 '%@' 但不是 ASCII，請重新輸入。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此字元形似 '%@' 但不是 ASCII，請重新輸入。"
+          }
+        }
+      }
+    },
+    "This closing bracket has no matching open." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This closing bracket has no matching open."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個閉括號沒有對應的開括號。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个闭括号没有对应的开括号。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個閉括號沒有對應的開括號。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個閉括號沒有對應的開括號。"
           }
         }
       }
@@ -9788,6 +10026,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本手冊介紹「資料庫」的介面與基本操作:管理連線、瀏覽資料表、撰寫並執行 SQL。"
+          }
+        }
+      }
+    },
+    "This opening bracket has no matching close." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This opening bracket has no matching close."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個開括號沒有對應的閉括號。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个开括号没有对应的闭括号。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個開括號沒有對應的閉括號。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個開括號沒有對應的閉括號。"
+          }
+        }
+      }
+    },
+    "This string literal is not closed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This string literal is not closed."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個字串字面量未閉合。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个字符串字面量未闭合。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個字串字面量未閉合。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個字串字面量未閉合。"
           }
         }
       }

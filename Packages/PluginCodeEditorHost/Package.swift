@@ -81,6 +81,8 @@ let package = Package(
                 "PluginCodeEditorHost",
                 .product(name: "KernelCore", package: "LumiKernel"),
                 .product(name: "ProviderEditor", package: "ProviderEditor"),
+                .product(name: "EditorSource", package: "KitEditorSource"),
+                .product(name: "EditorTextView", package: "KitEditorTextView"),
                 "EditorService",
             ]
         ),

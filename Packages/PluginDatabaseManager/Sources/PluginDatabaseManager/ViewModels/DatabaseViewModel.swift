@@ -13,7 +13,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published var configs: [DatabaseConfig] = []
     @Published var selectedConfig: DatabaseConfig?
     @Published var queryText: String = "SELECT * FROM sqlite_master;" {
-        didSet { scheduleWorkspacePersist(); refreshParameterNames() }
+        didSet { scheduleWorkspacePersist(); refreshParameterNames(); refreshSQLDiagnostics() }
     }
     @Published var queryResult: QueryResult?
     @Published var errorMessage: String? {
@@ -135,6 +135,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var parameterBindings: [String: QueryParameterBinding] = [:]
     /// 当前编辑器文本中出现的命名参数（去重、首次出现顺序），驱动参数面板。
     @Published public private(set) var activeParameterNames: [String] = []
+    /// 当前编辑器文本的结构化诊断（括号/引号/注释失配、形近与不可见字符），驱动诊断条。
+    @Published public private(set) var sqlDiagnostics: [SQLStructuralDiagnostic] = []
 
     // MARK: - 编辑器查询行数上限与增量加载
 
@@ -2709,6 +2711,38 @@ extension DatabaseViewModel {
         panel.message = pluginLocalization.string("Save As…")
         if panel.runModal() == .OK, let url = panel.url {
             saveActiveSQLFile(as: url)
+        }
+    }
+}
+
+// MARK: - 结构化 SQL 诊断（P3-7）
+
+extension DatabaseViewModel {
+    /// 重新扫描当前编辑器文本的结构化诊断；超大文档降级时清空（与高亮/折叠口径一致）。
+    /// 由 `queryText.didSet` 驱动：键入、切换标签、打开/重载文件都会触发。
+    func refreshSQLDiagnostics() {
+        if EditorDocumentGuard.isLargeDocument(queryText) {
+            if !sqlDiagnostics.isEmpty { sqlDiagnostics = [] }
+            return
+        }
+        let scanned = SQLStructuralDiagnostics.scan(queryText)
+        if scanned != sqlDiagnostics { sqlDiagnostics = scanned }
+    }
+
+    /// 诊断条点击跳转：把编辑器选区移动到诊断范围，Host 经选区绑定应用并滚动到可见。
+    public func jumpToSQLDiagnostic(_ diagnostic: SQLStructuralDiagnostic) {
+        editorCursorLocation = diagnostic.range.location
+        editorSelectionRange = diagnostic.range
+    }
+
+    /// Host 诊断 Provider 的纯扫描入口：文本 → 编辑器标记（不触碰 ViewModel 状态）。
+    nonisolated static func embeddedSQLDiagnostics(_ text: String) -> [EditorEmbeddedDiagnostic] {
+        guard !EditorDocumentGuard.isLargeDocument(text) else { return [] }
+        return SQLStructuralDiagnostics.scan(text).map { diagnostic in
+            EditorEmbeddedDiagnostic(
+                range: diagnostic.range,
+                severity: diagnostic.severity == .error ? .error : .warning
+            )
         }
     }
 }

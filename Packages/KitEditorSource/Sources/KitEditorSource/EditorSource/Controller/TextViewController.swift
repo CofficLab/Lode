@@ -290,6 +290,17 @@ public class TextViewController: NSViewController {
         self.gutterView.setNeedsDisplay(self.gutterView.frame)
     }
 
+    /// Sets per-line diagnostic marks in the gutter (line number 1-based → dot color).
+    /// An empty dictionary clears them. Safe to call before the view hierarchy is loaded.
+    public func setGutterDiagnosticMarks(_ marks: [Int: NSColor]) {
+        gutterView?.lineDiagnosticMarks = marks
+    }
+
+    /// The current per-line diagnostic marks in the gutter (empty when the view is not loaded).
+    public var gutterDiagnosticMarks: [Int: NSColor] {
+        gutterView?.lineDiagnosticMarks ?? [:]
+    }
+
     deinit {
         if let highlighter {
             textView.removeStorageDelegate(highlighter)

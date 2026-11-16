@@ -81,6 +81,11 @@ public class GutterView: NSView {
         }
     }
 
+    /// Per-line diagnostic marks: line number (1-based) → dot color, drawn left of the line numbers.
+    /// Set by an external coordinator (e.g. SQL structural diagnostics); an empty dictionary clears them.
+    @Invalidating(.display)
+    public var lineDiagnosticMarks: [Int: NSColor] = [:]
+
     private weak var textView: TextView?
     private weak var delegate: GutterViewDelegate?
     private var maxLineNumberWidth: CGFloat = 0
@@ -265,6 +270,25 @@ public class GutterView: NSView {
         context.restoreGState()
     }
 
+    /// Draws per-line diagnostic dots in the leading padding, left of the line numbers.
+    private func drawDiagnosticMarks(_ context: CGContext, dirtyRect: NSRect) {
+        guard let textView, !lineDiagnosticMarks.isEmpty else { return }
+        context.saveGState()
+        let radius: CGFloat = 2.5
+        for linePosition in textView.layoutManager.linesStartingAt(dirtyRect.minY, until: dirtyRect.maxY) {
+            guard let color = lineDiagnosticMarks[linePosition.index + 1] else { continue }
+            let centerY = linePosition.yPos + linePosition.height / 2
+            context.setFillColor(color.cgColor)
+            context.fillEllipse(in: CGRect(
+                x: edgeInsets.leading / 2 - radius,
+                y: centerY - radius,
+                width: radius * 2,
+                height: radius * 2
+            ))
+        }
+        context.restoreGState()
+    }
+
     /// Draw line numbers in the gutter, limited to a drawing rect.
     /// - Parameters:
     ///   - context: The drawing context to draw in.
@@ -326,6 +350,7 @@ public class GutterView: NSView {
         context.saveGState()
         drawBackground(context, dirtyRect: dirtyRect)
         drawSelectedLines(context)
+        drawDiagnosticMarks(context, dirtyRect: dirtyRect)
         drawLineNumbers(context, dirtyRect: dirtyRect)
         context.restoreGState()
     }

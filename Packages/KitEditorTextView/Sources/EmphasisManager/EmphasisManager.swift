@@ -182,7 +182,18 @@ public final class EmphasisManager {
         let layer = createShapeLayer(shapePath: shapePath, emphasis: emphasis)
         textView?.layer?.insertSublayer(layer, at: 1)
 
-        let textLayer = createTextLayer(for: emphasis)
+        // 只有覆盖背景的风格才需要重绘文字层；下划线/描边不遮挡原字形，
+        // 重绘会把文本强制成黑/白，破坏深色主题下的原文本颜色。
+        let paintsBackground: Bool
+        switch emphasis.style {
+        case .standard:
+            paintsBackground = true
+        case .outline(_, let fill):
+            paintsBackground = fill
+        case .underline:
+            paintsBackground = false
+        }
+        let textLayer = paintsBackground ? createTextLayer(for: emphasis) : nil
         if let textLayer = textLayer {
             textView?.layer?.addSublayer(textLayer)
         }
