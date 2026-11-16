@@ -406,7 +406,10 @@ public struct MySQLIntrospector: DatabaseIntrospector {
         case .function:
             let result = try await connection.query("SHOW CREATE FUNCTION \(qualified);", params: nil)
             return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 2) }
-        case .index, .trigger, .materializedView:
+        case .trigger:
+            let result = try await connection.query("SHOW CREATE TRIGGER \(qualified);", params: nil)
+            return result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 2) }
+        case .index, .materializedView:
             return nil
         }
     }

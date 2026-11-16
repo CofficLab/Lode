@@ -35,6 +35,20 @@ public struct DatabaseWorkspaceView: View {
         }
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 2) {
+                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis,
+                   viewModel.selectedConfig?.type.capabilities.supportsSchemaEditing == true {
+                    Button {
+                        viewModel.presentCreateTable()
+                    } label: {
+                        Image(systemName: "tablecells.badge.ellipsis")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(pluginLocalization.string("New Table"))
+                }
                 if viewModel.isConnected, viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
                     Button {
                         viewModel.isERDiagramPresented = true
@@ -88,6 +102,9 @@ public struct DatabaseWorkspaceView: View {
         }
         .sheet(isPresented: $viewModel.isQueryPlanPresented) {
             QueryPlanView(viewModel: viewModel, isPresented: $viewModel.isQueryPlanPresented)
+        }
+        .sheet(isPresented: $viewModel.isCreateTablePresented) {
+            CreateTableSheet(viewModel: viewModel, isPresented: $viewModel.isCreateTablePresented)
         }
     }
 

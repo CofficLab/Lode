@@ -46,7 +46,8 @@ public struct MainView: View {
             QueryHistoryView(viewModel: viewModel)
         }
         .sheet(item: $viewModel.objectDefinition) { definition in
-            ObjectDefinitionSheet(definition: definition) {
+            ObjectDefinitionSheet(viewModel: viewModel, definition: definition) {
+                viewModel.cancelEditDefinition()
                 viewModel.objectDefinition = nil
             }
         }

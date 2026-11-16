@@ -82,6 +82,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// EXPLAIN 面板是否展示。
     @Published public var isQueryPlanPresented: Bool = false
 
+    /// 建表面板是否展示。
+    @Published public var isCreateTablePresented: Bool = false
+    @Published public private(set) var createTableError: String?
+    @Published public private(set) var isCreatingTable: Bool = false
+
     // MARK: - 表浏览状态（统一分页）
 
     /// 当前在主区打开的表/视图对象；nil 表示未打开（显示 SQL 编辑器）。
@@ -233,6 +238,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     /// 只读对象定义（索引/触发器/例程）的展示状态；非 nil 时弹出定义面板。
     @Published public var objectDefinition: ObjectDefinitionDisplay?
+
+    /// 对象定义编辑草稿（nil 表示只读查看）；保存时按引擎决定 DROP+CREATE 或 CREATE OR REPLACE。
+    @Published public var objectDefinitionDraft: String?
+    @Published public private(set) var isSavingDefinition: Bool = false
+    @Published public private(set) var definitionSaveError: String?
 
     /// 对象定义面板的展示模型。
     public struct ObjectDefinitionDisplay: Identifiable, Sendable {
@@ -1677,6 +1687,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     public func openDefinition(of object: DatabaseObject) async {
         guard let config = selectedConfig else { return }
         let generation = connectionGeneration
+        objectDefinitionDraft = nil
+        definitionSaveError = nil
         objectDefinition = ObjectDefinitionDisplay(id: object.id, object: object)
         guard let connection = await manager.getConnection(for: config.id) else {
             objectDefinition?.isLoading = false
@@ -1694,6 +1706,115 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             objectDefinition?.isLoading = false
             objectDefinition?.errorMessage = error.localizedDescription
         }
+    }
+
+    /// 当前对象定义是否可编辑：例程（MySQL/PG）与触发器（MySQL/PG）。索引/表/视图不在此面板编辑。
+    public var canEditDefinition: Bool {
+        guard let config = selectedConfig, let object = objectDefinition?.object else { return false }
+        switch object.kind {
+        case .procedure, .function:
+            return config.type.capabilities.supportsRoutines
+        case .trigger:
+            return config.type == .mysql || config.type == .postgresql
+        default:
+            return false
+        }
+    }
+
+    /// 进入编辑：以当前定义源码为草稿。PG 例程源码已是 CREATE OR REPLACE，可直接替换；
+    /// MySQL 例程/触发器与 PG 触发器保存时先 DROP 再 CREATE（见 ``saveDefinition()``）。
+    public func beginEditDefinition() {
+        guard canEditDefinition, let ddl = objectDefinition?.ddl, !ddl.isEmpty else { return }
+        definitionSaveError = nil
+        objectDefinitionDraft = ddl
+    }
+
+    public func cancelEditDefinition() {
+        objectDefinitionDraft = nil
+        definitionSaveError = nil
+    }
+
+    /// 保存编辑后的对象定义：经写闸门（DDL 属写），按引擎生成必要的 DROP 前置语句，
+    /// 再把编辑后的 CREATE 源码作为单条语句执行（保留例程体内部分号），成功后重载定义。
+    public func saveDefinition() async {
+        guard let config = selectedConfig,
+              let display = objectDefinition,
+              canEditDefinition,
+              let source = objectDefinitionDraft?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !source.isEmpty else { return }
+        let generation = connectionGeneration
+        guard let connection = await manager.getConnection(for: config.id) else {
+            definitionSaveError = DatabaseError.connectionFailed("No active connection").localizedDescription
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+
+        var statements: [String] = []
+        if let drop = await definitionDropStatement(for: display.object, type: config.type, connection: connection) {
+            statements.append(drop)
+        }
+        statements.append(source)
+
+        switch await authorizeWrites(statements, type: config.type, kind: .schemaChange) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: definitionSaveError = readOnlySchemaErrorMessage; return
+        }
+        isSavingDefinition = true
+        definitionSaveError = nil
+        defer { isSavingDefinition = false }
+        do {
+            let transaction = try await connection.beginTransaction()
+            do {
+                for statement in statements {
+                    _ = try await transaction.execute(statement, params: nil)
+                }
+                try await transaction.commit()
+            } catch {
+                try? await transaction.rollback()
+                throw error
+            }
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            objectDefinitionDraft = nil
+            await openDefinition(of: display.object)
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            definitionSaveError = error.localizedDescription
+        }
+    }
+
+    /// 替换对象定义所需的前置 DROP 语句；PG 例程用 CREATE OR REPLACE 无需 DROP，返回 nil。
+    /// PG 触发器的 DROP 需要 ON 表名，从 catalog 读取。
+    private func definitionDropStatement(for object: DatabaseObject, type: DatabaseType, connection: any DatabaseConnection) async -> String? {
+        let qualified = Self.qualifiedName(for: object, type: type)
+        switch (type, object.kind) {
+        case (.mysql, .procedure):
+            return "DROP PROCEDURE IF EXISTS \(qualified);"
+        case (.mysql, .function):
+            return "DROP FUNCTION IF EXISTS \(qualified);"
+        case (.mysql, .trigger):
+            return "DROP TRIGGER IF EXISTS \(qualified);"
+        case (.postgresql, .trigger):
+            let schema = object.schema ?? "public"
+            let sql = """
+            SELECT quote_ident(n.nspname) || '.' || quote_ident(c.relname)
+            FROM pg_trigger tg
+            JOIN pg_class c ON c.oid = tg.tgrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = '\(Self.escapeSQLLiteral(schema))' AND tg.tgname = '\(Self.escapeSQLLiteral(object.name))'
+              AND NOT tg.tgisinternal
+            LIMIT 1;
+            """
+            guard let row = try? await connection.query(sql, params: nil).rows.first,
+                  let table = SchemaRowDecoder.string(row, at: 0) else { return nil }
+            return "DROP TRIGGER IF EXISTS \(Self.quoteIdentifier(object.name, for: type)) ON \(table);"
+        default:
+            return nil
+        }
+    }
+
+    nonisolated static func escapeSQLLiteral(_ value: String) -> String {
+        value.replacingOccurrences(of: "'", with: "''")
     }
 
     /// 关闭表浏览，回到 SQL 编辑器。
@@ -1840,6 +1961,69 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tableSchemaError = error.localizedDescription
         }
         isLoadingTableSchema = false
+    }
+
+    /// 打开建表面板（清空上次错误）。
+    public func presentCreateTable() {
+        createTableError = nil
+        isCreateTablePresented = true
+    }
+
+    /// 当前连接上下文下建表草稿的 DDL 预览（库/schema 限定与对象树一致）。
+    public func createTablePreview(_ draft: NewTableDraft) -> String {
+        guard let config = selectedConfig, config.type != .redis else { return "" }
+        let database: String? = config.type == .sqlite ? nil : (activeDatabase ?? config.database)
+        let schema: String? = config.type == .postgresql ? activeSchema : nil
+        return CreateTableDDLGenerator.preview(draft, type: config.type, database: database, schema: schema)
+    }
+
+    /// 校验并执行建表草稿：DDL 属写操作，经安全模式闸门（readOnly 拒绝、confirmWrites 弹确认），
+    /// 事务内逐句执行；成功后刷新对象树并打开新表。复用与改表一致的写管线。
+    public func createTable(_ draft: NewTableDraft) async {
+        guard let config = selectedConfig, config.type != .redis,
+              config.type.capabilities.supportsSchemaEditing else { return }
+        do {
+            try CreateTableDDLGenerator.validate(draft)
+        } catch {
+            createTableError = error.localizedDescription
+            return
+        }
+        let generation = connectionGeneration
+        guard let connection = await manager.getConnection(for: config.id) else {
+            createTableError = DatabaseError.connectionFailed("No active connection").localizedDescription
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let database: String? = config.type == .sqlite ? nil : (activeDatabase ?? config.database)
+        let schema: String? = config.type == .postgresql ? activeSchema : nil
+        let statements = CreateTableDDLGenerator.statements(draft, type: config.type, database: database, schema: schema)
+        switch await authorizeWrites(statements, type: config.type, kind: .schemaChange) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: createTableError = readOnlySchemaErrorMessage; return
+        }
+        isCreatingTable = true
+        createTableError = nil
+        defer { isCreatingTable = false }
+        do {
+            let transaction = try await connection.beginTransaction()
+            do {
+                for statement in statements {
+                    _ = try await transaction.execute(statement, params: nil)
+                }
+                try await transaction.commit()
+            } catch {
+                try? await transaction.rollback()
+                throw error
+            }
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            isCreateTablePresented = false
+            await refreshSidebarObjects()
+            await openObject(DatabaseObject(kind: .table, name: draft.name, database: database, schema: schema))
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            createTableError = error.localizedDescription
+        }
     }
 
     /// 加载当前页数据（`SELECT * FROM ... [ORDER BY ...] LIMIT pageSize OFFSET page*pageSize`）。
