@@ -86,6 +86,9 @@ public struct DatabaseWorkspaceView: View {
         .sheet(isPresented: $viewModel.isERDiagramPresented) {
             ERDiagramView(viewModel: viewModel, isPresented: $viewModel.isERDiagramPresented)
         }
+        .sheet(isPresented: $viewModel.isQueryPlanPresented) {
+            QueryPlanView(viewModel: viewModel, isPresented: $viewModel.isQueryPlanPresented)
+        }
     }
 
     // MARK: - 写确认文案

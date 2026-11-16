@@ -349,6 +349,17 @@ public struct MainView: View {
                 )
                 .keyboardShortcut("f", modifiers: [.command, .shift])
                 .help(pluginLocalization.string("Format SQL (selection or document)"))
+                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis {
+                    AppButton(
+                        pluginLocalization.string("Explain"),
+                        systemImage: "list.bullet.indent",
+                        style: .ghost,
+                        size: .small,
+                        action: { Task { await viewModel.explainCurrentQuery() } }
+                    )
+                    .disabled(viewModel.isLoading)
+                    .help(pluginLocalization.string("Explain the current query"))
+                }
                 AppButton(
                     pluginLocalization.string("History"),
                     systemImage: "clock.arrow.circlepath",

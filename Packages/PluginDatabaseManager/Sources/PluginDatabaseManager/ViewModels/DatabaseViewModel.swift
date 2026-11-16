@@ -75,6 +75,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// ER 图面板是否展示。
     @Published public var isERDiagramPresented: Bool = false
 
+    /// EXPLAIN 计划树（当前编辑器语句的执行计划）。
+    @Published private(set) var queryPlan: QueryPlan?
+    @Published public private(set) var queryPlanError: String?
+    @Published public private(set) var isLoadingPlan: Bool = false
+    /// EXPLAIN 面板是否展示。
+    @Published public var isQueryPlanPresented: Bool = false
+
     // MARK: - 表浏览状态（统一分页）
 
     /// 当前在主区打开的表/视图对象；nil 表示未打开（显示 SQL 编辑器）。
@@ -1469,6 +1476,85 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
     }
 
+    /// 对当前编辑器语句执行 EXPLAIN，解析为计划树并展示。
+    ///
+    /// 普通 EXPLAIN 只读直接放行；PG 的 `analyze` 走 `EXPLAIN (ANALYZE, FORMAT JSON)`，
+    /// 会真实执行被解释语句——含 DML 时由 ``WriteGate`` 识别为写并经安全模式闸门
+    /// （readOnly 拒绝、confirmWrites 弹确认），与其余写路径一致。Redis 无 EXPLAIN，忽略。
+    public func explainCurrentQuery(analyze: Bool = false) async {
+        let generation = connectionGeneration
+        guard let config = selectedConfig, config.type != .redis else { return }
+        let sql = queryText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !sql.isEmpty else { return }
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+
+        let resolved: (sql: String, params: [DatabaseValue]?)
+        do {
+            resolved = try resolveParameters(sql, type: config.type)
+        } catch {
+            presentError(error)
+            return
+        }
+
+        let useAnalyze = analyze && config.type == .postgresql
+        let explainSQL = Self.explainStatement(resolved.sql, type: config.type, analyze: useAnalyze)
+        switch await authorizeWrites([explainSQL], type: config.type, kind: .query) {
+        case .authorized: break
+        case .cancelled: return
+        case .blocked: presentReadOnlyError(); return
+        }
+
+        isLoadingPlan = true
+        queryPlanError = nil
+        defer { isLoadingPlan = false }
+        do {
+            let result = try await connection.query(explainSQL, params: resolved.params)
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            queryPlan = Self.parsePlan(result, type: config.type, analyze: useAnalyze)
+            isQueryPlanPresented = true
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            queryPlanError = error.localizedDescription
+        }
+    }
+
+    /// 按引擎拼装 EXPLAIN 语句。PG 用 FORMAT JSON（ANALYZE 可选），MySQL 用 FORMAT=JSON，
+    /// SQLite 用 QUERY PLAN（树形 detail）。
+    nonisolated static func explainStatement(_ sql: String, type: DatabaseType, analyze: Bool) -> String {
+        switch type {
+        case .postgresql:
+            return analyze ? "EXPLAIN (ANALYZE, FORMAT JSON) \(sql)" : "EXPLAIN (FORMAT JSON) \(sql)"
+        case .mysql:
+            return "EXPLAIN FORMAT=JSON \(sql)"
+        case .sqlite:
+            return "EXPLAIN QUERY PLAN \(sql)"
+        case .redis:
+            return sql
+        }
+    }
+
+    /// 把 EXPLAIN 结果行解析为统一计划树。PG/MySQL JSON 为单行单列文本；
+    /// MySQL 旧版表格输出回退到逐行解析；SQLite 直接解析 QUERY PLAN 行。
+    nonisolated static func parsePlan(_ result: QueryResult, type: DatabaseType, analyze: Bool) -> QueryPlan {
+        switch type {
+        case .postgresql:
+            let text = result.rows.first.flatMap { SchemaRowDecoder.string($0, at: 0) } ?? ""
+            return PostgreSQLPlanParser.parse(text, analyze: analyze)
+        case .mysql:
+            if result.columns.count == 1,
+               let text = result.rows.first.flatMap({ SchemaRowDecoder.string($0, at: 0) }) {
+                let plan = MySQLPlanParser.parseJSON(text)
+                if !plan.isEmpty { return plan }
+            }
+            return MySQLPlanParser.parseTabular(result)
+        case .sqlite:
+            return SQLitePlanParser.parse(result)
+        case .redis:
+            return QueryPlan(engine: .redis)
+        }
+    }
+
     /// 清空库/schema 上下文（连接切换/断开时调用，避免旧连接的库/schema 泄漏到新连接）。
     private func resetSchemaContext() {
         activeDatabase = nil
@@ -1478,6 +1564,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         isLoadingSchemaContext = false
         erDiagram = nil
         erDiagramError = nil
+        queryPlan = nil
+        queryPlanError = nil
     }
 
     /// 确立当前连接的库/schema 上下文：活动库默认取连接配置，PG 活动 schema 默认 public
