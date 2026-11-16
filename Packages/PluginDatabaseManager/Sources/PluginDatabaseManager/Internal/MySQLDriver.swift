@@ -205,6 +205,10 @@ public actor MySQLConnection: DatabaseConnection {
             if var buffer = data.buffer, let bytes = buffer.readBytes(length: buffer.readableBytes) {
                 return .data(Data(bytes))
             }
+        case .date, .datetime, .timestamp, .newdate, .datetime2, .timestamp2:
+            if let text = Self.temporalText(data, isTime: false) { return .string(text) }
+        case .time, .time2:
+            if let text = Self.temporalText(data, isTime: true) { return .string(text) }
         default:
             break
         }
@@ -216,6 +220,37 @@ public actor MySQLConnection: DatabaseConnection {
             return .data(Data(bytes))
         }
         return .null
+    }
+
+    /// 日期/时间列的线上载荷 → 规范文本。
+    ///
+    /// 二进制协议下 MySQLNIO 已剥掉长度前缀：DATE/DATETIME/TIMESTAMP 为
+    /// 4（年月日）/7（+时分秒）/11（+微秒）字节；TIME 为 8（符号+天数+时分秒）/
+    /// 12（+微秒）字节。文本协议下载荷是可打印 ASCII，直接还原。
+    static func temporalText(_ data: MySQLData, isTime: Bool) -> String? {
+        guard var buffer = data.buffer, let bytes = buffer.readBytes(length: buffer.readableBytes) else { return nil }
+        if bytes.isEmpty { return isTime ? "00:00:00" : "0000-00-00 00:00:00" }
+        if let text = String(data: Data(bytes), encoding: .utf8),
+           text.unicodeScalars.allSatisfy({ $0.value >= 32 && $0.value < 127 }) {
+            return text
+        }
+        func le32(_ offset: Int) -> Int {
+            Int(bytes[offset]) | Int(bytes[offset + 1]) << 8 | Int(bytes[offset + 2]) << 16 | Int(bytes[offset + 3]) << 24
+        }
+        if isTime {
+            guard bytes.count == 8 || bytes.count == 12 else { return nil }
+            let negative = bytes[0] != 0
+            let hours = le32(1) * 24 + Int(bytes[5])
+            let base = String(format: "%@%02d:%02d:%02d", negative ? "-" : "", hours, Int(bytes[6]), Int(bytes[7]))
+            let micro = bytes.count == 12 ? le32(8) : 0
+            return micro == 0 ? base : base + String(format: ".%06d", micro)
+        }
+        guard bytes.count == 4 || bytes.count == 7 || bytes.count == 11 else { return nil }
+        let date = String(format: "%04d-%02d-%02d", Int(bytes[0]) | Int(bytes[1]) << 8, Int(bytes[2]), Int(bytes[3]))
+        if bytes.count == 4 { return date }
+        let base = date + String(format: " %02d:%02d:%02d", Int(bytes[4]), Int(bytes[5]), Int(bytes[6]))
+        let micro = bytes.count == 11 ? le32(7) : 0
+        return micro == 0 ? base : base + String(format: ".%06d", micro)
     }
 
     private func toMySQLData(_ params: [DatabaseValue]) -> [MySQLData] {
