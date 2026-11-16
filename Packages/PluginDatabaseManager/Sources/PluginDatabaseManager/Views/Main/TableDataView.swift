@@ -204,6 +204,13 @@ struct TableDataView: View {
                         Task { await viewModel.refreshExactRowCount() }
                     }
                 }
+                if viewModel.gridHasRowKey {
+                    Divider()
+                    Toggle(isOn: keysetBinding) {
+                        Text(pluginLocalization.string("Keyset Pagination"))
+                    }
+                    .help(pluginLocalization.string("Fast deep paging by primary key"))
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 13, weight: .medium))
@@ -273,6 +280,13 @@ struct TableDataView: View {
         Binding(
             get: { viewModel.tablePageSize },
             set: { newSize in Task { await viewModel.setPageSize(newSize) } }
+        )
+    }
+
+    private var keysetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.useKeysetPagination },
+            set: { enabled in Task { await viewModel.setUseKeysetPagination(enabled) } }
         )
     }
 

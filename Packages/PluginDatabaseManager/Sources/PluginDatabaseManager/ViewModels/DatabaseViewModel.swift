@@ -57,6 +57,15 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var tableRowCountIsApproximate: Bool = false
     /// 服务端排序（列名 + 方向）；nil 表示不排序。
     @Published public var tableOrderBy: (column: String, ascending: Bool)?
+    /// 深翻页改用 keyset（游标）分页：按单一主键排序时用 `WHERE key > last`
+    /// 替代 OFFSET，避免深页线性扫描。设置持久化到 UserDefaults。
+    @Published public var useKeysetPagination: Bool = UserDefaults.standard.bool(forKey: "DatabaseManager.useKeysetPagination") {
+        didSet { UserDefaults.standard.set(useKeysetPagination, forKey: "DatabaseManager.useKeysetPagination") }
+    }
+    /// 当前 keyset 游标（nil 表示首页）；仅在 keyset 模式下使用。
+    private var keysetCursor: KeysetCursor?
+    /// 游标历史栈，支持 keyset 模式回退上一页。
+    private var keysetHistory: [KeysetCursor?] = []
     /// 当前表的服务端筛选（条件组合或 raw WHERE）；空表示不过滤。
     @Published public var tableFilter: TableFilter = .empty
     /// 是否展开筛选面板。
@@ -1003,6 +1012,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tablePage = 0
             tableRowCount = nil
             tableOrderBy = nil
+            resetKeyset()
             tableFilter = initialFilter
             showFilterPanel = initialFilter.isActive
             changeManager = nil
@@ -1208,17 +1218,29 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             selectList = "*"
         }
         var sql = "SELECT \(selectList) FROM \(tableExpr)"
-        var filterParams: [DatabaseValue]?
-        if let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? []) {
-            sql += " WHERE \(whereClause.clause)"
-            filterParams = whereClause.params
+        let filterWhere = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+        let useKeyset = keysetAvailable
+        let combined = KeysetPaginator.combineWhere(
+            filterClause: filterWhere?.clause,
+            filterParams: filterWhere?.params ?? [],
+            cursor: useKeyset ? keysetCursor : nil,
+            dialect: config.type,
+            quote: { Self.quoteIdentifier($0, for: config.type) })
+        let filterParams: [DatabaseValue]? = combined.params.isEmpty ? nil : combined.params
+        if let clause = combined.clause, !clause.isEmpty {
+            sql += " WHERE \(clause)"
         }
         if let order = tableOrderBy {
             let col = Self.quoteIdentifier(order.column, for: config.type)
             sql += " ORDER BY \(col) \(order.ascending ? "ASC" : "DESC")"
         }
-        let offset = tablePage * tablePageSize
-        sql += " LIMIT \(tablePageSize) OFFSET \(offset)"
+        if useKeyset {
+            // keyset：游标已定位起点，无需 OFFSET。
+            sql += " LIMIT \(tablePageSize)"
+        } else {
+            let offset = tablePage * tablePageSize
+            sql += " LIMIT \(tablePageSize) OFFSET \(offset)"
+        }
 
         isLoading = true
         errorMessage = nil
@@ -1227,8 +1249,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             guard isCurrentConnection(generation, configId: config.id),
                   openTableObject?.id == table.id else { return }
             queryResult = result
-            // 如果本页空且不是首页，回退到上一页（例如删除后）
-            if result.rows.isEmpty, tablePage > 0 {
+            // 如果本页空且不是首页，回退到上一页（例如删除后）；keyset 模式由游标定位，不做 OFFSET 回退。
+            if result.rows.isEmpty, tablePage > 0, !useKeyset {
                 tablePage = max(0, tablePage - 1)
                 await loadTablePage()
                 isLoading = false
@@ -1330,11 +1352,27 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     }
 
     public func nextPage() async {
+        if keysetAvailable {
+            guard let result = queryResult, let order = tableOrderBy,
+                  let next = KeysetPaginator.cursor(from: result, column: order.column, ascending: order.ascending) else { return }
+            keysetHistory.append(keysetCursor)
+            keysetCursor = next
+            tablePage += 1
+            await loadTablePage()
+            return
+        }
         tablePage += 1
         await loadTablePage()
     }
 
     public func prevPage() async {
+        if keysetAvailable {
+            guard !keysetHistory.isEmpty else { return }
+            keysetCursor = keysetHistory.removeLast()
+            tablePage = max(0, tablePage - 1)
+            await loadTablePage()
+            return
+        }
         guard tablePage > 0 else { return }
         tablePage -= 1
         await loadTablePage()
@@ -1343,6 +1381,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     public func setPageSize(_ size: Int) async {
         tablePageSize = max(1, size)
         tablePage = 0
+        resetKeyset()
         await loadTablePage()
     }
 
@@ -1355,6 +1394,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tableOrderBy = (column, true)
         }
         tablePage = 0
+        resetKeyset()
         await loadTablePage()
     }
 
@@ -1414,6 +1454,26 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     /// 当前结果是否有可用于 UPDATE 定位的行键（主键，或 SQLite rowid 别名）。
     public var gridHasRowKey: Bool { !gridKeyColumns.isEmpty }
+
+    /// 当前是否实际启用 keyset 分页（开关开启且按单一主键列排序）。
+    public var keysetAvailable: Bool {
+        guard useKeysetPagination, let order = tableOrderBy else { return false }
+        return KeysetPaginator.isApplicable(orderColumn: order.column, keyColumns: gridKeyColumns)
+    }
+
+    /// 重置 keyset 游标与历史（换表 / 改排序 / 改页大小 / 改筛选时调用）。
+    private func resetKeyset() {
+        keysetCursor = nil
+        keysetHistory = []
+    }
+
+    /// 开关 keyset 分页：回到首页、清游标并重新加载。
+    public func setUseKeysetPagination(_ enabled: Bool) async {
+        useKeysetPagination = enabled
+        tablePage = 0
+        resetKeyset()
+        await loadTablePage()
+    }
 
     private var gridKeyColumns: [String] {
         guard let schema = selectedTableSchema else { return [] }
@@ -1520,6 +1580,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     public func applyFilter() async {
         tablePage = 0
         tableRowCount = nil
+        resetKeyset()
         await loadTablePage()
     }
 
