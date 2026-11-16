@@ -95,23 +95,7 @@ public actor PGConnection: DatabaseConnection {
                 if resultRows.isEmpty {
                     columns.append(cell.columnName)
                 }
-                if let s = try? cell.decode(String.self) {
-                    values.append(.string(s))
-                } else if let i = try? cell.decode(Int.self) {
-                    values.append(.integer(i))
-                } else if let d = try? cell.decode(Double.self) {
-                    values.append(.double(d))
-                } else if let b = try? cell.decode(Bool.self) {
-                    values.append(.bool(b))
-                } else if var bytes = cell.bytes {
-                    if let readBytes = bytes.readBytes(length: bytes.readableBytes) {
-                        values.append(.data(Data(readBytes)))
-                    } else {
-                        values.append(.null)
-                    }
-                } else {
-                    values.append(.null)
-                }
+                values.append(Self.convertCell(cell))
             }
             resultRows.append(values)
         }
@@ -136,6 +120,37 @@ public actor PGConnection: DatabaseConnection {
 
     public func isAlive() async -> Bool {
         !conn.isClosed
+    }
+
+    /// 按线上类型分派而不是字符串优先：String 解码对 int4 等类型同样成功，
+    /// 试探式转换会把所有数字吞成文本。
+    static func convertCell(_ cell: PostgresCell) -> DatabaseValue {
+        switch cell.dataType {
+        case .int2, .int4, .int8:
+            if let i = try? cell.decode(Int.self) { return .integer(i) }
+        case .float4, .float8:
+            if let d = try? cell.decode(Double.self) { return .double(d) }
+        case .numeric:
+            if let d = try? cell.decode(Decimal.self) {
+                return .double((d as NSDecimalNumber).doubleValue)
+            }
+        case .bool:
+            if let b = try? cell.decode(Bool.self) { return .bool(b) }
+        case .bytea:
+            if var bytes = cell.bytes, let readBytes = bytes.readBytes(length: bytes.readableBytes) {
+                return .data(Data(readBytes))
+            }
+        default:
+            break
+        }
+        if let s = try? cell.decode(String.self) { return .string(s) }
+        if let i = try? cell.decode(Int.self) { return .integer(i) }
+        if let d = try? cell.decode(Double.self) { return .double(d) }
+        if let b = try? cell.decode(Bool.self) { return .bool(b) }
+        if var bytes = cell.bytes, let readBytes = bytes.readBytes(length: bytes.readableBytes) {
+            return .data(Data(readBytes))
+        }
+        return .null
     }
 
     private func toPostgresData(_ params: [DatabaseValue]) -> [PostgresData] {

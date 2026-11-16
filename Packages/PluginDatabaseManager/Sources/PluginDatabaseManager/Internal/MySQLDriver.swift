@@ -84,22 +84,8 @@ public actor MySQLConnection: DatabaseConnection {
         for row in rows {
             var values: [DatabaseValue] = []
             for colDef in row.columnDefinitions {
-                let data = row.column(colDef.name)
-                if let data {
-                    if let s = data.string { values.append(.string(s)) }
-                    else if let i = data.int { values.append(.integer(i)) }
-                    else if let f = data.double { values.append(.double(f)) }
-                    else if let b = data.bool { values.append(.bool(b)) }
-                    else if let buffer = data.buffer {
-                        var buffer = buffer
-                        if let bytes = buffer.readBytes(length: buffer.readableBytes) {
-                            values.append(.data(Data(bytes)))
-                        } else {
-                            values.append(.null)
-                        }
-                    } else {
-                        values.append(.null)
-                    }
+                if let data = row.column(colDef.name) {
+                    values.append(Self.convertValue(data, columnType: colDef.columnType))
                 } else {
                     values.append(.null)
                 }
@@ -130,6 +116,33 @@ public actor MySQLConnection: DatabaseConnection {
     public func isAlive() async -> Bool {
         guard let conn else { return false }
         return !conn.isClosed
+    }
+
+    /// 按列的线上类型分派而不是字符串优先：文本协议下任何值都能读成字符串，
+    /// 试探式转换会把数字/布尔全部吞成文本。
+    static func convertValue(_ data: MySQLData, columnType: MySQLProtocol.DataType) -> DatabaseValue {
+        switch columnType {
+        case .null:
+            return .null
+        case .tiny, .short, .long, .longlong, .int24, .year:
+            if let i = data.int { return .integer(i) }
+        case .float, .double, .decimal, .newdecimal:
+            if let d = data.double { return .double(d) }
+        case .bit, .tinyBlob, .mediumBlob, .longBlob, .blob, .geometry:
+            if var buffer = data.buffer, let bytes = buffer.readBytes(length: buffer.readableBytes) {
+                return .data(Data(bytes))
+            }
+        default:
+            break
+        }
+        if let s = data.string { return .string(s) }
+        if let i = data.int { return .integer(i) }
+        if let d = data.double { return .double(d) }
+        if let b = data.bool { return .bool(b) }
+        if var buffer = data.buffer, let bytes = buffer.readBytes(length: buffer.readableBytes) {
+            return .data(Data(bytes))
+        }
+        return .null
     }
 
     private func toMySQLData(_ params: [DatabaseValue]) -> [MySQLData] {
