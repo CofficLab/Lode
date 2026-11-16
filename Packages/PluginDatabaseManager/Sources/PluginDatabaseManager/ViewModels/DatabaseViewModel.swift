@@ -53,6 +53,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var tableRowCount: Int?
     /// 服务端排序（列名 + 方向）；nil 表示不排序。
     @Published public var tableOrderBy: (column: String, ascending: Bool)?
+    /// 当前表的服务端筛选（条件组合或 raw WHERE）；空表示不过滤。
+    @Published public var tableFilter: TableFilter = .empty
+    /// 是否展开筛选面板。
+    @Published public var showFilterPanel: Bool = false
 
     /// 当前打开表的变更跟踪队列；未打开表时为 nil。
     @Published public var changeManager: TableChangeManager?
@@ -990,6 +994,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tablePage = 0
             tableRowCount = nil
             tableOrderBy = nil
+            tableFilter = .empty
+            showFilterPanel = false
             changeManager = nil
             pendingConflicts = []
             showConflictSheet = false
@@ -1193,6 +1199,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             selectList = "*"
         }
         var sql = "SELECT \(selectList) FROM \(tableExpr)"
+        var filterParams: [DatabaseValue]?
+        if let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? []) {
+            sql += " WHERE \(whereClause.clause)"
+            filterParams = whereClause.params
+        }
         if let order = tableOrderBy {
             let col = Self.quoteIdentifier(order.column, for: config.type)
             sql += " ORDER BY \(col) \(order.ascending ? "ASC" : "DESC")"
@@ -1203,7 +1214,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         isLoading = true
         errorMessage = nil
         do {
-            let result = try await connection.query(sql, params: nil)
+            let result = try await connection.query(sql, params: filterParams)
             guard isCurrentConnection(generation, configId: config.id),
                   openTableObject?.id == table.id else { return }
             queryResult = result
@@ -1235,8 +1246,14 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
         let tableExpr = Self.qualifiedName(for: table, type: config.type)
+        var countSQL = "SELECT COUNT(*) FROM \(tableExpr)"
+        var filterParams: [DatabaseValue]?
+        if let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? []) {
+            countSQL += " WHERE \(whereClause.clause)"
+            filterParams = whereClause.params
+        }
         do {
-            let result = try await connection.query("SELECT COUNT(*) FROM \(tableExpr)", params: nil)
+            let result = try await connection.query(countSQL, params: filterParams)
             guard isCurrentConnection(generation, configId: config.id),
                   openTableObject?.id == table.id else { return }
             if let row = result.rows.first, let first = row.first {
@@ -1279,6 +1296,40 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
         tablePage = 0
         await loadTablePage()
+    }
+
+    // MARK: - 表筛选
+
+    /// 当前筛选的 WHERE 预览（供面板展示）；无过滤时为 nil。
+    public var filterPreviewSQL: String? {
+        guard let config = selectedConfig else { return nil }
+        return tableFilter.previewWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+    }
+
+    /// 应用当前筛选：回到首页、清空行数缓存（按过滤后重新计数）并加载。
+    public func applyFilter() async {
+        tablePage = 0
+        tableRowCount = nil
+        await loadTablePage()
+    }
+
+    /// 清空筛选并重新加载全量首页。
+    public func clearFilter() async {
+        tableFilter = .empty
+        await applyFilter()
+    }
+
+    /// 追加一条空白筛选条件（默认对首列做等于过滤）。
+    public func addFilterCondition() {
+        let firstColumn = selectedTableSchema?.columns.first?.name ?? ""
+        tableFilter.conditions.append(FilterCondition(column: firstColumn))
+        objectWillChange.send()
+    }
+
+    /// 移除指定筛选条件。
+    public func removeFilterCondition(_ id: UUID) {
+        tableFilter.conditions.removeAll { $0.id == id }
+        objectWillChange.send()
     }
 
     // MARK: - 数据编辑（变更跟踪）

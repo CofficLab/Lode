@@ -16,6 +16,10 @@ struct TableDataView: View {
         VStack(spacing: 0) {
             header
             AppDivider()
+            if viewModel.showFilterPanel {
+                TableFilterPanel(viewModel: viewModel)
+                AppDivider()
+            }
             QueryResultSectionView(viewModel: viewModel)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             if viewModel.changeManager?.hasChanges == true {
@@ -138,6 +142,13 @@ struct TableDataView: View {
                 style: .secondary,
                 size: .small,
                 action: { Task { await viewModel.loadTablePage() } }
+            )
+            AppButton(
+                pluginLocalization.string("Filter"),
+                systemImage: "line.3.horizontal.decrease.circle",
+                style: viewModel.tableFilter.isActive ? .primary : .secondary,
+                size: .small,
+                action: { viewModel.showFilterPanel.toggle() }
             )
             AppButton(
                 pluginLocalization.string("Structure"),

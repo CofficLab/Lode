@@ -29,6 +29,31 @@ public actor SQLiteConnection: DatabaseConnection {
         }
         self.db = dbPointer
         interruptHandle.store(dbPointer)
+        Self.registerRegexpFunction(dbPointer)
+    }
+
+    /// 注册 `REGEXP` 运算符（SQLite 默认不提供）。大小写不敏感，与 MySQL 默认行为一致；
+    /// 非法正则按「不匹配」处理而非报错，避免筛选时整页查询失败。
+    private static func registerRegexpFunction(_ db: OpaquePointer?) {
+        sqlite3_create_function(
+            db, "regexp", 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, nil,
+            { context, argc, argv in
+                guard argc == 2, let argv,
+                      sqlite3_value_type(argv[1]) != SQLITE_NULL,
+                      let patternPtr = sqlite3_value_text(argv[0]),
+                      let valuePtr = sqlite3_value_text(argv[1]) else {
+                    sqlite3_result_int(context, 0)
+                    return
+                }
+                let pattern = String(cString: patternPtr)
+                let value = String(cString: valuePtr)
+                let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+                let range = NSRange(value.startIndex..., in: value)
+                let matched = regex?.firstMatch(in: value, options: [], range: range) != nil
+                sqlite3_result_int(context, matched ? 1 : 0)
+            },
+            nil, nil
+        )
     }
 
     /// `sqlite3_interrupt` 线程安全，但句柄的读写必须与 close 互斥，
