@@ -58,6 +58,26 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 多结果当前选中的 tab 索引。
     @Published public var selectedExecutionIndex: Int = 0
 
+    /// 只读对象定义（索引/触发器/例程）的展示状态；非 nil 时弹出定义面板。
+    @Published public var objectDefinition: ObjectDefinitionDisplay?
+
+    /// 对象定义面板的展示模型。
+    public struct ObjectDefinitionDisplay: Identifiable, Sendable {
+        public let id: String
+        public let object: DatabaseObject
+        public var ddl: String?
+        public var isLoading: Bool
+        public var errorMessage: String?
+
+        public init(id: String, object: DatabaseObject, ddl: String? = nil, isLoading: Bool = true, errorMessage: String? = nil) {
+            self.id = id
+            self.object = object
+            self.ddl = ddl
+            self.isLoading = isLoading
+            self.errorMessage = errorMessage
+        }
+    }
+
     /// 查询历史（UI 通过此状态渲染）。
     @Published public var history: [QueryHistoryEntry] = []
     /// 是否显示历史面板。
@@ -570,8 +590,30 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             await loadSelectedTableSchema()
             await loadTablePage()
         case .procedure, .function, .index, .trigger:
-            // 例程/索引/触发器暂不在主区打开（留给后续结构 Tab）
-            break
+            await openDefinition(of: object)
+        }
+    }
+
+    /// 打开只读定义面板（索引/触发器/例程）。DDL 缺失时展示空态而非静默无响应。
+    public func openDefinition(of object: DatabaseObject) async {
+        guard let config = selectedConfig else { return }
+        let generation = connectionGeneration
+        objectDefinition = ObjectDefinitionDisplay(id: object.id, object: object)
+        guard let connection = await manager.getConnection(for: config.id) else {
+            objectDefinition?.isLoading = false
+            objectDefinition?.errorMessage = DatabaseError.connectionFailed("No active connection").localizedDescription
+            return
+        }
+        guard connectionGeneration == generation else { return }
+        do {
+            let ddl = try await config.type.introspector.loadDDL(for: object, in: connection)
+            guard connectionGeneration == generation else { return }
+            objectDefinition?.ddl = ddl
+            objectDefinition?.isLoading = false
+        } catch {
+            guard connectionGeneration == generation else { return }
+            objectDefinition?.isLoading = false
+            objectDefinition?.errorMessage = error.localizedDescription
         }
     }
 

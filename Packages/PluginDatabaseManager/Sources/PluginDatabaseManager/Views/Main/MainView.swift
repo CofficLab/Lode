@@ -38,6 +38,11 @@ public struct MainView: View {
         .sheet(isPresented: $viewModel.showHistory) {
             QueryHistoryView(viewModel: viewModel)
         }
+        .sheet(item: $viewModel.objectDefinition) { definition in
+            ObjectDefinitionSheet(definition: definition) {
+                viewModel.objectDefinition = nil
+            }
+        }
     }
 
     // MARK: - Connected
