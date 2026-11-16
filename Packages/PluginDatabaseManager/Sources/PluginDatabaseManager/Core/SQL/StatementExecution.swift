@@ -1,5 +1,15 @@
 import Foundation
 
+/// 多语句批量执行策略（⌘⇧↩）。
+public enum BatchExecutionPolicy: String, CaseIterable, Sendable, Identifiable {
+    /// 逐句执行，任一语句失败仍继续后续语句（默认）。
+    case continueOnError
+    /// 包裹在单个事务中，任一语句失败即整体回滚（MySQL/PG/SQLite；Redis 走 MULTI/EXEC）。
+    case wrapInTransaction
+
+    public var id: String { rawValue }
+}
+
 /// 多语句执行中单条语句的执行结果。
 public struct StatementExecution: Identifiable, Sendable {
     public let id: UUID

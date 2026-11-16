@@ -24,13 +24,57 @@ public enum SQLStatementParser {
         return next
     }
 
+    /// 一条语句在源文本中的定位结果。
+    public struct LocatedStatement: Sendable, Equatable {
+        /// 已 trim 的语句文本。
+        public let text: String
+        /// 原始片段（含前后空白，不含分隔分号）在源文本中的 UTF-16 范围。
+        public let range: NSRange
+        /// 去除注释/空白后是否仍有可执行内容；纯注释/空白片段为 false。
+        public let isExecutable: Bool
+
+        public init(text: String, range: NSRange, isExecutable: Bool) {
+            self.text = text
+            self.range = range
+            self.isExecutable = isExecutable
+        }
+    }
+
     public static func split(_ sql: String) -> [String] {
-        var result: [String] = []
+        locateStatements(in: sql).filter(\.isExecutable).map(\.text)
+    }
+
+    /// 返回光标（UTF-16 偏移）所在的可执行语句文本；光标落在空白/注释间隙或越界时返回 nil。
+    ///
+    /// 复用 ``locateStatements(in:)`` 的切分边界，因此引号内分号、注释、嵌套块注释
+    /// 都不会被误判为语句分隔。范围上界取闭区间，使「光标停在末句尾部」也能命中。
+    public static func statement(atCursor cursor: Int, in sql: String) -> String? {
+        guard cursor >= 0 else { return nil }
+        for located in locateStatements(in: sql) where located.isExecutable {
+            let upper = located.range.location + located.range.length
+            if cursor >= located.range.location && cursor <= upper {
+                return located.text
+            }
+        }
+        return nil
+    }
+
+    /// 按 `;` 切分并保留每条语句的原始 UTF-16 范围，供光标定位与错误高亮复用。
+    ///
+    /// 状态机与 ``split(_:)`` 完全一致（后者即本函数的可执行片段投影），
+    /// 尊重单/双/反引号（含双写转义）、行注释与可嵌套块注释。
+    public static func locateStatements(in sql: String) -> [LocatedStatement] {
+        var result: [LocatedStatement] = []
         var current = ""
         var index = sql.startIndex
+        var segmentStart = sql.startIndex
         var inString: Character? = nil
         var inLineComment = false
         var blockCommentDepth = 0
+
+        func utf16Offset(_ i: String.Index) -> Int {
+            sql.utf16.distance(from: sql.startIndex, to: i)
+        }
 
         /// 去除注释后是否仍有实际内容（避免纯注释语句占位）。
         func hasExecutableContent(_ statement: String) -> Bool {
@@ -67,12 +111,21 @@ public enum SQLStatementParser {
             return !stripped.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
-        func commitCurrentStatement() {
+        func commitCurrentStatement(upTo end: String.Index) {
             let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty && hasExecutableContent(trimmed) {
-                result.append(trimmed)
+            if !trimmed.isEmpty {
+                let location = utf16Offset(segmentStart)
+                let length = max(0, utf16Offset(end) - location)
+                result.append(LocatedStatement(
+                    text: trimmed,
+                    range: NSRange(location: location, length: length),
+                    isExecutable: hasExecutableContent(trimmed)
+                ))
             }
             current = ""
+            if end < sql.endIndex {
+                segmentStart = sql.index(after: end)
+            }
         }
 
         while index < sql.endIndex {
@@ -149,7 +202,7 @@ public enum SQLStatementParser {
 
             // 语句分隔符
             if ch == ";" {
-                commitCurrentStatement()
+                commitCurrentStatement(upTo: index)
                 index = sql.index(after: index)
                 continue
             }
@@ -159,7 +212,7 @@ public enum SQLStatementParser {
         }
 
         // 收尾：最后一段（可能没有尾部分号）
-        commitCurrentStatement()
+        commitCurrentStatement(upTo: sql.endIndex)
         return result
     }
 

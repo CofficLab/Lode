@@ -96,10 +96,19 @@ private final class EmbeddedEditorSurfaceProvider: EditorEmbeddedEditorProviding
     init(service: EditorService) { self.service = service }
 
     func makeEmbeddedEditorView(text: Binding<String>, options: EditorEmbeddedEditorOptions) -> AnyView {
+        makeEmbeddedEditorView(text: text, options: options, cursorLocation: nil)
+    }
+
+    func makeEmbeddedEditorView(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        cursorLocation: Binding<Int>?
+    ) -> AnyView {
         AnyView(EmbeddedEditorHostView(
             text: text,
             options: options,
-            language: service.editorExtensions.languageRegistry.context(for: options.languageID) ?? .plainText
+            language: service.editorExtensions.languageRegistry.context(for: options.languageID) ?? .plainText,
+            cursorLocation: cursorLocation
         ))
     }
 }
@@ -108,11 +117,39 @@ private struct EmbeddedEditorHostView: View {
     @Binding var text: String
     let options: EditorEmbeddedEditorOptions
     let language: EditorLanguageContext
+    var cursorLocation: Binding<Int>? = nil
     @State private var editorState = SourceEditorState()
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         SourceEditor($text, language: language, configuration: configuration, state: $editorState)
+            .onAppear { publishCursor(editorState.cursorPositions) }
+            .onChange(of: editorState.cursorPositions) { _, newValue in publishCursor(newValue) }
+    }
+
+    /// 把编辑器光标（caret/选区起点）换算成 UTF-16 偏移回写给消费方。
+    private func publishCursor(_ positions: [CursorPosition]?) {
+        guard let cursorLocation, let first = positions?.first else { return }
+        let offset = first.range.location != NSNotFound
+            ? first.range.location
+            : utf16Offset(line: first.start.line, column: first.start.column)
+        if cursorLocation.wrappedValue != offset {
+            cursorLocation.wrappedValue = offset
+        }
+    }
+
+    /// 行/列（均 1 起）→ UTF-16 偏移；range 缺失时的兜底换算。
+    private func utf16Offset(line: Int, column: Int) -> Int {
+        guard line > 0, column > 0 else { return 0 }
+        var offset = 0
+        for (index, lineText) in text.components(separatedBy: "\n").enumerated() {
+            let lineLength = (lineText as NSString).length
+            if index + 1 == line {
+                return min(offset + min(column - 1, lineLength), text.utf16.count)
+            }
+            offset += lineLength + 1
+        }
+        return min(offset, text.utf16.count)
     }
 
     private var configuration: SourceEditorConfiguration {

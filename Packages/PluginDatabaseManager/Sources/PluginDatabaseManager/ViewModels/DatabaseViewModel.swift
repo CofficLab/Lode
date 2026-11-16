@@ -63,6 +63,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var multiExecutions: [StatementExecution] = []
     /// 多结果当前选中的 tab 索引。
     @Published public var selectedExecutionIndex: Int = 0
+    /// ⌘⇧↩ 批量执行策略：逐句继续（默认）或包裹事务失败回滚。
+    @Published public var batchPolicy: BatchExecutionPolicy = .continueOnError
+    /// 最近一次批量执行是否因失败而整体回滚（供结果区显示提示）。
+    @Published public private(set) var lastBatchRolledBack = false
+    /// 编辑器光标在 ``queryText`` 中的 UTF-16 偏移；由嵌入式编辑器回写，`NSNotFound` 表示未知。
+    @Published public var editorCursorLocation: Int = NSNotFound
 
     // MARK: - 编辑器查询行数上限与增量加载
 
@@ -496,13 +502,25 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     }
 
     public func executeQuery() async {
-        await executeQuery(isRetry: false)
+        await executeQuery(isRetry: false, sqlOverride: nil)
+    }
+
+    /// ⌘↩：执行光标所在语句。光标未知或落在语句间隙时退回执行整段文本（兼容降级编辑器）。
+    public func executeStatementAtCursor() async {
+        let cursor = editorCursorLocation
+        if cursor != NSNotFound,
+           let stmt = SQLStatementParser.statement(atCursor: cursor, in: queryText) {
+            await executeQuery(isRetry: false, sqlOverride: stmt)
+        } else {
+            await executeQuery(isRetry: false, sqlOverride: nil)
+        }
     }
 
     /// `isRetry` 为 true 时不再触发断线重连，避免重连-重试无限循环。
-    private func executeQuery(isRetry: Bool) async {
+    /// `sqlOverride` 非 nil 时执行该语句而非整段 ``queryText``（光标单句执行）。
+    private func executeQuery(isRetry: Bool, sqlOverride: String?) async {
         let generation = connectionGeneration
-        let sql = queryText
+        let sql = sqlOverride ?? queryText
         guard let config = selectedConfig else {
             presentError(DatabaseError.connectionFailed("Not connected to a database"))
             if DatabaseManagerPluginSupport.verbose {
@@ -577,7 +595,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 await connect(config: config, isReconnect: true)
                 if isConnected {
                     isLoading = false
-                    await executeQuery(isRetry: true)
+                    await executeQuery(isRetry: true, sqlOverride: sqlOverride)
                     return
                 }
             }
@@ -656,10 +674,19 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
         isLoading = true
         errorMessage = nil
+        lastBatchRolledBack = false
         multiExecutions = []
         queryResult = nil
         resetEditorPaging()
         executionSequence += 1
+
+        if batchPolicy == .wrapInTransaction {
+            await executeBatchInTransaction(
+                statements: statements, config: config, connection: connection, generation: generation
+            )
+            return
+        }
+
         var executions: [StatementExecution] = []
         var lastSuccess: QueryResult?
 
@@ -701,6 +728,103 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             executions.append(exec)
         }
 
+        multiExecutions = executions
+        queryResult = lastSuccess
+        selectedExecutionIndex = 0
+        isLoading = false
+        await recordExecutedSQLs(statements, config: config)
+    }
+
+    /// 包裹事务的批量执行：任一语句失败即整体回滚并停止；全部成功才提交。
+    ///
+    /// SQL 引擎（MySQL/PG/SQLite）的读语句经同一连接的 `query` 执行（处于事务内），
+    /// 写语句经事务 `execute`。Redis 走 MULTI/EXEC：所有命令入队，读命令返回 QUEUED，
+    /// 真实回复在 EXEC 时产生，故本路径不逐句展示 Redis 读结果（MULTI 语义单独处理）。
+    private func executeBatchInTransaction(
+        statements: [String],
+        config: DatabaseConfig,
+        connection: any DatabaseConnection,
+        generation: Int
+    ) async {
+        var executions: [StatementExecution] = []
+        var lastSuccess: QueryResult?
+
+        let transaction: any DatabaseTransaction
+        do {
+            transaction = try await connection.beginTransaction()
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            presentError(error)
+            isLoading = false
+            return
+        }
+
+        var failed = false
+        for stmt in statements {
+            let start = Date()
+            var exec = StatementExecution(sql: stmt)
+            do {
+                if config.type == .redis {
+                    let affected = try await transaction.execute(stmt, params: nil)
+                    guard isCurrentConnection(generation, configId: config.id) else {
+                        try? await transaction.rollback(); return
+                    }
+                    exec.result = QueryResult(columns: ["Result"], rows: [[.string("QUEUED")]], rowsAffected: affected)
+                } else if Self.isReadStatement(stmt, type: config.type) {
+                    let limited = SQLQueryLimiter.apply(stmt, limit: queryRowLimit)
+                    let result = try await connection.query(limited.sql, params: nil)
+                    guard isCurrentConnection(generation, configId: config.id) else {
+                        try? await transaction.rollback(); return
+                    }
+                    exec.result = result
+                    lastSuccess = result
+                } else {
+                    let affected = try await transaction.execute(stmt, params: nil)
+                    guard isCurrentConnection(generation, configId: config.id) else {
+                        try? await transaction.rollback(); return
+                    }
+                    let result = QueryResult(
+                        columns: ["Result"],
+                        rows: [[.string("OK. Rows affected: \(affected)")]],
+                        rowsAffected: affected
+                    )
+                    exec.result = result
+                    lastSuccess = result
+                }
+            } catch {
+                guard isCurrentConnection(generation, configId: config.id) else {
+                    try? await transaction.rollback(); return
+                }
+                let classified = DatabaseErrorClassifier.classify(error)
+                exec.errorMessage = classified.detail
+                exec.errorCategory = classified.category
+                exec.durationMs = Date().timeIntervalSince(start) * 1000
+                executions.append(exec)
+                failed = true
+                break
+            }
+            exec.durationMs = Date().timeIntervalSince(start) * 1000
+            executions.append(exec)
+        }
+
+        if failed {
+            try? await transaction.rollback()
+            lastBatchRolledBack = true
+        } else {
+            do {
+                try await transaction.commit()
+            } catch {
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                // SQL 引擎 COMMIT 失败可回滚；Redis EXEC 非原子回滚，不宣称已回滚。
+                if config.type != .redis {
+                    try? await transaction.rollback()
+                    lastBatchRolledBack = true
+                }
+                presentError(error)
+            }
+        }
+
+        guard isCurrentConnection(generation, configId: config.id) else { return }
         multiExecutions = executions
         queryResult = lastSuccess
         selectedExecutionIndex = 0

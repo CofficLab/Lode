@@ -56,4 +56,29 @@ public protocol EditorEmbeddedEditorProviding: AnyObject {
     ///   - options: 外观与行为选项。
     /// - Returns: 编辑器视图；Host 未就绪时应返回可用占位，绝不返回 nil。
     func makeEmbeddedEditorView(text: Binding<String>, options: EditorEmbeddedEditorOptions) -> AnyView
+
+    /// 创建嵌入式编辑器视图，并把光标位置回写到 `cursorLocation`。
+    ///
+    /// - Parameters:
+    ///   - text: 文本内容的双向绑定。
+    ///   - options: 外观与行为选项。
+    ///   - cursorLocation: 光标（caret/选区起点）在 `text` 中的 UTF-16 偏移；
+    ///     传 nil 表示不需要追踪。Host 不支持追踪时可忽略此绑定。
+    /// - Returns: 编辑器视图；Host 未就绪时应返回可用占位，绝不返回 nil。
+    func makeEmbeddedEditorView(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        cursorLocation: Binding<Int>?
+    ) -> AnyView
+}
+
+public extension EditorEmbeddedEditorProviding {
+    /// 默认不追踪光标：转发到无光标版本，保证既有实现无需改动即可兼容。
+    func makeEmbeddedEditorView(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        cursorLocation: Binding<Int>?
+    ) -> AnyView {
+        makeEmbeddedEditorView(text: text, options: options)
+    }
 }

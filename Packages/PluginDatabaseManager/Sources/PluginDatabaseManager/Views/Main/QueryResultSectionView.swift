@@ -31,6 +31,9 @@ struct QueryResultSectionView: View {
     var body: some View {
         if !viewModel.multiExecutions.isEmpty {
             VStack(spacing: 0) {
+                if viewModel.lastBatchRolledBack {
+                    batchRolledBackBanner
+                }
                 multiExecutionTabs
                 Divider()
                 selectedResultContent
@@ -38,6 +41,26 @@ struct QueryResultSectionView: View {
         } else {
             singleResultContent
         }
+    }
+
+    // MARK: - Batch rolled back notice
+
+    private var batchRolledBackBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.error)
+            Text(pluginLocalization.string("Rolled back"))
+                .font(.appBodyEmphasized)
+                .foregroundStyle(theme.textPrimary)
+            Text(pluginLocalization.string("All changes in this batch were rolled back."))
+                .font(.appCaption)
+                .foregroundStyle(theme.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(theme.error.opacity(0.1))
     }
 
     // MARK: - Single result (no multi-exec)

@@ -75,7 +75,8 @@ public struct MainView: View {
         EmbeddedCodeEditorView(
             text: $viewModel.queryText,
             options: EditorEmbeddedEditorOptions(languageID: "sql"),
-            provider: viewModel.embeddedEditorProvider
+            provider: viewModel.embeddedEditorProvider,
+            cursorLocation: $viewModel.editorCursorLocation
         )
             .frame(minHeight: 100, maxHeight: 200)
             .border(theme.appSubtleBorder)
@@ -97,10 +98,12 @@ public struct MainView: View {
                         .keyboardShortcut(.return, modifiers: .command)
                         .keyboardShortcut(".", modifiers: .command)
                 } else {
-                    AppButton(pluginLocalization.string("Run"), systemImage: "play.fill", style: .primary, size: .small, action: { Task { await viewModel.executeQuery() } })
+                    AppButton(pluginLocalization.string("Run"), systemImage: "play.fill", style: .primary, size: .small, action: { Task { await viewModel.executeStatementAtCursor() } })
                         .keyboardShortcut(.return, modifiers: .command)
+                        .help(pluginLocalization.string("Run statement at cursor"))
                 }
                 if statementCount > 1 {
+                    batchPolicyPicker
                     AppButton(
                         "\(pluginLocalization.string("Run All")) (\(statementCount))",
                         systemImage: "play.rectangle.fill",
@@ -121,6 +124,34 @@ public struct MainView: View {
                 .keyboardShortcut("y", modifiers: .command)
             }
         }
+    }
+
+    // MARK: - Batch policy
+
+    /// ⌘⇧↩ 批量执行策略选择：逐句继续 / 包裹事务失败回滚。
+    private var batchPolicyPicker: some View {
+        Menu {
+            Picker(pluginLocalization.string("Batch policy"), selection: $viewModel.batchPolicy) {
+                Text(pluginLocalization.string("Continue on error"))
+                    .tag(BatchExecutionPolicy.continueOnError)
+                Text(pluginLocalization.string("Wrap in transaction"))
+                    .tag(BatchExecutionPolicy.wrapInTransaction)
+            }
+            .pickerStyle(.inline)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: viewModel.batchPolicy == .wrapInTransaction ? "lock.rectangle" : "list.bullet.rectangle")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(pluginLocalization.string("Batch policy"))
+                    .font(.appMicro)
+            }
+            .foregroundStyle(theme.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(viewModel.isLoading)
     }
 
     // MARK: - Empty state
