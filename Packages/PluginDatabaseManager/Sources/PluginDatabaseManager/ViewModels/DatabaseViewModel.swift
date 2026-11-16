@@ -2,6 +2,7 @@ import ProviderEditor
 import Foundation
 import LumiLoggingKit
 import Combine
+import CoreGraphics
 
 @MainActor
 public class DatabaseViewModel: ObservableObject, SuperLog {
@@ -66,6 +67,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     private var keysetCursor: KeysetCursor?
     /// 游标历史栈，支持 keyset 模式回退上一页。
     private var keysetHistory: [KeysetCursor?] = []
+    /// 当前表的用户列宽覆盖（按列名）；持久化到 UserDefaults。
+    @Published public private(set) var gridColumnWidths: [String: CGFloat] = [:]
+    /// 当前表的用户列顺序（列名序列）；空表示自然顺序。持久化到 UserDefaults。
+    @Published public private(set) var gridColumnOrder: [String] = []
     /// 当前表的服务端筛选（条件组合或 raw WHERE）；空表示不过滤。
     @Published public var tableFilter: TableFilter = .empty
     /// 是否展开筛选面板。
@@ -1013,6 +1018,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tableRowCount = nil
             tableOrderBy = nil
             resetKeyset()
+            loadGridLayout()
             tableFilter = initialFilter
             showFilterPanel = initialFilter.isActive
             changeManager = nil
@@ -1473,6 +1479,47 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         tablePage = 0
         resetKeyset()
         await loadTablePage()
+    }
+
+    // MARK: - 列布局持久化
+
+    /// 调整某列宽度（钳制后）并持久化。
+    public func setGridColumnWidth(_ column: String, width: CGFloat) {
+        gridColumnWidths[column] = GridColumnLayout.clampWidth(width)
+        persistGridLayout()
+    }
+
+    /// 左/右移动某列并持久化新顺序。
+    public func moveGridColumn(_ column: String, left: Bool) {
+        let columns = queryResult?.columns ?? selectedTableSchema?.columns.map(\.name) ?? []
+        guard !columns.isEmpty else { return }
+        gridColumnOrder = GridColumnLayout.moved(columns: columns, order: gridColumnOrder.isEmpty ? nil : gridColumnOrder, column: column, left: left)
+        persistGridLayout()
+    }
+
+    /// 当前表的布局持久化键（连接 + 对象唯一）。
+    private var gridLayoutKey: String? {
+        guard let config = selectedConfig, let table = openTableObject else { return nil }
+        return "DatabaseManager.gridLayout.\(config.id.uuidString).\(table.id)"
+    }
+
+    /// 打开表时载入已保存的列宽/列序。
+    private func loadGridLayout() {
+        gridColumnWidths = [:]
+        gridColumnOrder = []
+        guard let key = gridLayoutKey,
+              let data = UserDefaults.standard.data(forKey: key),
+              let saved = try? JSONDecoder().decode(GridColumnLayout.Saved.self, from: data) else { return }
+        gridColumnWidths = saved.widths
+        gridColumnOrder = saved.order
+    }
+
+    private func persistGridLayout() {
+        guard let key = gridLayoutKey else { return }
+        let saved = GridColumnLayout.Saved(widths: gridColumnWidths, order: gridColumnOrder)
+        if let data = try? JSONEncoder().encode(saved) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
     }
 
     private var gridKeyColumns: [String] {

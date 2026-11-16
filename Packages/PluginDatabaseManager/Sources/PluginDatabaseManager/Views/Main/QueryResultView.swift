@@ -52,6 +52,14 @@ struct QueryResultView: View {
     var canCopyUpdate: Bool = false
     /// 值查看器回调：(列名, 显示值)。
     var onViewValue: ((String, DatabaseValue) -> Void)? = nil
+    /// 用户列宽覆盖（按列名）；优先于内容估算宽度。
+    var columnWidthOverrides: [String: CGFloat] = [:]
+    /// 用户列顺序（列名序列）；nil 表示自然顺序。
+    var displayColumnOrder: [String]? = nil
+    /// 列宽调整回调：(列名, 新宽度)。
+    var onResizeColumn: ((String, CGFloat) -> Void)? = nil
+    /// 列移动回调：(列名, 是否左移)。
+    var onMoveColumn: ((String, Bool) -> Void)? = nil
 
     // MARK: - Editing state
 
@@ -61,16 +69,16 @@ struct QueryResultView: View {
     @State private var editText: String = ""
     @State private var editingInsert: InsertCellKey? = nil
     @State private var editInsertText: String = ""
+    /// 正在拖拽调整宽度的列名（nil 表示无）。
+    @State private var resizingColumn: String? = nil
+    /// 拖拽起始宽度与实时宽度。
+    @State private var resizeStartWidth: CGFloat = 0
+    @State private var resizeLiveWidth: CGFloat = 0
 
     // MARK: - Constants
 
     /// 行号列宽度。
     private static let rowNumberWidth: CGFloat = 44
-    /// 列宽上下限，避免过窄或过宽。
-    private static let minColumnWidth: CGFloat = 80
-    private static let maxColumnWidth: CGFloat = 320
-    /// 每字符近似宽度（等宽字体 body），用于按内容估算列宽。
-    private static let approxCharWidth: CGFloat = 8
 
     // MARK: - Body
 
@@ -106,24 +114,30 @@ struct QueryResultView: View {
 
     // MARK: - Layout
 
-    /// 行号列 + 各数据列宽度之和。
+    /// 行号列 + 各数据列宽度之和（按显示顺序）。
     private var tableWidth: CGFloat {
-        Self.rowNumberWidth + columnWidths.reduce(0, +)
+        Self.rowNumberWidth + orderedColumnIndices.reduce(0) { $0 + displayWidth(for: $1) }
     }
 
-    /// 按列名 + 前 50 行内容估算的列宽（钳制在上下限内）。
-    private var columnWidths: [CGFloat] {
-        let sampleCount = min(50, result.rows.count)
-        return result.columns.indices.map { colIndex in
-            var maxChars = result.columns[colIndex].count
-            for r in 0..<sampleCount {
-                guard colIndex < result.rows[r].count else { continue }
-                let text = content(for: result.rows[r][colIndex])
-                maxChars = max(maxChars, text.count)
-            }
-            let width = CGFloat(maxChars) * Self.approxCharWidth + 24  // padding 余量
-            return min(max(width, Self.minColumnWidth), Self.maxColumnWidth)
-        }
+    /// 显示顺序对应的数据列索引（应用持久化列序）。
+    private var orderedColumnIndices: [Int] {
+        GridColumnLayout.orderedIndices(columns: result.columns, order: displayColumnOrder)
+    }
+
+    /// 按列名 + 前 50 行内容估算的列宽（有界采样，百万行不劣化）。
+    private var estimatedWidths: [CGFloat] {
+        GridColumnLayout.estimateWidths(columns: result.columns, rows: result.rows) { content(for: $0) }
+    }
+
+    /// 某数据列的基础宽度：用户覆盖优先，否则内容估算。
+    private func width(for colIndex: Int) -> CGFloat {
+        columnWidthOverrides[result.columns[colIndex]] ?? estimatedWidths[colIndex]
+    }
+
+    /// 某数据列的当前显示宽度：拖拽中的列用实时宽度。
+    private func displayWidth(for colIndex: Int) -> CGFloat {
+        if resizingColumn == result.columns[colIndex] { return resizeLiveWidth }
+        return width(for: colIndex)
     }
 
     // MARK: - Subviews
@@ -135,7 +149,7 @@ struct QueryResultView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: Self.rowNumberWidth, alignment: .center)
                 .border(theme.appSubtleBorder)
-            ForEach(result.columns.indices, id: \.self) { colIndex in
+            ForEach(orderedColumnIndices, id: \.self) { colIndex in
                 headerCell(for: colIndex)
             }
             Spacer(minLength: 0)
@@ -147,6 +161,7 @@ struct QueryResultView: View {
     private func headerCell(for colIndex: Int) -> some View {
         let name = result.columns[colIndex]
         let isSorted = (sortColumn == name)
+        let cellWidth = displayWidth(for: colIndex)
         let label = HStack(spacing: 4) {
             Text(name)
                 .lineLimit(1)
@@ -160,17 +175,53 @@ struct QueryResultView: View {
         .font(.appBodyEmphasized)
         .foregroundColor(theme.textPrimary)
         .padding(8)
-        .frame(width: columnWidths[colIndex], alignment: .leading)
+        .frame(width: cellWidth, alignment: .leading)
         .border(theme.appSubtleBorder)
+        .contextMenu {
+            if let onMoveColumn {
+                Button(pluginLocalization.string("Move Left")) { onMoveColumn(name, true) }
+                Button(pluginLocalization.string("Move Right")) { onMoveColumn(name, false) }
+            }
+        }
 
-        if let onToggleSort {
-            Button(action: { onToggleSort(name) }) {
+        ZStack(alignment: .trailing) {
+            if let onToggleSort {
+                Button(action: { onToggleSort(name) }) {
+                    label
+                }
+                .buttonStyle(.plain)
+            } else {
                 label
             }
-            .buttonStyle(.plain)
-        } else {
-            label
+            if onResizeColumn != nil {
+                resizeHandle(for: name, colIndex: colIndex)
+            }
         }
+        .frame(width: cellWidth)
+    }
+
+    /// 列宽拖拽手柄：拖拽中实时更新显示宽度，结束时回调持久化。
+    private func resizeHandle(for name: String, colIndex: Int) -> some View {
+        Rectangle()
+            .fill(theme.appSubtleBorder)
+            .frame(width: 4)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        if resizingColumn != name {
+                            resizingColumn = name
+                            resizeStartWidth = width(for: colIndex)
+                        }
+                        resizeLiveWidth = GridColumnLayout.clampWidth(resizeStartWidth + value.translation.width)
+                    }
+                    .onEnded { _ in
+                        if resizingColumn == name {
+                            onResizeColumn?(name, resizeLiveWidth)
+                        }
+                        resizingColumn = nil
+                    }
+            )
     }
 
     private func resultRow(at rowIndex: Int) -> some View {
@@ -184,8 +235,8 @@ struct QueryResultView: View {
                 .background(isDeleted ? theme.error.opacity(0.1) : Color.secondary.opacity(0.04))
                 .border(theme.appSubtleBorder.opacity(0.7))
 
-            ForEach(0 ..< row.count, id: \.self) { colIndex in
-                cellView(row: row, rowIndex: rowIndex, colIndex: colIndex, width: columnWidths[colIndex])
+            ForEach(orderedColumnIndices.filter { $0 < row.count }, id: \.self) { colIndex in
+                cellView(row: row, rowIndex: rowIndex, colIndex: colIndex, width: displayWidth(for: colIndex))
                     .strikethrough(isDeleted)
                     .opacity(isDeleted ? 0.55 : 1)
             }
@@ -254,8 +305,8 @@ struct QueryResultView: View {
                 .background(theme.success.opacity(0.08))
                 .border(theme.appSubtleBorder.opacity(0.7))
 
-            ForEach(result.columns.indices, id: \.self) { colIndex in
-                insertCellView(insert: insert, column: result.columns[colIndex], width: columnWidths[colIndex])
+            ForEach(orderedColumnIndices, id: \.self) { colIndex in
+                insertCellView(insert: insert, column: result.columns[colIndex], width: displayWidth(for: colIndex))
             }
             Spacer(minLength: 0)
         }

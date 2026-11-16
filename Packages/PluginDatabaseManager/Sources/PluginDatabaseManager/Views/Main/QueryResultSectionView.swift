@@ -130,6 +130,14 @@ struct QueryResultSectionView: View {
                     canCopyUpdate: viewModel.gridHasRowKey,
                     onViewValue: { column, value in
                         valueViewer = ValueViewerRequest(column: column, value: value)
+                    },
+                    columnWidthOverrides: viewModel.gridColumnWidths,
+                    displayColumnOrder: viewModel.gridColumnOrder.isEmpty ? nil : viewModel.gridColumnOrder,
+                    onResizeColumn: { column, width in
+                        viewModel.setGridColumnWidth(column, width: width)
+                    },
+                    onMoveColumn: { column, left in
+                        viewModel.moveGridColumn(column, left: left)
                     }
                 )
                 if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
