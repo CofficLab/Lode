@@ -7,6 +7,7 @@ import ProviderContentView
 import ProviderExternalFile
 import ProviderRailView
 import ProviderRootView
+import ProviderSettingView
 import ProviderStorage
 import ProviderToolbar
 import ProviderToolManager
@@ -121,6 +122,16 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
         tools?.add(DatabaseDescribeSchemaV2Tool(), pluginID: id)
         tools?.add(DatabaseReadonlyQueryV2Tool(), pluginID: id)
         tools?.add(DatabaseSampleTableV2Tool(), pluginID: id)
+        kernel.resolveProvider((any SettingViewProviding).self)?.addEntries([
+            SettingEntryItem(
+                id: "\(id).settings",
+                title: metadata.name,
+                systemImage: "cylinder.split.1x2",
+                order: order
+            ) {
+                DatabaseSettingsView(viewModel: self.viewModel)
+            },
+        ])
     }
 
     public func onShutdown(kernel: KernelCoreContainer) throws {
@@ -147,6 +158,7 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
         tools?.remove(id: DatabaseDescribeSchemaV2Tool.toolName)
         tools?.remove(id: DatabaseReadonlyQueryV2Tool.toolName)
         tools?.remove(id: DatabaseSampleTableV2Tool.toolName)
+        kernel.resolveProvider((any SettingViewProviding).self)?.removeEntries(ids: ["\(id).settings"])
         viewModel.embeddedEditorProvider = nil
     }
 

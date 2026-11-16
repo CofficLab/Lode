@@ -53,6 +53,7 @@ struct ConnectionFormView: View {
         self.viewModel = viewModel
         self._isPresented = isPresented
         self.editing = editing
+        self._safeMode = State(initialValue: editing?.safeMode ?? viewModel.defaultSafeMode)
     }
 
     var body: some View {

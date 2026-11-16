@@ -145,6 +145,7 @@ public struct MainView: View {
             text: $viewModel.queryText,
             options: EditorEmbeddedEditorOptions(
                 languageID: "sql",
+                fontSize: CGFloat(viewModel.settings.editorFontSize),
                 completionProvider: viewModel.sqlCompletionProvider,
                 foldRanges: { SQLFoldRangeCalculator.foldRanges(in: $0).map(\.range) },
                 diagnostics: { DatabaseViewModel.embeddedSQLDiagnostics($0) }

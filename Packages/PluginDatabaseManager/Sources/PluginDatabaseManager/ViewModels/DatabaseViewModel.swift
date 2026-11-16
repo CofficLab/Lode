@@ -306,6 +306,16 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     private let savedQueryStore: SavedQueryStore
 
+    /// 全局偏好设置；任何改动经 didSet 持久化到工作区 UserDefaults。
+    @Published public var settings: DatabaseSettings = DatabaseSettings() {
+        didSet { settingsStore.save(settings) }
+    }
+
+    private let settingsStore: DatabaseSettingsStore
+
+    /// 新建连接的默认安全模式（来自全局设置）。
+    public var defaultSafeMode: ConnectionSafeMode { settings.safeMode }
+
     /// 当前连接的收藏查询（按创建时间倒序）。
     public var currentConnectionSavedQueries: [SavedQuery] {
         let configName = selectedConfig?.name ?? ""
@@ -379,6 +389,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         self.savedQueryStore = SavedQueryStore(defaults: workspaceDefaults)
         self.savedQueries = savedQueryStore.loadQueries()
         self.snippets = savedQueryStore.loadSnippets()
+        self.settingsStore = DatabaseSettingsStore(defaults: workspaceDefaults)
+        self.settings = settingsStore.load()
         Task {
             await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         }
@@ -539,7 +551,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             selectedConfig = config
             connectedConfigId = config.id
             isConnected = true
-            queryRowLimit = config.type.capabilities.defaultQueryLimit
+            queryRowLimit = settings.defaultQueryRowLimit > 0
+                ? settings.defaultQueryRowLimit
+                : config.type.capabilities.defaultQueryLimit
             resetEditorPaging()
             queryResult = nil
             workspace.clearAllResults()
@@ -836,7 +850,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 仅调整空白与关键字大小写，不改变语义；格式化结果写回 ``queryText``，
     /// 经工作区防抖持久化同步到活动标签。
     public func formatDocumentOrSelection() {
-        let options = SQLFormatterOptions()
+        let options = settings.formatterOptions
         let ns = queryText as NSString
         let selection = editorSelectionRange
         if selection.location != NSNotFound, selection.length > 0, NSMaxRange(selection) <= ns.length {
