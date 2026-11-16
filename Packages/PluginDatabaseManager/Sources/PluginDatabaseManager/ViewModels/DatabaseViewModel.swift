@@ -374,7 +374,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 把 `queryText` 按 `;` 拆成多条语句依次执行（事务不包裹：跨引擎语义不一致）。
     ///
     /// - 每条语句独立计时、独立捕获结果/错误；
-    /// - 任一语句失败仍继续执行后续语句（与 TablePro 默认行为一致）；
+    /// - 任一语句失败仍继续执行后续语句；
     /// - 结果填入 ``multiExecutions``，同时 ``queryResult`` 指向最后一条成功语句的结果，
     ///   保持单结果视图的向后兼容。
     public func executeAllStatements() async {

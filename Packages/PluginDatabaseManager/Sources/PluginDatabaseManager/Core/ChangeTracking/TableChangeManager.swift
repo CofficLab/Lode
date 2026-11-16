@@ -39,7 +39,7 @@ public func parseEditedCellValue(_ text: String) -> DatabaseValue {
 
 /// 表数据编辑的"变更跟踪队列"：在内存中暂存单元格修改、行新增、行删除，不立即写库。
 ///
-/// 设计参考 TablePro 的 Change Tracking：
+/// 设计要点：
 /// - 编辑只改内存，单元格/行高亮提示；
 /// - 保存时按 DELETE → INSERT → UPDATE 顺序在事务中执行；
 /// - 行以**主键值**定位（无主键的表暂不支持编辑）；

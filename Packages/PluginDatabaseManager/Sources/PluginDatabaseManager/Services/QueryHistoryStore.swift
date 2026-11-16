@@ -5,7 +5,7 @@ import Foundation
 /// - 内存中保留最近的 N 条（默认 500）；
 /// - 写入 `UserDefaults`，按 (sql, configName, database) 去重，最新在前；
 /// - **绝不记录** 含 `CREATE USER` / `ALTER USER` / `SET PASSWORD` 等敏感语句
-///   （与 TablePro 一致，避免密码落盘）；
+///   （避免密码落盘）；
 /// - 多语句执行时，每条语句独立记入历史。
 public actor QueryHistoryStore {
     public static let shared = QueryHistoryStore()
