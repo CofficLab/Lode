@@ -50,6 +50,23 @@ public struct MainView: View {
                 viewModel.objectDefinition = nil
             }
         }
+        .confirmationDialog(
+            pluginLocalization.string("Discard changes?"),
+            isPresented: Binding(
+                get: { viewModel.pendingCloseTabID != nil },
+                set: { if !$0 { viewModel.cancelClosePendingTab() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(pluginLocalization.string("Close Without Saving"), role: .destructive) {
+                viewModel.confirmClosePendingTab()
+            }
+            Button(pluginLocalization.string("Cancel"), role: .cancel) {
+                viewModel.cancelClosePendingTab()
+            }
+        } message: {
+            Text(pluginLocalization.string("This tab has unsaved changes. Closing it will discard them."))
+        }
     }
 
     // MARK: - Connected
@@ -61,6 +78,8 @@ public struct MainView: View {
             TableDataView(viewModel: viewModel)
         } else {
             VStack(spacing: 0) {
+                QueryTabStrip(viewModel: viewModel)
+                AppDivider()
                 queryEditor
                 toolbar
                 AppDivider()

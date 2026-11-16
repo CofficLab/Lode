@@ -10,7 +10,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     public nonisolated static let verbose: Bool = false
     @Published var configs: [DatabaseConfig] = []
     @Published var selectedConfig: DatabaseConfig?
-    @Published var queryText: String = "SELECT * FROM sqlite_master;"
+    @Published var queryText: String = "SELECT * FROM sqlite_master;" {
+        didSet { scheduleWorkspacePersist() }
+    }
     @Published var queryResult: QueryResult?
     @Published var errorMessage: String? {
         didSet { if errorMessage == nil { classifiedError = nil } }
@@ -200,6 +202,27 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         schemaCache: schemaCache,
         configResolver: { [weak self] in self?.selectedConfig }
     )
+    /// 多标签查询工作区：标签序列/活动标签/最近关闭/会话持久化。
+    /// 首次访问时若从磁盘恢复则载入活动标签，否则用当前编辑器默认文本播种。
+    public lazy var workspace: QueryWorkspaceStore = {
+        let store = QueryWorkspaceStore(defaults: workspaceDefaults)
+        if store.loadedFromDisk {
+            applyTab(store.activeTab)
+        } else {
+            store.updateActive { $0.text = queryText; $0.savedText = queryText }
+        }
+        return store
+    }()
+    /// 待确认关闭的脏标签；非 nil 时弹出关闭确认。
+    @Published public var pendingCloseTabID: UUID?
+    /// 正在执行的标签 id（供标签条显示进度）；nil 表示空闲。
+    @Published public private(set) var runningTabID: UUID?
+    /// 正在把快照载入实时状态：抑制期间的持久化调度，避免恢复触发写盘。
+    private var isRestoringTab = false
+    /// 文本编辑后的防抖持久化任务。
+    private var workspacePersistTask: Task<Void, Never>?
+    /// 工作区持久化所用的 UserDefaults（测试可注入独立 suite 避免串扰）。
+    private let workspaceDefaults: UserDefaults
     nonisolated(unsafe) private var connectedConfigId: UUID?
     /// 最近一次尝试连接的配置（含失败的），供错误恢复「重试」重连。
     private var lastAttemptedConfig: DatabaseConfig?
@@ -218,8 +241,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 测试专用初始化：`loadSavedConfigs == false` 时跳过从 UserDefaults 读取已存配置，
     /// 始终使用一份独立的内存 demo 连接，避免并行测试共享进程级 UserDefaults 串扰。
     /// `manager` 可注入，用于构造可控延迟的驱动复现连接竞态。
-    public init(loadSavedConfigs: Bool, manager: DatabaseManagerCore = .shared) {
+    public init(loadSavedConfigs: Bool, manager: DatabaseManagerCore = .shared, workspaceDefaults: UserDefaults = .standard) {
         self.manager = manager
+        self.workspaceDefaults = workspaceDefaults
         Task {
             await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         }
@@ -241,6 +265,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 await DatabaseAgentConnectionRegistry.shared.upsert(config)
             }
         }
+        // 尽早初始化工作区：恢复会话或用默认编辑器文本播种，避免连接流程中懒加载竞态。
+        _ = workspace
     }
 
     deinit {
@@ -349,6 +375,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             queryRowLimit = config.type.capabilities.defaultQueryLimit
             resetEditorPaging()
             queryResult = nil
+            workspace.clearAllResults()
             redisKeys = []
             sqliteTables = []
             selectedSQLiteTable = nil
@@ -408,6 +435,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
             guard connectionGeneration == generation else { return }
 
+            // 默认/保留文本与已清空的结果同步进活动标签快照。
+            syncActiveSnapshot()
+
             didAttemptAutoReconnect = false
             startHeartbeat()
 
@@ -450,6 +480,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         selectedConfig = nil
         connectedConfigId = nil
         queryResult = nil
+        multiExecutions = []
+        selectedExecutionIndex = 0
+        lastBatchRolledBack = false
+        resetEditorPaging()
+        workspace.clearAllResults()
+        syncActiveSnapshot()
         redisKeys = []
         sqliteTables = []
         selectedSQLiteTable = nil
@@ -588,6 +624,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// `sqlOverride` 非 nil 时执行该语句而非整段 ``queryText``（光标单句执行）。
     private func executeQuery(isRetry: Bool, sqlOverride: String?) async {
         let generation = connectionGeneration
+        let origin = workspace.activeTabID
         let sql = sqlOverride ?? queryText
         guard let config = selectedConfig else {
             presentError(DatabaseError.connectionFailed("Not connected to a database"))
@@ -621,12 +658,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
 
         isLoading = true
-        errorMessage = nil
-        // 单语句模式：清掉多结果 tab 栏。
-        multiExecutions = []
-        resetEditorPaging()
-        executionSequence += 1
-        let sequence = executionSequence
+        runningTabID = origin
+        let sequence = beginExecution(origin: origin)
 
         do {
             // Redis 读命令与 SQL 读语句共用同一判定，避免两处前缀列表漂移。
@@ -637,12 +670,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                     : SQLQueryLimiter.apply(sql, limit: queryRowLimit)
                 let result = try await connection.query(limited.sql, params: nil)
                 guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
-                queryResult = result
-                editorBaseSQL = limited.baseSQL
-                editorFetchedRows = result.rows.count
-                if let injected = limited.injectedLimit {
-                    editorHasMore = result.rows.count >= injected
-                }
+                let hasMore = limited.injectedLimit.map { result.rows.count >= $0 } ?? false
+                commitQueryResult(result, origin: origin, baseSQL: limited.baseSQL, fetchedRows: result.rows.count, hasMore: hasMore)
                 if Self.verbose {
                     if DatabaseManagerPluginSupport.verbose {
                                                 DatabaseManagerPluginSupport.logger.info("\(self.t)查询成功，返回 \(result.rows.count) 行")
@@ -651,7 +680,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             } else {
                 let affected = try await connection.execute(sql, params: nil)
                 guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
-                queryResult = QueryResult(columns: ["Result"], rows: [[.string("Success. Rows affected: \(affected)")]], rowsAffected: affected)
+                let result = QueryResult(columns: ["Result"], rows: [[.string("Success. Rows affected: \(affected)")]], rowsAffected: affected)
+                commitQueryResult(result, origin: origin, baseSQL: nil, fetchedRows: 0, hasMore: false)
                 if Self.verbose {
                     if DatabaseManagerPluginSupport.verbose {
                                                 DatabaseManagerPluginSupport.logger.info("\(self.t)执行成功，影响 \(affected) 行")
@@ -670,14 +700,15 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 await connect(config: config, isReconnect: true)
                 if isConnected {
                     isLoading = false
+                    runningTabID = nil
                     await executeQuery(isRetry: true, sqlOverride: sqlOverride)
                     return
                 }
             }
-            presentError(error)
+            commitError(error, origin: origin)
         }
         guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
-        isLoading = false
+        finishExecution(origin: origin)
         // 成功或失败都记历史（失败时用户可能想重试/修改）。
         await recordExecutedSQLs([sql], config: config)
     }
@@ -690,6 +721,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
               let config = selectedConfig, config.type != .redis else { return }
         let generation = connectionGeneration
         let sequence = executionSequence
+        let origin = workspace.activeTabID
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
 
@@ -702,20 +734,16 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 isLoadingMore = false
                 return
             }
-            if var current = queryResult {
-                current.rows.append(contentsOf: result.rows)
-                queryResult = current
-            }
-            editorFetchedRows += result.rows.count
-            editorHasMore = result.rows.count >= pageSize
+            appendMoreRows(result, origin: origin, pageSize: pageSize)
         } catch {
             guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else {
                 isLoadingMore = false
                 return
             }
-            presentError(error)
+            commitError(error, origin: origin)
         }
         isLoadingMore = false
+        if origin == workspace.activeTabID { syncActiveSnapshot() }
     }
 
     private func resetEditorPaging() {
@@ -740,6 +768,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
 
         let generation = connectionGeneration
+        let origin = workspace.activeTabID
         guard let config = selectedConfig,
               let connection = await manager.getConnection(for: config.id) else {
             presentError(DatabaseError.connectionFailed("Not connected to a database"))
@@ -755,16 +784,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
 
         isLoading = true
-        errorMessage = nil
-        lastBatchRolledBack = false
-        multiExecutions = []
-        queryResult = nil
-        resetEditorPaging()
+        runningTabID = origin
+        clearForBatch(origin: origin)
         executionSequence += 1
 
         if batchPolicy == .wrapInTransaction {
             await executeBatchInTransaction(
-                statements: statements, config: config, connection: connection, generation: generation
+                statements: statements, config: config, connection: connection, generation: generation, origin: origin
             )
             return
         }
@@ -810,10 +836,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             executions.append(exec)
         }
 
-        multiExecutions = executions
-        queryResult = lastSuccess
-        selectedExecutionIndex = 0
+        commitBatch(executions, lastSuccess: lastSuccess, rolledBack: false, origin: origin)
         isLoading = false
+        runningTabID = nil
         await recordExecutedSQLs(statements, config: config)
     }
 
@@ -826,18 +851,21 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         statements: [String],
         config: DatabaseConfig,
         connection: any DatabaseConnection,
-        generation: Int
+        generation: Int,
+        origin: UUID
     ) async {
         var executions: [StatementExecution] = []
         var lastSuccess: QueryResult?
+        var rolledBack = false
 
         let transaction: any DatabaseTransaction
         do {
             transaction = try await connection.beginTransaction()
         } catch {
             guard isCurrentConnection(generation, configId: config.id) else { return }
-            presentError(error)
+            commitError(error, origin: origin)
             isLoading = false
+            runningTabID = nil
             return
         }
 
@@ -891,7 +919,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
         if failed {
             try? await transaction.rollback()
-            lastBatchRolledBack = true
+            rolledBack = true
         } else {
             do {
                 try await transaction.commit()
@@ -900,17 +928,16 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 // SQL 引擎 COMMIT 失败可回滚；Redis EXEC 非原子回滚，不宣称已回滚。
                 if config.type != .redis {
                     try? await transaction.rollback()
-                    lastBatchRolledBack = true
+                    rolledBack = true
                 }
-                presentError(error)
+                commitError(error, origin: origin)
             }
         }
 
         guard isCurrentConnection(generation, configId: config.id) else { return }
-        multiExecutions = executions
-        queryResult = lastSuccess
-        selectedExecutionIndex = 0
+        commitBatch(executions, lastSuccess: lastSuccess, rolledBack: rolledBack, origin: origin)
         isLoading = false
+        runningTabID = nil
         await recordExecutedSQLs(statements, config: config)
     }
 
@@ -2172,5 +2199,252 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         _ = try await connection.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT)", params: nil)
         _ = try await connection.execute("INSERT INTO users (name, email) VALUES (?, ?)", params: [.string("Alice"), .string("alice@example.com")])
         _ = try await connection.execute("INSERT INTO users (name, email) VALUES (?, ?)", params: [.string("Bob"), .string("bob@example.com")])
+    }
+}
+
+// MARK: - 多标签查询工作区接线
+//
+// 活动标签的实时状态由上面的发布属性承载（与表浏览共用），工作区只保存非活动
+// 标签的快照。执行方法捕获发起时的 `origin` 标签 id：结果回来时若 origin 仍是
+// 活动标签，按既有路径写实时状态（行为与单标签时代完全一致）；否则写进 origin
+// 的快照，避免用户中途切标签导致结果串台。防过期 token（executionSequence /
+// connectionGeneration）仍在各执行方法内校验。
+extension DatabaseViewModel {
+    /// 文本编辑后的防抖持久化（仅元数据落盘，结果不持久化）。
+    private func scheduleWorkspacePersist() {
+        guard !isRestoringTab else { return }
+        workspacePersistTask?.cancel()
+        workspacePersistTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled, let self else { return }
+            self.syncActiveSnapshot()
+            self.workspace.persist()
+        }
+    }
+
+    /// 把活动标签的实时状态拷进工作区快照。
+    private func syncActiveSnapshot() {
+        workspace.updateActive { tab in
+            tab.text = queryText
+            tab.cursorLocation = editorCursorLocation
+            tab.result = queryResult
+            tab.multiExecutions = multiExecutions
+            tab.selectedExecutionIndex = selectedExecutionIndex
+            tab.baseSQL = editorBaseSQL
+            tab.hasMore = editorHasMore
+            tab.fetchedRows = editorFetchedRows
+            tab.isLoadingMore = isLoadingMore
+            tab.lastBatchRolledBack = lastBatchRolledBack
+            tab.errorMessage = errorMessage
+            tab.classifiedError = classifiedError
+        }
+    }
+
+    /// 把某个标签快照载入实时状态（切换/重开/恢复时）。抑制期间的持久化调度。
+    private func applyTab(_ tab: QueryTab) {
+        isRestoringTab = true
+        queryText = tab.text
+        editorCursorLocation = tab.cursorLocation
+        queryResult = tab.result
+        multiExecutions = tab.multiExecutions
+        selectedExecutionIndex = tab.selectedExecutionIndex
+        editorBaseSQL = tab.baseSQL
+        editorHasMore = tab.hasMore
+        editorFetchedRows = tab.fetchedRows
+        isLoadingMore = tab.isLoadingMore
+        lastBatchRolledBack = tab.lastBatchRolledBack
+        // errorMessage 的 didSet 会在置 nil 时清掉 classifiedError，故先写 errorMessage。
+        errorMessage = tab.errorMessage
+        classifiedError = tab.classifiedError
+        isRestoringTab = false
+    }
+
+    /// 单语句执行起点：自增序列号并清空上一轮结果/错误/分页。
+    private func beginExecution(origin: UUID) -> UInt64 {
+        executionSequence += 1
+        if origin == workspace.activeTabID {
+            errorMessage = nil
+            multiExecutions = []
+            resetEditorPaging()
+            syncActiveSnapshot()
+        } else {
+            workspace.mutateTab(id: origin) { tab in
+                tab.errorMessage = nil
+                tab.classifiedError = nil
+                tab.multiExecutions = []
+                tab.baseSQL = nil
+                tab.hasMore = false
+                tab.fetchedRows = 0
+            }
+        }
+        return executionSequence
+    }
+
+    /// 单语句成功结果回写（读/写共用）。
+    private func commitQueryResult(
+        _ result: QueryResult, origin: UUID, baseSQL: String?, fetchedRows: Int, hasMore: Bool
+    ) {
+        if origin == workspace.activeTabID {
+            queryResult = result
+            editorBaseSQL = baseSQL
+            editorFetchedRows = fetchedRows
+            editorHasMore = hasMore
+            syncActiveSnapshot()
+        } else {
+            workspace.mutateTab(id: origin) { tab in
+                tab.result = result
+                tab.baseSQL = baseSQL
+                tab.fetchedRows = fetchedRows
+                tab.hasMore = hasMore
+            }
+        }
+    }
+
+    /// 错误回写：分类后同步到活动标签实时状态或 origin 快照。
+    private func commitError(_ error: any Error, origin: UUID) {
+        let classified = DatabaseErrorClassifier.classify(error)
+        if origin == workspace.activeTabID {
+            classifiedError = classified
+            errorMessage = classified.detail
+            syncActiveSnapshot()
+        } else {
+            workspace.mutateTab(id: origin) { tab in
+                tab.classifiedError = classified
+                tab.errorMessage = classified.detail
+            }
+        }
+    }
+
+    /// 单语句执行收尾：复位全局加载态与运行标签标记。
+    private func finishExecution(origin: UUID) {
+        isLoading = false
+        runningTabID = nil
+        if origin == workspace.activeTabID { syncActiveSnapshot() }
+    }
+
+    /// 增量加载下一页：把新行追加到 origin 的结果尾部。
+    private func appendMoreRows(_ result: QueryResult, origin: UUID, pageSize: Int) {
+        if origin == workspace.activeTabID {
+            if var current = queryResult {
+                current.rows.append(contentsOf: result.rows)
+                queryResult = current
+            }
+            editorFetchedRows += result.rows.count
+            editorHasMore = result.rows.count >= pageSize
+        } else {
+            workspace.mutateTab(id: origin) { tab in
+                if var current = tab.result {
+                    current.rows.append(contentsOf: result.rows)
+                    tab.result = current
+                }
+                tab.fetchedRows += result.rows.count
+                tab.hasMore = result.rows.count >= pageSize
+            }
+        }
+    }
+
+    /// 批量执行起点：清空上一轮多结果/错误/分页（序列号由调用方自增）。
+    private func clearForBatch(origin: UUID) {
+        if origin == workspace.activeTabID {
+            errorMessage = nil
+            lastBatchRolledBack = false
+            multiExecutions = []
+            queryResult = nil
+            resetEditorPaging()
+            syncActiveSnapshot()
+        } else {
+            workspace.mutateTab(id: origin) { tab in
+                tab.errorMessage = nil
+                tab.classifiedError = nil
+                tab.lastBatchRolledBack = false
+                tab.multiExecutions = []
+                tab.result = nil
+                tab.baseSQL = nil
+                tab.hasMore = false
+                tab.fetchedRows = 0
+            }
+        }
+    }
+
+    /// 批量执行结果回写。
+    private func commitBatch(
+        _ executions: [StatementExecution], lastSuccess: QueryResult?, rolledBack: Bool, origin: UUID
+    ) {
+        if origin == workspace.activeTabID {
+            multiExecutions = executions
+            queryResult = lastSuccess
+            selectedExecutionIndex = 0
+            lastBatchRolledBack = rolledBack
+            syncActiveSnapshot()
+        } else {
+            workspace.mutateTab(id: origin) { tab in
+                tab.multiExecutions = executions
+                tab.result = lastSuccess
+                tab.selectedExecutionIndex = 0
+                tab.lastBatchRolledBack = rolledBack
+            }
+        }
+    }
+
+    // MARK: 标签管理（UI 入口）
+
+    /// 新建查询标签并激活。
+    public func newQueryTab() {
+        syncActiveSnapshot()
+        workspace.newTab()
+        applyTab(workspace.activeTab)
+        workspace.persist()
+    }
+
+    /// 切换到指定标签（先把当前实时状态存回旧活动快照）。
+    public func selectQueryTab(id: UUID) {
+        guard id != workspace.activeTabID else { return }
+        syncActiveSnapshot()
+        workspace.selectTab(id: id)
+        applyTab(workspace.activeTab)
+        workspace.persist()
+    }
+
+    /// 关闭标签：脏标签先弹确认（``pendingCloseTabID``），干净标签直接关。
+    public func closeQueryTab(id: UUID) {
+        syncActiveSnapshot()
+        if workspace.isDirty(id: id) {
+            pendingCloseTabID = id
+            return
+        }
+        performCloseTab(id: id)
+    }
+
+    /// 用户确认关闭脏标签。
+    public func confirmClosePendingTab() {
+        guard let id = pendingCloseTabID else { return }
+        pendingCloseTabID = nil
+        performCloseTab(id: id)
+    }
+
+    /// 用户取消关闭。
+    public func cancelClosePendingTab() {
+        pendingCloseTabID = nil
+    }
+
+    private func performCloseTab(id: UUID) {
+        let wasActive = (id == workspace.activeTabID)
+        workspace.closeTab(id: id)
+        if wasActive { applyTab(workspace.activeTab) }
+        workspace.persist()
+    }
+
+    /// 重命名标签。
+    public func renameQueryTab(id: UUID, title: String) {
+        workspace.renameTab(id: id, title: title)
+        workspace.persist()
+    }
+
+    /// 重开最近关闭的标签并激活。
+    public func reopenLastClosedTab() {
+        syncActiveSnapshot()
+        guard let tab = workspace.reopenLastClosed() else { return }
+        applyTab(tab)
+        workspace.persist()
     }
 }
