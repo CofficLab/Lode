@@ -29,6 +29,7 @@ struct QueryResultSectionView: View {
     }
 
     @State private var fkPicker: FKPickerRequest?
+    @State private var valueViewer: ValueViewerRequest?
 
     // MARK: - Initialization
 
@@ -126,7 +127,10 @@ struct QueryResultSectionView: View {
                     onCopyPageAs: { kind in
                         copyToPasteboard(viewModel.gridPageText(kind))
                     },
-                    canCopyUpdate: viewModel.gridHasRowKey
+                    canCopyUpdate: viewModel.gridHasRowKey,
+                    onViewValue: { column, value in
+                        valueViewer = ValueViewerRequest(column: column, value: value)
+                    }
                 )
                 if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
                     loadMoreBar
@@ -151,6 +155,9 @@ struct QueryResultSectionView: View {
                         }
                     }
                 )
+            }
+            .sheet(item: $valueViewer) { request in
+                CellValueViewerSheet(column: request.column, value: request.value)
             }
         } else {
             AppEmptyState(

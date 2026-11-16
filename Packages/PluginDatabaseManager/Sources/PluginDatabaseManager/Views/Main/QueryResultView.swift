@@ -50,6 +50,8 @@ struct QueryResultView: View {
     var onCopyPageAs: ((GridPageCopyKind) -> Void)? = nil
     /// UPDATE 复制是否可用（存在行键）。
     var canCopyUpdate: Bool = false
+    /// 值查看器回调：(列名, 显示值)。
+    var onViewValue: ((String, DatabaseValue) -> Void)? = nil
 
     // MARK: - Editing state
 
@@ -373,6 +375,11 @@ struct QueryResultView: View {
                                     onCopyInList(column)
                                 }
                             }
+                        }
+                    }
+                    if let onViewValue {
+                        Button(pluginLocalization.string("View Value…")) {
+                            onViewValue(column, displayed)
                         }
                     }
                     if changeManager?.isEditable == true {
