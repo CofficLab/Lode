@@ -3,6 +3,8 @@ import Foundation
 import LumiLoggingKit
 import Combine
 import CoreGraphics
+import AppKit
+import UniformTypeIdentifiers
 
 @MainActor
 public class DatabaseViewModel: ObservableObject, SuperLog {
@@ -231,6 +233,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     private var workspacePersistTask: Task<Void, Never>?
     /// 工作区持久化所用的 UserDefaults（测试可注入独立 suite 避免串扰）。
     private let workspaceDefaults: UserDefaults
+    /// 活动标签 SQL 文件的外部变更冲突（驱动 Reload / Save As 横幅）；nil 表示无冲突。
+    @Published public private(set) var sqlFileConflict: SQLFileConflict?
+    /// SQL 文件外部变更轮询任务（仅连接且活动标签关联文件时实际探测）。
+    private var fileWatchTask: Task<Void, Never>?
     nonisolated(unsafe) private var connectedConfigId: UUID?
     /// 最近一次尝试连接的配置（含失败的），供错误恢复「重试」重连。
     private var lastAttemptedConfig: DatabaseConfig?
@@ -275,10 +281,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
         // 尽早初始化工作区：恢复会话或用默认编辑器文本播种，避免连接流程中懒加载竞态。
         _ = workspace
+        startFileWatch()
     }
 
     deinit {
         heartbeatTask?.cancel()
+        fileWatchTask?.cancel()
         let configId = connectedConfigId
         Task { [manager, configId] in
             guard let configId else { return }
@@ -2541,5 +2549,166 @@ extension DatabaseViewModel {
         guard let tab = workspace.reopenLastClosed() else { return }
         applyTab(tab)
         workspace.persist()
+    }
+}
+
+// MARK: - SQL 文件往返（P3-6）
+//
+// 打开 .sql 为文件标签、⌘S 写回、外部变更检测 → Reload / Save As 横幅。
+// 面板（NSOpenPanel/NSSavePanel）与磁盘逻辑分离：逻辑方法接收 URL，便于无头测试。
+extension DatabaseViewModel {
+    /// 外部变更轮询：每 2s 探测一次，仅在已连接且活动标签关联文件时实际读取磁盘。
+    func startFileWatch() {
+        fileWatchTask?.cancel()
+        fileWatchTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(2))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, let self else { return }
+                if self.isConnected, self.workspace.activeTab.fileURL != nil {
+                    self.refreshExternalChangeState()
+                }
+            }
+        }
+    }
+
+    /// 打开 .sql 文件为新标签并激活（切回编辑器视图）。读取失败走统一错误入口。
+    public func openSQLFile(at url: URL) {
+        do {
+            let text = try SQLFileStore.read(url)
+            let baseline = SQLFileStore.snapshot(of: url)
+            syncActiveSnapshot()
+            openTableObject = nil
+            let id = workspace.newTab(title: url.lastPathComponent, text: text)
+            workspace.mutateTab(id: id) { tab in
+                tab.fileURL = url
+                tab.fileBaseline = baseline
+                tab.savedText = text
+            }
+            applyTab(workspace.activeTab)
+            sqlFileConflict = nil
+            workspace.persist()
+        } catch {
+            presentError(error)
+        }
+    }
+
+    /// ⌘S：有关联文件则写回，否则弹 Save As 面板。
+    public func saveActiveSQLFile() {
+        syncActiveSnapshot()
+        guard let url = workspace.activeTab.fileURL else {
+            presentSaveSQLPanel()
+            return
+        }
+        writeActiveSQLFile(to: url)
+    }
+
+    /// Save As：写入新位置并把标签重新关联到该文件（原文件不动）。
+    public func saveActiveSQLFile(as url: URL) {
+        syncActiveSnapshot()
+        writeActiveSQLFile(to: url)
+    }
+
+    func writeActiveSQLFile(to url: URL) {
+        do {
+            try SQLFileStore.write(queryText, to: url)
+            let baseline = SQLFileStore.snapshot(of: url)
+            let retitle = workspace.activeTab.fileURL != url
+            workspace.updateActive { tab in
+                tab.fileURL = url
+                tab.fileBaseline = baseline
+                tab.savedText = queryText
+                if retitle { tab.title = url.lastPathComponent }
+            }
+            sqlFileConflict = nil
+            workspace.persist()
+        } catch {
+            presentError(error)
+        }
+    }
+
+    /// Reload：用磁盘内容覆盖编辑器，复位脏标记与基线（丢弃本地未保存改动）。
+    public func reloadActiveSQLFile() {
+        guard let url = workspace.activeTab.fileURL else { return }
+        do {
+            let text = try SQLFileStore.read(url)
+            let baseline = SQLFileStore.snapshot(of: url)
+            queryText = text
+            workspace.updateActive { tab in
+                tab.text = text
+                tab.savedText = text
+                tab.fileBaseline = baseline
+            }
+            sqlFileConflict = nil
+            workspace.persist()
+        } catch {
+            presentError(error)
+        }
+    }
+
+    /// Keep Editing：承认当前磁盘版本为新基线，保留编辑器内容继续编辑；
+    /// 后续真正的外部变更仍会再次触发横幅。
+    public func dismissSQLFileConflict() {
+        if let url = workspace.activeTab.fileURL {
+            let baseline = SQLFileStore.snapshot(of: url)
+            workspace.updateActive { $0.fileBaseline = baseline }
+            workspace.persist()
+        }
+        sqlFileConflict = nil
+    }
+
+    /// 探测活动标签文件的外部变更并刷新冲突状态。
+    /// 每次读取磁盘快照、以内容哈希为准（见 ``SQLFileChangeDetector``）：
+    /// mtime 在本文件系统上可能因快速写入或属性缓存而不变，故不能用它跳过读取。
+    public func refreshExternalChangeState() {
+        guard let url = workspace.activeTab.fileURL, let baseline = workspace.activeTab.fileBaseline else {
+            sqlFileConflict = nil
+            return
+        }
+        let current = SQLFileStore.snapshot(of: url)
+        let change = SQLFileChangeDetector.classify(baseline: baseline, current: current)
+        if change == .unchanged {
+            sqlFileConflict = nil
+        } else {
+            sqlFileConflict = SQLFileConflict(
+                url: url,
+                change: change,
+                isDirty: queryText != workspace.activeTab.savedText
+            )
+        }
+    }
+
+    // MARK: 文件面板（AppKit）
+
+    public func presentOpenSQLPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        if let sqlType = UTType(filenameExtension: "sql") {
+            panel.allowedContentTypes = [sqlType]
+        }
+        panel.message = pluginLocalization.string("Open SQL File…")
+        if panel.runModal() == .OK, let url = panel.url {
+            openSQLFile(at: url)
+        }
+    }
+
+    public func presentSaveSQLPanel() {
+        let panel = NSSavePanel()
+        if let sqlType = UTType(filenameExtension: "sql") {
+            panel.allowedContentTypes = [sqlType]
+        }
+        panel.nameFieldStringValue = workspace.activeTab.fileURL?.lastPathComponent ?? "query.sql"
+        if let dir = workspace.activeTab.fileURL?.deletingLastPathComponent() {
+            panel.directoryURL = dir
+        }
+        panel.message = pluginLocalization.string("Save As…")
+        if panel.runModal() == .OK, let url = panel.url {
+            saveActiveSQLFile(as: url)
+        }
     }
 }

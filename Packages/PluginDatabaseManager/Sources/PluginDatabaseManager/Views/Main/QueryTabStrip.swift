@@ -82,6 +82,11 @@ struct QueryTabStrip: View {
                 Circle()
                     .fill(theme.warning)
                     .frame(width: 6, height: 6)
+            } else if tab.isFileBacked {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+                    .frame(width: 8, height: 8)
             }
             Text(tab.title)
                 .font(.appMicro)

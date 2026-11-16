@@ -157,7 +157,9 @@ public final class QueryWorkspaceStore: ObservableObject {
                     title: $0.title,
                     text: $0.text,
                     cursorLocation: $0.cursorLocation,
-                    selectedExecutionIndex: $0.selectedExecutionIndex
+                    selectedExecutionIndex: $0.selectedExecutionIndex,
+                    fileURL: $0.fileURL,
+                    fileBaseline: $0.fileBaseline
                 )
             },
             activeTabID: activeTabID
@@ -179,7 +181,9 @@ public final class QueryWorkspaceStore: ObservableObject {
                 text: $0.text,
                 savedText: $0.text,
                 cursorLocation: $0.cursorLocation,
-                selectedExecutionIndex: $0.selectedExecutionIndex
+                selectedExecutionIndex: $0.selectedExecutionIndex,
+                fileURL: $0.fileURL,
+                fileBaseline: $0.fileBaseline
             )
         }
         if let active = dto.activeTabID, tabs.contains(where: { $0.id == active }) {

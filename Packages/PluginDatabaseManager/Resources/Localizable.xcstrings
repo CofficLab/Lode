@@ -2997,6 +2997,40 @@
         }
       }
     },
+    "Discard local edits and load the disk version" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard local edits and load the disk version"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "捨棄本地修改並載入磁碟版本"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "丢弃本地修改并载入磁盘版本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "捨棄本地修改並載入磁碟版本"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "捨棄本地修改並載入磁碟版本"
+          }
+        }
+      }
+    },
     "Disconnect" : {
       "localizations" : {
         "en" : {
@@ -4328,6 +4362,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跳轉到引用行"
+          }
+        }
+      }
+    },
+    "Keep Editing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Editing"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续编辑"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯"
+          }
+        }
+      }
+    },
+    "Keep editing and acknowledge the disk version" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep editing and acknowledge the disk version"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯並確認磁碟版本"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续编辑并确认磁盘版本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯並確認磁碟版本"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯並確認磁碟版本"
           }
         }
       }
@@ -5900,6 +6002,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟「歷史」查看之前執行過的 SQL。"
+          }
+        }
+      }
+    },
+    "Open SQL File…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open SQL File…"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 SQL 檔案…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 SQL 文件…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 SQL 檔案…"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 SQL 檔案…"
+          }
+        }
+      }
+    },
+    "Open SQL file" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open SQL file"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 SQL 檔案"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 SQL 文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 SQL 檔案"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 SQL 檔案"
           }
         }
       }
@@ -8087,6 +8257,40 @@
         }
       }
     },
+    "Save As…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save As…"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另存新檔…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另存为…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另存新檔…"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另存新檔…"
+          }
+        }
+      }
+    },
     "Save Changes" : {
       "localizations" : {
         "en" : {
@@ -8121,6 +8325,40 @@
         }
       }
     },
+    "Save SQL file" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save SQL file"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存 SQL 檔案"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存 SQL 文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存 SQL 檔案"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存 SQL 檔案"
+          }
+        }
+      }
+    },
     "Save changes to the database?" : {
       "localizations" : {
         "en" : {
@@ -8151,6 +8389,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將變更儲存到資料庫？"
+          }
+        }
+      }
+    },
+    "Save local edits to a new file" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save local edits to a new file"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將本地修改儲存到新檔案"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将本地修改保存到新文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將本地修改儲存到新檔案"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將本地修改儲存到新檔案"
           }
         }
       }
@@ -9380,6 +9652,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此連線為唯讀，寫入操作已被攔截。編輯連線可變更其安全模式。"
+          }
+        }
+      }
+    },
+    "This file was changed on disk. Reload to discard your edits, or Save As to keep them in a new file." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file was changed on disk. Reload to discard your edits, or Save As to keep them in a new file."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已在磁碟上被變更。使用「重新整理」捨棄本地修改，或「另存新檔」將修改保留到新檔案。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该文件已在磁盘上被更改。使用「刷新」丢弃本地修改，或「另存为」将修改保留到新文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已在磁碟上被變更。使用「重新整理」捨棄本地修改，或「另存新檔」將修改保留到新檔案。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已在磁碟上被變更。使用「重新整理」捨棄本地修改，或「另存新檔」將修改保留到新檔案。"
+          }
+        }
+      }
+    },
+    "This file was changed on disk. Reload to load the latest version." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file was changed on disk. Reload to load the latest version."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已在磁碟上被變更。使用「重新整理」載入最新版本。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该文件已在磁盘上被更改。使用「刷新」载入最新版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已在磁碟上被變更。使用「重新整理」載入最新版本。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已在磁碟上被變更。使用「重新整理」載入最新版本。"
+          }
+        }
+      }
+    },
+    "This file was moved or deleted. Save As to keep your edits in a new file." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file was moved or deleted. Save As to keep your edits in a new file."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已被移動或刪除。使用「另存新檔」將修改保留到新檔案。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该文件已被移动或删除。使用「另存为」将修改保留到新文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已被移動或刪除。使用「另存新檔」將修改保留到新檔案。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該檔案已被移動或刪除。使用「另存新檔」將修改保留到新檔案。"
           }
         }
       }

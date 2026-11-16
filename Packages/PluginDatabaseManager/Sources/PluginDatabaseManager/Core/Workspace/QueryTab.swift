@@ -26,8 +26,13 @@ public struct QueryTab: Identifiable {
     public var classifiedError: ClassifiedDatabaseError?
     /// 命名参数面板绑定值；仅内存保存（可能含敏感值），随标签切换保存/恢复。
     public var parameterBindings: [String: QueryParameterBinding]
+    /// 关联的 .sql 文件（nil 表示纯内存查询标签）。随会话持久化。
+    public var fileURL: URL?
+    /// 打开/写回时记录的磁盘基线，用于外部变更检测。随会话持久化。
+    public var fileBaseline: SQLFileSnapshot?
 
     public var isDirty: Bool { text != savedText }
+    public var isFileBacked: Bool { fileURL != nil }
 
     public init(
         id: UUID = UUID(),
@@ -46,7 +51,9 @@ public struct QueryTab: Identifiable {
         lastBatchRolledBack: Bool = false,
         errorMessage: String? = nil,
         classifiedError: ClassifiedDatabaseError? = nil,
-        parameterBindings: [String: QueryParameterBinding] = [:]
+        parameterBindings: [String: QueryParameterBinding] = [:],
+        fileURL: URL? = nil,
+        fileBaseline: SQLFileSnapshot? = nil
     ) {
         self.id = id
         self.title = title
@@ -65,6 +72,8 @@ public struct QueryTab: Identifiable {
         self.errorMessage = errorMessage
         self.classifiedError = classifiedError
         self.parameterBindings = parameterBindings
+        self.fileURL = fileURL
+        self.fileBaseline = fileBaseline
     }
 
     /// 自动标题：取首行非空文本预览，空文本回退到给定默认名。
@@ -83,6 +92,8 @@ struct PersistedQueryTab: Codable {
     var text: String
     var cursorLocation: Int
     var selectedExecutionIndex: Int
+    var fileURL: URL?
+    var fileBaseline: SQLFileSnapshot?
 }
 
 /// 工作区持久化形态：标签序列 + 活动标签 id。

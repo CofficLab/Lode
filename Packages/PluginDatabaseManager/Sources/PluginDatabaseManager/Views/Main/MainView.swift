@@ -67,6 +67,13 @@ public struct MainView: View {
         } message: {
             Text(pluginLocalization.string("This tab has unsaved changes. Closing it will discard them."))
         }
+        .focusedSceneValue(\.sqlFileActions, SQLFileActions(
+            open: { viewModel.presentOpenSQLPanel() },
+            save: { viewModel.saveActiveSQLFile() },
+            saveAs: { viewModel.presentSaveSQLPanel() },
+            canOpen: viewModel.isConnected,
+            canSave: viewModel.isConnected && viewModel.openTableObject == nil
+        ))
     }
 
     // MARK: - Connected
@@ -80,6 +87,7 @@ public struct MainView: View {
             VStack(spacing: 0) {
                 QueryTabStrip(viewModel: viewModel)
                 AppDivider()
+                sqlFileConflictBanner
                 largeDocumentNotice
                 queryEditor
                 if !viewModel.activeParameterNames.isEmpty {
@@ -111,6 +119,55 @@ public struct MainView: View {
             .border(theme.appSubtleBorder)
     }
 
+    /// SQL 文件外部变更横幅：Reload（采用磁盘版本）/ Save As（本地改动另存新文件）/ Keep Editing。
+    /// AppErrorBanner 仅支持单按钮，故沿用 largeDocumentNotice 的语义色 HStack 自持双按钮。
+    @ViewBuilder
+    private var sqlFileConflictBanner: some View {
+        if let conflict = viewModel.sqlFileConflict {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(theme.warning)
+                Text(bannerMessage(for: conflict))
+                    .font(.appCaption)
+                    .foregroundColor(theme.textSecondary)
+                Spacer(minLength: 8)
+                if conflict.change == .modified {
+                    AppButton(pluginLocalization.string("Reload"), style: .secondary, size: .small) {
+                        viewModel.reloadActiveSQLFile()
+                    }
+                    .help(pluginLocalization.string("Discard local edits and load the disk version"))
+                }
+                AppButton(pluginLocalization.string("Save As…"), style: .primary, size: .small) {
+                    viewModel.presentSaveSQLPanel()
+                }
+                .help(pluginLocalization.string("Save local edits to a new file"))
+                AppIconButton(
+                    systemImage: "xmark",
+                    label: pluginLocalization.string("Keep Editing"),
+                    size: .compact,
+                    action: { viewModel.dismissSQLFileConflict() }
+                )
+                .help(pluginLocalization.string("Keep editing and acknowledge the disk version"))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.warning.opacity(0.12))
+        }
+    }
+
+    private func bannerMessage(for conflict: SQLFileConflict) -> String {
+        switch conflict.change {
+        case .missing:
+            return pluginLocalization.string("This file was moved or deleted. Save As to keep your edits in a new file.")
+        case .modified:
+            return conflict.isDirty
+                ? pluginLocalization.string("This file was changed on disk. Reload to discard your edits, or Save As to keep them in a new file.")
+                : pluginLocalization.string("This file was changed on disk. Reload to load the latest version.")
+        case .unchanged:
+            return ""
+        }
+    }
+
     /// 超大文档降级提示：达到阈值时高亮/折叠/解析已关闭，仅保留纯文本编辑。
     @ViewBuilder
     private var largeDocumentNotice: some View {
@@ -133,6 +190,20 @@ public struct MainView: View {
         let statementCount = SQLStatementParser.split(viewModel.queryText).count
         return AppToolbarContainer(height: 48) {
             HStack {
+                AppIconButton(
+                    systemImage: "folder",
+                    label: pluginLocalization.string("Open SQL File…"),
+                    size: .compact,
+                    action: { viewModel.presentOpenSQLPanel() }
+                )
+                .help(pluginLocalization.string("Open SQL file"))
+                AppIconButton(
+                    systemImage: "square.and.arrow.down",
+                    label: pluginLocalization.string("Save"),
+                    size: .compact,
+                    action: { viewModel.saveActiveSQLFile() }
+                )
+                .help(pluginLocalization.string("Save SQL file"))
                 Spacer()
                 if viewModel.isConnected {
                     AppButton(pluginLocalization.string("Disconnect"), systemImage: "bolt.horizontal.circle", style: .secondary, size: .small, action: { Task { await viewModel.disconnect() } })

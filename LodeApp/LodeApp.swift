@@ -62,6 +62,7 @@ struct LodeApp: App {
         .defaultSize(width: 1100, height: 760)
         .commands {
             DatabaseGridEditCommands()
+            DatabaseSQLFileCommands()
         }
 
         Window("Settings", id: "lode.settings") {
