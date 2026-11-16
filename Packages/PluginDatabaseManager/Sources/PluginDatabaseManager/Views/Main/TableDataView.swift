@@ -16,6 +16,10 @@ struct TableDataView: View {
         VStack(spacing: 0) {
             header
             AppDivider()
+            if viewModel.gridFindVisible {
+                gridFindBar
+                AppDivider()
+            }
             if viewModel.showFilterPanel {
                 TableFilterPanel(viewModel: viewModel)
                 AppDivider()
@@ -48,8 +52,87 @@ struct TableDataView: View {
             copyPageCSV: { copyToPasteboard(viewModel.gridPageText(.csv)) },
             copyPageMarkdown: { copyToPasteboard(viewModel.gridPageText(.markdown)) },
             pasteRows: { pasteRowsFromPasteboard() },
-            canPaste: viewModel.changeManager?.isEditable == true && viewModel.queryResult != nil
+            canPaste: viewModel.changeManager?.isEditable == true && viewModel.queryResult != nil,
+            findInGrid: { viewModel.showGridFind() }
         ))
+        .onChange(of: viewModel.gridFindText) { _, _ in
+            if viewModel.gridFindVisible, viewModel.gridFindScope == .currentPage {
+                viewModel.refreshCurrentPageFindMatches()
+            }
+        }
+    }
+
+    // MARK: - Grid find bar
+
+    /// 查找条：查找词 + 范围（当前页/全量）+ 匹配导航 + 关闭。
+    private var gridFindBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+            TextField(pluginLocalization.string("Find in Grid"), text: $viewModel.gridFindText)
+                .textFieldStyle(.plain)
+                .font(.appBody)
+                .foregroundStyle(theme.textPrimary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .frame(width: 220)
+                .background(theme.surface)
+                .clipShape(.rect(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(theme.appSubtleBorder, lineWidth: 1))
+                .onSubmit { Task { await viewModel.runGridFind() } }
+
+            Picker(pluginLocalization.string("Find Scope"), selection: gridFindScopeBinding) {
+                Text(pluginLocalization.string("Current Page")).tag(GridFindScope.currentPage)
+                Text(pluginLocalization.string("All Rows")).tag(GridFindScope.allRows)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 190)
+
+            if viewModel.gridFindScope == .currentPage {
+                Text(findMatchCountText)
+                    .font(.appMicro)
+                    .foregroundStyle(theme.textSecondary)
+                    .frame(minWidth: 60, alignment: .leading)
+                AppIconButton(systemImage: "chevron.up", label: pluginLocalization.string("Previous Match"), size: .compact) {
+                    viewModel.prevGridFindMatch()
+                }
+                .disabled(viewModel.gridFindMatches.isEmpty)
+                AppIconButton(systemImage: "chevron.down", label: pluginLocalization.string("Next Match"), size: .compact) {
+                    viewModel.nextGridFindMatch()
+                }
+                .disabled(viewModel.gridFindMatches.isEmpty)
+            } else if viewModel.isLoading {
+                ProgressView().scaleEffect(0.6)
+            }
+
+            Spacer()
+            AppIconButton(systemImage: "xmark", label: pluginLocalization.string("Close Find"), size: .compact) {
+                viewModel.closeGridFind()
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 40)
+        .appSurface(style: .toolbar, cornerRadius: 0)
+    }
+
+    private var findMatchCountText: String {
+        let total = viewModel.gridFindMatches.count
+        if total == 0 {
+            return viewModel.gridFindText.isEmpty ? "" : pluginLocalization.string("No matches")
+        }
+        return "\(viewModel.gridFindMatchIndex + 1) / \(total)"
+    }
+
+    private var gridFindScopeBinding: Binding<GridFindScope> {
+        Binding(
+            get: { viewModel.gridFindScope },
+            set: { newValue in
+                viewModel.gridFindScope = newValue
+                Task { await viewModel.runGridFind() }
+            }
+        )
     }
 
     // MARK: - Copy & Paste

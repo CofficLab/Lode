@@ -80,6 +80,27 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         didSet { UserDefaults.standard.set(useNullSymbol, forKey: "DatabaseManager.useNullSymbol") }
     }
 
+    // MARK: - 网格查找
+
+    /// 是否展开网格查找条（⌘F）。
+    @Published public var gridFindVisible: Bool = false
+    /// 查找词。
+    @Published public var gridFindText: String = ""
+    /// 查找范围：当前页（客户端匹配）或全量（服务端 LIKE）。
+    @Published public var gridFindScope: GridFindScope = .currentPage
+    /// 当前页内匹配的单元格位置（行优先）；供网格高亮与导航。
+    @Published public private(set) var gridFindMatches: [GridFind.CellPosition] = []
+    /// 当前活动匹配在 ``gridFindMatches`` 中的索引。
+    @Published public private(set) var gridFindMatchIndex: Int = 0
+    /// 生效的全量服务端查找词（nil 表示无服务端查找）；与筛选 AND 组合。
+    private var gridSearchTerm: String?
+
+    /// 当前活动匹配位置（无匹配时 nil）。
+    public var activeGridFindMatch: GridFind.CellPosition? {
+        guard gridFindMatchIndex >= 0, gridFindMatchIndex < gridFindMatches.count else { return nil }
+        return gridFindMatches[gridFindMatchIndex]
+    }
+
     /// 当前打开表的变更跟踪队列；未打开表时为 nil。
     @Published public var changeManager: TableChangeManager?
     /// 是否正在展示「Preview SQL」面板。
@@ -1018,6 +1039,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             tableRowCount = nil
             tableOrderBy = nil
             resetKeyset()
+            resetGridFind()
             loadGridLayout()
             tableFilter = initialFilter
             showFilterPanel = initialFilter.isActive
@@ -1066,6 +1088,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         schemaChangeManager = nil
         tableRowCount = nil
         queryResult = nil
+        resetGridFind()
     }
 
     /// 从表浏览切到 SQL 编辑器，但保留当前 queryText/queryResult（让用户可基于浏览语句继续编辑）。
@@ -1074,6 +1097,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         selectedTableSchema = nil
         tableSchemaError = nil
         schemaChangeManager = nil
+        resetGridFind()
     }
 
     /// 加载当前对象结构；刷新时绕过缓存重新读取数据库 catalog。
@@ -1224,7 +1248,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             selectList = "*"
         }
         var sql = "SELECT \(selectList) FROM \(tableExpr)"
-        let filterWhere = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+        let filterWhere = effectiveWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
         let useKeyset = keysetAvailable
         let combined = KeysetPaginator.combineWhere(
             filterClause: filterWhere?.clause,
@@ -1263,6 +1287,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 return
             }
             queryText = sql  // 让 SQL 编辑器可见当前浏览语句
+            if gridFindVisible, gridFindScope == .currentPage {
+                refreshCurrentPageFindMatches()
+            }
         } catch {
             guard isCurrentConnection(generation, configId: config.id) else { return }
             presentError(error)
@@ -1283,7 +1310,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard config.type.capabilities.supportsPagination else { return }
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
-        let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+        let whereClause = effectiveWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
 
         // 带筛选时估算无法反映过滤后的行数，直接精确计数。
         if whereClause == nil,
@@ -1317,7 +1344,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard config.type.capabilities.supportsPagination else { return }
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
-        let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+        let whereClause = effectiveWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
         await runExactRowCount(connection: connection, config: config, table: table, generation: generation, whereClause: whereClause)
     }
 
@@ -1479,6 +1506,118 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         tablePage = 0
         resetKeyset()
         await loadTablePage()
+    }
+
+    // MARK: - 网格查找
+
+    /// 展开查找条（⌘F）；若已有查找词则立即刷新匹配。
+    public func showGridFind() {
+        gridFindVisible = true
+        if gridFindScope == .currentPage {
+            refreshCurrentPageFindMatches()
+        }
+    }
+
+    /// 关闭查找条并清除查找词、匹配与服务端查找过滤。
+    public func closeGridFind() {
+        gridFindVisible = false
+        gridFindText = ""
+        gridFindMatches = []
+        gridFindMatchIndex = 0
+        if gridSearchTerm != nil {
+            gridSearchTerm = nil
+            tablePage = 0
+            resetKeyset()
+            tableRowCount = nil
+            Task { await loadTablePage() }
+        }
+    }
+
+    /// 重置查找状态（换表 / 关闭浏览时调用）。
+    private func resetGridFind() {
+        gridFindVisible = false
+        gridFindText = ""
+        gridFindMatches = []
+        gridFindMatchIndex = 0
+        gridSearchTerm = nil
+    }
+
+    /// 执行查找：当前页仅重算客户端匹配；全量则设置服务端 LIKE 过滤并回到首页重载。
+    public func runGridFind() async {
+        let term = gridFindText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previousSearch = gridSearchTerm
+        switch gridFindScope {
+        case .currentPage:
+            gridSearchTerm = nil
+        case .allRows:
+            gridSearchTerm = term.isEmpty ? nil : term
+        }
+        if gridSearchTerm != previousSearch {
+            tablePage = 0
+            resetKeyset()
+            tableRowCount = nil
+            await loadTablePage()
+        }
+        refreshCurrentPageFindMatches()
+    }
+
+    /// 重算当前页匹配（查找词变化或翻页后调用）；保持活动匹配索引在有效范围。
+    public func refreshCurrentPageFindMatches() {
+        guard let result = queryResult else {
+            gridFindMatches = []
+            gridFindMatchIndex = 0
+            return
+        }
+        gridFindMatches = GridFind.matches(columns: result.columns, rows: result.rows, term: gridFindText) { value in
+            Self.findDisplayText(value)
+        }
+        if gridFindMatches.isEmpty {
+            gridFindMatchIndex = 0
+        } else {
+            gridFindMatchIndex = min(gridFindMatchIndex, gridFindMatches.count - 1)
+        }
+    }
+
+    /// 跳到下一个匹配（循环）。
+    public func nextGridFindMatch() {
+        guard !gridFindMatches.isEmpty else { return }
+        gridFindMatchIndex = (gridFindMatchIndex + 1) % gridFindMatches.count
+    }
+
+    /// 跳到上一个匹配（循环）。
+    public func prevGridFindMatch() {
+        guard !gridFindMatches.isEmpty else { return }
+        gridFindMatchIndex = (gridFindMatchIndex - 1 + gridFindMatches.count) % gridFindMatches.count
+    }
+
+    /// 查找匹配用的单元格显示文本（与网格渲染一致）。
+    static func findDisplayText(_ value: DatabaseValue) -> String {
+        switch value {
+        case .integer(let v): return String(v)
+        case .double(let v): return String(v)
+        case .string(let v): return v
+        case .bool(let v): return String(v)
+        case .data(let v): return "<BLOB \(v.count) bytes>"
+        case .null: return "NULL"
+        }
+    }
+
+    /// 浏览/计数共用的有效 WHERE：用户筛选 AND 全量查找（若有）。
+    /// 查找占位符接在筛选参数之后编号，保证 PostgreSQL `$n` 连续。
+    private func effectiveWhere(dialect: DatabaseType, columns: [TableColumn]) -> (clause: String, params: [DatabaseValue])? {
+        let filter = tableFilter.buildWhere(dialect: dialect, columns: columns)
+        guard let term = gridSearchTerm, !term.isEmpty else { return filter }
+        guard let search = GridFind.serverWhere(
+            columns: columns,
+            term: term,
+            dialect: dialect,
+            startIndex: filter?.params.count ?? 0,
+            quote: { Self.quoteIdentifier($0, for: dialect) }
+        ) else { return filter }
+        if let filter {
+            return ("(\(filter.clause)) AND \(search.clause)", filter.params + search.params)
+        }
+        return search
     }
 
     // MARK: - 列布局持久化

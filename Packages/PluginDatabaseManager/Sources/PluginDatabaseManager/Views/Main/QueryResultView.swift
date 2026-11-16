@@ -60,6 +60,10 @@ struct QueryResultView: View {
     var onResizeColumn: ((String, CGFloat) -> Void)? = nil
     /// 列移动回调：(列名, 是否左移)。
     var onMoveColumn: ((String, Bool) -> Void)? = nil
+    /// 查找匹配的单元格位置集合（高亮显示）。
+    var findMatches: Set<GridFind.CellPosition> = []
+    /// 当前活动查找匹配（更强高亮）。
+    var activeFindMatch: GridFind.CellPosition? = nil
 
     // MARK: - Editing state
 
@@ -74,6 +78,10 @@ struct QueryResultView: View {
     /// 拖拽起始宽度与实时宽度。
     @State private var resizeStartWidth: CGFloat = 0
     @State private var resizeLiveWidth: CGFloat = 0
+    /// 选中的单元格（单击选择，⌘ 单击增减，⇧ 单击矩形范围）。
+    @State private var selectedCells: Set<CellKey> = []
+    /// 范围选择的锚点单元格。
+    @State private var selectionAnchor: CellKey? = nil
 
     // MARK: - Constants
 
@@ -83,33 +91,112 @@ struct QueryResultView: View {
     // MARK: - Body
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollView([.horizontal, .vertical]) {
-                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    Section {
-                        ForEach(0 ..< result.rows.count, id: \.self) { rowIndex in
-                            resultRow(at: rowIndex)
-                        }
-                        if let cm = changeManager, !cm.pendingInserts.isEmpty {
-                            ForEach(cm.pendingInserts) { insert in
-                                insertedRow(insert)
+        VStack(spacing: 0) {
+            GeometryReader { proxy in
+                ScrollView([.horizontal, .vertical]) {
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                        Section {
+                            ForEach(0 ..< result.rows.count, id: \.self) { rowIndex in
+                                resultRow(at: rowIndex)
                             }
+                            if let cm = changeManager, !cm.pendingInserts.isEmpty {
+                                ForEach(cm.pendingInserts) { insert in
+                                    insertedRow(insert)
+                                }
+                            }
+                        } header: {
+                            headerRow
                         }
-                    } header: {
-                        headerRow
-                    }
 
-                    Spacer()
+                        Spacer()
+                    }
+                    // 内容比视口小时：撑满视口并靠左上对齐；比视口大时：自然产生横/纵滚动。
+                    .frame(
+                        minWidth: max(proxy.size.width, tableWidth),
+                        minHeight: proxy.size.height,
+                        alignment: .topLeading
+                    )
                 }
-                // 内容比视口小时：撑满视口并靠左上对齐；比视口大时：自然产生横/纵滚动。
-                .frame(
-                    minWidth: max(proxy.size.width, tableWidth),
-                    minHeight: proxy.size.height,
-                    alignment: .topLeading
-                )
+            }
+            if !selectedCells.isEmpty {
+                selectionSummaryBar
+                AppDivider()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Selection summary
+
+    /// 选区摘要条：选中单元格数 + 数值列 sum/avg。
+    private var selectionSummaryBar: some View {
+        let positions = Set(selectedCells.map { GridFind.CellPosition(row: $0.row, col: $0.col) })
+        let summary = GridSelectionSummary.compute(positions: positions) { pos in
+            guard pos.row < result.rows.count, pos.col < result.columns.count else { return .null }
+            let row = result.rows[pos.row]
+            guard pos.col < row.count else { return .null }
+            return displayedValue(row: row, column: result.columns[pos.col])
+        }
+        return HStack(spacing: 12) {
+            Image(systemName: "selection.pin.in.out")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(theme.primary)
+            Text("\(summary.cellCount) \(pluginLocalization.string("selected"))")
+                .font(.appMicroEmphasized)
+                .foregroundStyle(theme.textPrimary)
+            if summary.hasNumeric {
+                Text(pluginLocalization.string("Sum") + ": \(formattedNumber(summary.sum))")
+                    .font(.appMicro)
+                    .foregroundStyle(theme.textSecondary)
+                Text(pluginLocalization.string("Avg") + ": \(formattedNumber(summary.average ?? 0))")
+                    .font(.appMicro)
+                    .foregroundStyle(theme.textSecondary)
+            }
+            Spacer()
+            AppIconButton(systemImage: "xmark.circle", label: pluginLocalization.string("Clear Selection"), size: .compact) {
+                selectedCells = []
+                selectionAnchor = nil
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 30)
+        .background(theme.primary.opacity(0.06))
+    }
+
+    /// 摘要数值显示：整数去小数，浮点保留至多 4 位。
+    private func formattedNumber(_ value: Double) -> String {
+        if value == value.rounded() && abs(value) < 1e15 {
+            return String(Int(value))
+        }
+        return String(format: "%.4g", value)
+    }
+
+    /// 处理单元格单击选择（⌘ 增减、⇧ 矩形范围、普通单击替换）。
+    private func handleCellTap(row: Int, col: Int) {
+        let key = CellKey(row: row, col: col)
+        let flags = NSEvent.modifierFlags
+        if flags.contains(.command) {
+            if selectedCells.contains(key) { selectedCells.remove(key) } else { selectedCells.insert(key) }
+            selectionAnchor = key
+        } else if flags.contains(.shift), let anchor = selectionAnchor {
+            let r0 = min(anchor.row, row), r1 = max(anchor.row, row)
+            let c0 = min(anchor.col, col), c1 = max(anchor.col, col)
+            for r in r0 ... r1 {
+                for c in c0 ... c1 { selectedCells.insert(CellKey(row: r, col: c)) }
+            }
+        } else {
+            selectedCells = [key]
+            selectionAnchor = key
+        }
+    }
+
+    /// 单元格背景色：活动查找 > 选中 > 查找匹配 > 已编辑。
+    private func cellBackground(isChanged: Bool, isSelected: Bool, isFindMatch: Bool, isActiveFind: Bool) -> Color {
+        if isActiveFind { return theme.primary.opacity(0.35) }
+        if isSelected { return theme.primary.opacity(0.18) }
+        if isFindMatch { return theme.primary.opacity(0.12) }
+        if isChanged { return theme.warning.opacity(0.18) }
+        return Color.clear
     }
 
     // MARK: - Layout
@@ -385,6 +472,10 @@ struct QueryResultView: View {
         let isDefault = changeManager?.isCellDefault(column: column, rowValues: row, columns: result.columns) ?? false
         let isNull = displayed == .null
         let key = CellKey(row: rowIndex, col: colIndex)
+        let position = GridFind.CellPosition(row: rowIndex, col: colIndex)
+        let isSelected = selectedCells.contains(key)
+        let isFindMatch = findMatches.contains(position)
+        let isActiveFind = activeFindMatch == position
 
         if editingCell == key {
             TypedCellEditor(
@@ -404,13 +495,16 @@ struct QueryResultView: View {
                 .truncationMode(.tail)
                 .padding(8)
                 .frame(width: width, alignment: .leading)
-                .background(isChanged ? theme.warning.opacity(0.18) : Color.clear)
-                .border(theme.appSubtleBorder.opacity(0.7))
+                .background(cellBackground(isChanged: isChanged, isSelected: isSelected, isFindMatch: isFindMatch, isActiveFind: isActiveFind))
+                .border(isSelected ? theme.primary.opacity(0.6) : theme.appSubtleBorder.opacity(0.7))
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     guard changeManager?.isEditable == true else { return }
                     editText = isDefault ? "" : editRepresentation(for: displayed)
                     editingCell = key
+                }
+                .onTapGesture(count: 1) {
+                    handleCellTap(row: rowIndex, col: colIndex)
                 }
                 .contextMenu {
                     Button(pluginLocalization.string("Copy")) {

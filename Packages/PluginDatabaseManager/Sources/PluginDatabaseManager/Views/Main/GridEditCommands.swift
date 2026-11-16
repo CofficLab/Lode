@@ -6,17 +6,20 @@ public struct GridEditActions {
     public let copyPageMarkdown: () -> Void
     public let pasteRows: () -> Void
     public let canPaste: Bool
+    public let findInGrid: () -> Void
 
     public init(
         copyPageCSV: @escaping () -> Void,
         copyPageMarkdown: @escaping () -> Void,
         pasteRows: @escaping () -> Void,
-        canPaste: Bool
+        canPaste: Bool,
+        findInGrid: @escaping () -> Void = {}
     ) {
         self.copyPageCSV = copyPageCSV
         self.copyPageMarkdown = copyPageMarkdown
         self.pasteRows = pasteRows
         self.canPaste = canPaste
+        self.findInGrid = findInGrid
     }
 }
 
@@ -58,6 +61,14 @@ public struct DatabaseGridEditCommands: Commands {
             }
             .keyboardShortcut("v", modifiers: [.command, .shift])
             .disabled(actions?.canPaste != true)
+
+            Divider()
+
+            Button(pluginLocalization.string("Find in Grid")) {
+                actions?.findInGrid()
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .disabled(actions == nil)
         }
     }
 }

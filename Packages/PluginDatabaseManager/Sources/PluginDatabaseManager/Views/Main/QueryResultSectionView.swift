@@ -138,7 +138,9 @@ struct QueryResultSectionView: View {
                     },
                     onMoveColumn: { column, left in
                         viewModel.moveGridColumn(column, left: left)
-                    }
+                    },
+                    findMatches: viewModel.gridFindVisible ? Set(viewModel.gridFindMatches) : [],
+                    activeFindMatch: viewModel.gridFindVisible ? viewModel.activeGridFindMatch : nil
                 )
                 if viewModel.canLoadMoreEditorResults || viewModel.isLoadingMore {
                     loadMoreBar
