@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 /// 嵌入式编辑器选项（重构方案 §17.2）。
 ///
@@ -74,6 +75,18 @@ public protocol EditorEmbeddedEditorProviding: AnyObject {
         options: EditorEmbeddedEditorOptions,
         cursorLocation: Binding<Int>?
     ) -> AnyView
+
+    /// 创建嵌入式编辑器视图，回写光标位置与当前选区范围。
+    ///
+    /// - Parameters:
+    ///   - selectionRange: 当前选区在 `text` 中的 UTF-16 `NSRange`（无选区时 length 为 0）；
+    ///     传 nil 表示不需要追踪。Host 不支持追踪时可忽略此绑定。
+    func makeEmbeddedEditorView(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        cursorLocation: Binding<Int>?,
+        selectionRange: Binding<NSRange>?
+    ) -> AnyView
 }
 
 public extension EditorEmbeddedEditorProviding {
@@ -84,5 +97,15 @@ public extension EditorEmbeddedEditorProviding {
         cursorLocation: Binding<Int>?
     ) -> AnyView {
         makeEmbeddedEditorView(text: text, options: options)
+    }
+
+    /// 默认不追踪选区：转发到仅光标版本，保证既有实现无需改动即可兼容。
+    func makeEmbeddedEditorView(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        cursorLocation: Binding<Int>?,
+        selectionRange: Binding<NSRange>?
+    ) -> AnyView {
+        makeEmbeddedEditorView(text: text, options: options, cursorLocation: cursorLocation)
     }
 }

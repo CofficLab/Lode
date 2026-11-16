@@ -95,7 +95,8 @@ public struct MainView: View {
             text: $viewModel.queryText,
             options: EditorEmbeddedEditorOptions(languageID: "sql", completionProvider: viewModel.sqlCompletionProvider),
             provider: viewModel.embeddedEditorProvider,
-            cursorLocation: $viewModel.editorCursorLocation
+            cursorLocation: $viewModel.editorCursorLocation,
+            selectionRange: $viewModel.editorSelectionRange
         )
             .frame(minHeight: 100, maxHeight: 200)
             .border(theme.appSubtleBorder)
@@ -133,6 +134,15 @@ public struct MainView: View {
                     .keyboardShortcut(.return, modifiers: [.command, .shift])
                     .disabled(viewModel.isLoading)
                 }
+                AppButton(
+                    pluginLocalization.string("Format"),
+                    systemImage: "text.alignleft",
+                    style: .ghost,
+                    size: .small,
+                    action: { viewModel.formatDocumentOrSelection() }
+                )
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .help(pluginLocalization.string("Format SQL (selection or document)"))
                 AppButton(
                     pluginLocalization.string("History"),
                     systemImage: "clock.arrow.circlepath",

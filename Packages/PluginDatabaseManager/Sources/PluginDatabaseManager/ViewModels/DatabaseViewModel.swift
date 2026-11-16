@@ -127,6 +127,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public private(set) var lastBatchRolledBack = false
     /// 编辑器光标在 ``queryText`` 中的 UTF-16 偏移；由嵌入式编辑器回写，`NSNotFound` 表示未知。
     @Published public var editorCursorLocation: Int = NSNotFound
+    /// 编辑器当前选区在 ``queryText`` 中的 UTF-16 范围；length 为 0 表示无选区（仅光标）。
+    @Published public var editorSelectionRange: NSRange = NSRange(location: NSNotFound, length: 0)
 
     // MARK: - 编辑器查询行数上限与增量加载
 
@@ -617,6 +619,26 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             await executeQuery(isRetry: false, sqlOverride: stmt)
         } else {
             await executeQuery(isRetry: false, sqlOverride: nil)
+        }
+    }
+
+    /// ⌘⇧F：格式化选区（有有效选区时）或整段编辑器文本。
+    ///
+    /// 仅调整空白与关键字大小写，不改变语义；格式化结果写回 ``queryText``，
+    /// 经工作区防抖持久化同步到活动标签。
+    public func formatDocumentOrSelection() {
+        let options = SQLFormatterOptions()
+        let ns = queryText as NSString
+        let selection = editorSelectionRange
+        if selection.location != NSNotFound, selection.length > 0, NSMaxRange(selection) <= ns.length {
+            let original = ns.substring(with: selection)
+            let formatted = SQLFormatterService.format(original, options: options)
+            guard formatted != original else { return }
+            queryText = ns.replacingCharacters(in: selection, with: formatted)
+        } else {
+            let formatted = SQLFormatterService.format(queryText, options: options)
+            guard formatted != queryText else { return }
+            queryText = formatted
         }
     }
 

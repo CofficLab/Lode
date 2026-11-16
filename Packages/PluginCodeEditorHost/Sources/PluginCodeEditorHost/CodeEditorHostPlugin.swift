@@ -96,7 +96,7 @@ private final class EmbeddedEditorSurfaceProvider: EditorEmbeddedEditorProviding
     init(service: EditorService) { self.service = service }
 
     func makeEmbeddedEditorView(text: Binding<String>, options: EditorEmbeddedEditorOptions) -> AnyView {
-        makeEmbeddedEditorView(text: text, options: options, cursorLocation: nil)
+        makeEmbeddedEditorView(text: text, options: options, cursorLocation: nil, selectionRange: nil)
     }
 
     func makeEmbeddedEditorView(
@@ -104,11 +104,21 @@ private final class EmbeddedEditorSurfaceProvider: EditorEmbeddedEditorProviding
         options: EditorEmbeddedEditorOptions,
         cursorLocation: Binding<Int>?
     ) -> AnyView {
+        makeEmbeddedEditorView(text: text, options: options, cursorLocation: cursorLocation, selectionRange: nil)
+    }
+
+    func makeEmbeddedEditorView(
+        text: Binding<String>,
+        options: EditorEmbeddedEditorOptions,
+        cursorLocation: Binding<Int>?,
+        selectionRange: Binding<NSRange>?
+    ) -> AnyView {
         AnyView(EmbeddedEditorHostView(
             text: text,
             options: options,
             language: service.editorExtensions.languageRegistry.context(for: options.languageID) ?? .plainText,
-            cursorLocation: cursorLocation
+            cursorLocation: cursorLocation,
+            selectionRange: selectionRange
         ))
     }
 }
@@ -118,6 +128,7 @@ private struct EmbeddedEditorHostView: View {
     let options: EditorEmbeddedEditorOptions
     let language: EditorLanguageContext
     var cursorLocation: Binding<Int>? = nil
+    var selectionRange: Binding<NSRange>? = nil
     @State private var editorState = SourceEditorState()
     @State private var completionAdapter: EditorCompletionSuggestionAdapter?
     @Environment(\.colorScheme) private var colorScheme
@@ -126,12 +137,14 @@ private struct EmbeddedEditorHostView: View {
         text: Binding<String>,
         options: EditorEmbeddedEditorOptions,
         language: EditorLanguageContext,
-        cursorLocation: Binding<Int>? = nil
+        cursorLocation: Binding<Int>? = nil,
+        selectionRange: Binding<NSRange>? = nil
     ) {
         self._text = text
         self.options = options
         self.language = language
         self.cursorLocation = cursorLocation
+        self.selectionRange = selectionRange
         self._completionAdapter = State(initialValue: options.completionProvider.map {
             EditorCompletionSuggestionAdapter(provider: $0, languageID: options.languageID)
         })
@@ -139,18 +152,24 @@ private struct EmbeddedEditorHostView: View {
 
     var body: some View {
         SourceEditor($text, language: language, configuration: configuration, state: $editorState, completionDelegate: completionAdapter)
-            .onAppear { publishCursor(editorState.cursorPositions) }
-            .onChange(of: editorState.cursorPositions) { _, newValue in publishCursor(newValue) }
+            .onAppear { publishPositions(editorState.cursorPositions) }
+            .onChange(of: editorState.cursorPositions) { _, newValue in publishPositions(newValue) }
     }
 
-    /// 把编辑器光标（caret/选区起点）换算成 UTF-16 偏移回写给消费方。
-    private func publishCursor(_ positions: [CursorPosition]?) {
-        guard let cursorLocation, let first = positions?.first else { return }
+    /// 把编辑器光标（caret/选区起点）与选区范围换算成 UTF-16 偏移回写给消费方。
+    private func publishPositions(_ positions: [CursorPosition]?) {
+        guard let first = positions?.first else { return }
         let offset = first.range.location != NSNotFound
             ? first.range.location
             : utf16Offset(line: first.start.line, column: first.start.column)
-        if cursorLocation.wrappedValue != offset {
+        if let cursorLocation, cursorLocation.wrappedValue != offset {
             cursorLocation.wrappedValue = offset
+        }
+        if let selectionRange {
+            let range = first.range.location != NSNotFound ? first.range : NSRange(location: offset, length: 0)
+            if selectionRange.wrappedValue != range {
+                selectionRange.wrappedValue = range
+            }
         }
     }
 

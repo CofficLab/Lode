@@ -12,22 +12,25 @@ struct EmbeddedCodeEditorView: View {
     var options: EditorEmbeddedEditorOptions
     var provider: (any EditorEmbeddedEditorProviding)?
     var cursorLocation: Binding<Int>?
+    var selectionRange: Binding<NSRange>?
 
     init(
         text: Binding<String>,
         options: EditorEmbeddedEditorOptions,
         provider: (any EditorEmbeddedEditorProviding)? = nil,
-        cursorLocation: Binding<Int>? = nil
+        cursorLocation: Binding<Int>? = nil,
+        selectionRange: Binding<NSRange>? = nil
     ) {
         self._text = text
         self.options = options
         self.provider = provider
         self.cursorLocation = cursorLocation
+        self.selectionRange = selectionRange
     }
 
     var body: some View {
         if let provider {
-            provider.makeEmbeddedEditorView(text: $text, options: options, cursorLocation: cursorLocation)
+            provider.makeEmbeddedEditorView(text: $text, options: options, cursorLocation: cursorLocation, selectionRange: selectionRange)
         } else {
             fallbackEditor
         }
