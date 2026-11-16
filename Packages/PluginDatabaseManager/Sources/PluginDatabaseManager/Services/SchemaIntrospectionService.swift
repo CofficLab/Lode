@@ -58,7 +58,8 @@ enum SchemaRowDecoder {
         case .integer(let i): return String(i)
         case .double(let d): return String(d)
         case .bool(let b): return String(b)
-        case .data: return nil
+        // MySQL 8 的 information_schema 文本列按 blob 线上类型返回 .data；元数据恒为文本，按 UTF-8 还原。
+        case .data(let d): return String(data: d, encoding: .utf8)
         case .null: return nil
         }
     }
