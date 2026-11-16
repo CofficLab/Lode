@@ -294,8 +294,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var showHistory: Bool = false
     /// 历史搜索关键字。
     @Published public var historySearchText: String = ""
+    /// 历史保留期（天，0 表示永久保留）。
+    @Published public var historyRetentionDays: Int = 0
 
-    private let historyStore = QueryHistoryStore.shared
+    private let historyStore: QueryHistoryStore
 
     public func toggleInspector() {
         inspectorVisible.toggle()
@@ -354,9 +356,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 测试专用初始化：`loadSavedConfigs == false` 时跳过从 UserDefaults 读取已存配置，
     /// 始终使用一份独立的内存 demo 连接，避免并行测试共享进程级 UserDefaults 串扰。
     /// `manager` 可注入，用于构造可控延迟的驱动复现连接竞态。
-    public init(loadSavedConfigs: Bool, manager: DatabaseManagerCore = .shared, workspaceDefaults: UserDefaults = .standard) {
+    public init(loadSavedConfigs: Bool, manager: DatabaseManagerCore = .shared, workspaceDefaults: UserDefaults = .standard, historyStore: QueryHistoryStore? = nil) {
         self.manager = manager
         self.workspaceDefaults = workspaceDefaults
+        self.historyStore = historyStore ?? .shared
+        self.historyRetentionDays = max(0, workspaceDefaults.integer(forKey: "DatabaseManager.historyRetentionDays"))
         Task {
             await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         }
@@ -1245,16 +1249,45 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         showHistory = false
     }
 
+    /// 重执行一条历史：载入编辑器并立即在当前连接执行。
+    public func reRunHistoryEntry(_ entry: QueryHistoryEntry) async {
+        queryText = entry.sql
+        showHistory = false
+        await executeQuery()
+    }
+
+    /// 置顶/取消置顶一条历史并刷新列表。
+    public func togglePinHistoryEntry(_ entry: QueryHistoryEntry) async {
+        await historyStore.setPinned(id: entry.id, pinned: !entry.pinned)
+        await refreshHistory()
+    }
+
+    /// 设置历史保留期（天，0 永久）：立即清理过期条目并刷新。
+    public func setHistoryRetentionDays(_ days: Int) async {
+        historyRetentionDays = max(0, days)
+        await historyStore.setRetentionDays(days)
+        await refreshHistory()
+    }
+
     /// 删除某条历史。
     public func deleteHistoryEntry(_ entry: QueryHistoryEntry) async {
         await historyStore.delete(id: entry.id)
-        await loadRecentHistory()
+        await refreshHistory()
     }
 
     /// 清空全部历史。
     public func clearHistory() async {
         await historyStore.clear()
         history.removeAll()
+    }
+
+    /// 按当前搜索状态刷新历史列表（有关键字走全文搜索，否则取最近）。
+    private func refreshHistory() async {
+        if historySearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            history = await historyStore.recent(limit: 100)
+        } else {
+            history = await historyStore.search(historySearchText)
+        }
     }
 
     /// 记录已执行的 SQL（多语句时按语句逐条记）。

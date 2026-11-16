@@ -30,6 +30,10 @@ struct QueryHistoryView: View {
                         ForEach(viewModel.history) { entry in
                             HistoryRow(entry: entry) {
                                 viewModel.loadHistoryEntry(entry)
+                            } onReRun: {
+                                Task { await viewModel.reRunHistoryEntry(entry) }
+                            } onTogglePin: {
+                                Task { await viewModel.togglePinHistoryEntry(entry) }
                             } onDelete: {
                                 Task { await viewModel.deleteHistoryEntry(entry) }
                             }
@@ -104,6 +108,7 @@ struct QueryHistoryView: View {
                 .font(.appMicro)
                 .foregroundStyle(.secondary)
             Spacer()
+            retentionMenu
             AppButton(pluginLocalization.string("Clear All"), systemImage: "trash", style: .secondary, size: .small) {
                 confirmClearAll = true
             }
@@ -111,6 +116,40 @@ struct QueryHistoryView: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 36)
+    }
+
+    private var retentionMenu: some View {
+        Menu {
+            Button(pluginLocalization.string("Keep forever")) {
+                Task { await viewModel.setHistoryRetentionDays(0) }
+            }
+            Button(pluginLocalization.string("7 days")) {
+                Task { await viewModel.setHistoryRetentionDays(7) }
+            }
+            Button(pluginLocalization.string("30 days")) {
+                Task { await viewModel.setHistoryRetentionDays(30) }
+            }
+            Button(pluginLocalization.string("90 days")) {
+                Task { await viewModel.setHistoryRetentionDays(90) }
+            }
+        } label: {
+            Label(retentionLabel, systemImage: "clock")
+                .font(.appMicro)
+                .foregroundStyle(theme.textSecondary)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(pluginLocalization.string("Retention"))
+    }
+
+    private var retentionLabel: String {
+        switch viewModel.historyRetentionDays {
+        case 0: return pluginLocalization.string("Keep forever")
+        case 7: return pluginLocalization.string("7 days")
+        case 30: return pluginLocalization.string("30 days")
+        case 90: return pluginLocalization.string("90 days")
+        default: return "\(viewModel.historyRetentionDays)d"
+        }
     }
 }
 
@@ -120,6 +159,8 @@ private struct HistoryRow: View {
     @LumiUI.LumiTheme private var theme: any LumiUITheme
     let entry: QueryHistoryEntry
     var onLoad: () -> Void
+    var onReRun: () -> Void
+    var onTogglePin: () -> Void
     var onDelete: () -> Void
 
     var body: some View {
@@ -132,6 +173,11 @@ private struct HistoryRow: View {
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 8) {
+                    if entry.pinned {
+                        Image(systemName: "pin.fill")
+                            .foregroundStyle(theme.primary)
+                            .accessibilityLabel(pluginLocalization.string("Pin"))
+                    }
                     Label(entry.configName, systemImage: "cylinder.split.1x2")
                     Text("·")
                     Text(entry.database)
@@ -148,7 +194,16 @@ private struct HistoryRow: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            Button { onReRun() } label: {
+                Label(pluginLocalization.string("Re-run"), systemImage: "play.fill")
+            }
             Button(pluginLocalization.string("Load into Editor")) { onLoad() }
+            Button { onTogglePin() } label: {
+                Label(
+                    pluginLocalization.string(entry.pinned ? "Unpin" : "Pin"),
+                    systemImage: entry.pinned ? "pin.slash" : "pin"
+                )
+            }
             Button(role: .destructive) { onDelete() } label: {
                 Label(pluginLocalization.string("Delete"), systemImage: "trash")
             }
