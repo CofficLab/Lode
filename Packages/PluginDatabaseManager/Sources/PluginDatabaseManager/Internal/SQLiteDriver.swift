@@ -29,6 +29,9 @@ public actor SQLiteConnection: DatabaseConnection {
         }
         self.db = dbPointer
         interruptHandle.store(dbPointer)
+        // 并发访问（如后台行数统计与用户编辑同时持有连接）时等待锁而非立即报
+        // "database is locked"；5s 足以覆盖短事务，又不会无限阻塞。
+        sqlite3_busy_timeout(dbPointer, 5000)
         Self.registerRegexpFunction(dbPointer)
     }
 
