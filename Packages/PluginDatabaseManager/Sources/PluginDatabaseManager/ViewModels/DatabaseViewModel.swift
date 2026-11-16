@@ -49,8 +49,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public var tablePage: Int = 0
     /// 每页行数。
     @Published public var tablePageSize: Int = 100
-    /// 表的总行数（精确 COUNT，后台异步填充；nil 表示未知）。
-    @Published public var tableRowCount: Int?
+    /// 表的总行数（后台异步填充；nil 表示未知）。无筛选时优先引擎估算。
+    @Published public var tableRowCount: Int? {
+        didSet { if tableRowCount == nil { tableRowCountIsApproximate = false } }
+    }
+    /// ``tableRowCount`` 是否为引擎估算值（true 时 UI 显示「约」并提供精确计数入口）。
+    @Published public var tableRowCountIsApproximate: Bool = false
     /// 服务端排序（列名 + 方向）；nil 表示不排序。
     @Published public var tableOrderBy: (column: String, ascending: Bool)?
     /// 当前表的服务端筛选（条件组合或 raw WHERE）；空表示不过滤。
@@ -1243,34 +1247,85 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
     }
 
-    /// 后台执行 `SELECT COUNT(*) FROM ...` 填充 ``tableRowCount``。
+    /// 后台填充 ``tableRowCount``：无筛选时优先引擎估算（PG reltuples / MySQL
+    /// information_schema），估算不可用或带筛选时降级精确 `COUNT(*)`。
     public func refreshTableRowCount() async {
         let generation = connectionGeneration
         guard let config = selectedConfig, let table = openTableObject else { return }
         guard config.type.capabilities.supportsPagination else { return }
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
-        let tableExpr = Self.qualifiedName(for: table, type: config.type)
-        var countSQL = "SELECT COUNT(*) FROM \(tableExpr)"
-        var filterParams: [DatabaseValue]?
-        if let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? []) {
-            countSQL += " WHERE \(whereClause.clause)"
-            filterParams = whereClause.params
-        }
-        do {
-            let result = try await connection.query(countSQL, params: filterParams)
+        let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+
+        // 带筛选时估算无法反映过滤后的行数，直接精确计数。
+        if whereClause == nil,
+           let estimate = RowCountEstimator.estimateQuery(
+               for: config.type,
+               schema: estimateSchema(for: table, config: config),
+               table: table.name) {
+            do {
+                let result = try await connection.query(estimate.sql, params: estimate.params)
+                guard isCurrentConnection(generation, configId: config.id),
+                      openTableObject?.id == table.id else { return }
+                if let first = result.rows.first?.first,
+                   let count = RowCountEstimator.interpretEstimate(first) {
+                    tableRowCount = count
+                    tableRowCountIsApproximate = true
+                    return
+                }
+            } catch {
+                // 估算失败（如权限不足）降级精确计数。
+            }
             guard isCurrentConnection(generation, configId: config.id),
                   openTableObject?.id == table.id else { return }
-            if let row = result.rows.first, let first = row.first {
+        }
+        await runExactRowCount(connection: connection, config: config, table: table, generation: generation, whereClause: whereClause)
+    }
+
+    /// 按需精确计数（用户点击「精确计数」时调用），覆盖估算值。
+    public func refreshExactRowCount() async {
+        let generation = connectionGeneration
+        guard let config = selectedConfig, let table = openTableObject else { return }
+        guard config.type.capabilities.supportsPagination else { return }
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let whereClause = tableFilter.buildWhere(dialect: config.type, columns: selectedTableSchema?.columns ?? [])
+        await runExactRowCount(connection: connection, config: config, table: table, generation: generation, whereClause: whereClause)
+    }
+
+    private func runExactRowCount(
+        connection: any DatabaseConnection,
+        config: DatabaseConfig,
+        table: DatabaseObject,
+        generation: Int,
+        whereClause: (clause: String, params: [DatabaseValue])?
+    ) async {
+        let tableExpr = Self.qualifiedName(for: table, type: config.type)
+        let sql = RowCountEstimator.exactQuery(tableExpr: tableExpr, whereClause: whereClause?.clause)
+        do {
+            let result = try await connection.query(sql, params: whereClause?.params)
+            guard isCurrentConnection(generation, configId: config.id),
+                  openTableObject?.id == table.id else { return }
+            if let first = result.rows.first?.first {
                 switch first {
                 case .integer(let v): tableRowCount = v
                 case .double(let v): tableRowCount = Int(v)
                 case .string(let s): tableRowCount = Int(s)
                 default: break
                 }
+                tableRowCountIsApproximate = false
             }
         } catch {
             // 行数查询失败不影响浏览
+        }
+    }
+
+    /// 估算查询所需的 schema/库名：PG 用 schema（默认 public），MySQL 用库名。
+    private func estimateSchema(for table: DatabaseObject, config: DatabaseConfig) -> String? {
+        switch config.type {
+        case .postgresql: return table.schema ?? "public"
+        case .mysql: return table.database ?? config.database
+        case .sqlite, .redis: return nil
         }
     }
 

@@ -132,9 +132,12 @@ struct TableDataView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if let count = viewModel.tableRowCount {
-                    Text("\(count.formatted()) \(pluginLocalization.string("rows"))")
+                    Text("\(viewModel.tableRowCountIsApproximate ? "~" : "")\(count.formatted()) \(pluginLocalization.string("rows"))")
                         .font(.appCaption)
                         .foregroundColor(theme.textSecondary)
+                        .help(viewModel.tableRowCountIsApproximate
+                              ? pluginLocalization.string("Approximate row count")
+                              : pluginLocalization.string("Exact row count"))
                 } else if viewModel.isLoading {
                     Text(pluginLocalization.string("Loading…"))
                         .font(.appCaption)
@@ -194,6 +197,12 @@ struct TableDataView: View {
             Menu {
                 Toggle(isOn: $viewModel.useNullSymbol) {
                     Text(pluginLocalization.string("Show NULL as ⟨NULL⟩"))
+                }
+                if viewModel.tableRowCountIsApproximate {
+                    Divider()
+                    Button(pluginLocalization.string("Exact Count")) {
+                        Task { await viewModel.refreshExactRowCount() }
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
