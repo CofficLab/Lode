@@ -161,13 +161,20 @@ struct CopyPasteIntegrationTests {
         await vm.connect(config: config)
         #expect(vm.isConnected)
         let other = try await MySQLConnection(host: "127.0.0.1", port: port, username: "root", password: "test", database: "testdb")
-        defer { Task { await other.close() } }
+        // 清理必须串行：多个 defer Task 并发时 close 可能抢在 DROP 前，触发 MySQLNIO「Statement not closed」断言。
+        defer {
+            Task {
+                _ = try? await other.execute("DROP TABLE IF EXISTS cp_my_nopk", params: nil)
+                _ = try? await other.execute("DROP TABLE IF EXISTS cp_my", params: nil)
+                await other.close()
+                await vm.disconnect()
+            }
+        }
 
         _ = try await other.execute("DROP TABLE IF EXISTS cp_my", params: nil)
         _ = try await other.execute(
             "CREATE TABLE cp_my (id INT PRIMARY KEY, name VARCHAR(64), flag BOOLEAN DEFAULT FALSE, qty INT DEFAULT 7)",
             params: nil)
-        defer { Task { _ = try? await other.execute("DROP TABLE IF EXISTS cp_my", params: nil) } }
         _ = try await other.execute("INSERT INTO cp_my (id, name, flag, qty) VALUES (1, 'first', 1, 3)", params: nil)
 
         await vm.openObject(DatabaseObject(kind: .table, name: "cp_my", database: "testdb"))
@@ -210,7 +217,6 @@ struct CopyPasteIntegrationTests {
         // 无主键 MySQL 表：无行键 → 拒绝生成 UPDATE
         _ = try await other.execute("DROP TABLE IF EXISTS cp_my_nopk", params: nil)
         _ = try await other.execute("CREATE TABLE cp_my_nopk (a VARCHAR(16), b INT)", params: nil)
-        defer { Task { _ = try? await other.execute("DROP TABLE IF EXISTS cp_my_nopk", params: nil) } }
         _ = try await other.execute("INSERT INTO cp_my_nopk (a, b) VALUES ('x', 1)", params: nil)
         await vm.openObject(DatabaseObject(kind: .table, name: "cp_my_nopk", database: "testdb"))
         #expect(vm.gridHasRowKey == false)
@@ -228,12 +234,17 @@ struct CopyPasteIntegrationTests {
         await vm.connect(config: config)
         #expect(vm.isConnected)
         let other = try await PGConnection(host: "127.0.0.1", port: port, username: "postgres", password: "test", database: "testdb")
-        defer { Task { await other.close() } }
+        defer {
+            Task {
+                _ = try? await other.execute("DROP TABLE IF EXISTS cp_pg", params: nil)
+                await other.close()
+                await vm.disconnect()
+            }
+        }
 
         _ = try await other.execute("DROP TABLE IF EXISTS cp_pg", params: nil)
         _ = try await other.execute(
             "CREATE TABLE cp_pg (id INT PRIMARY KEY, name TEXT, payload JSONB, qty INT DEFAULT 7)", params: nil)
-        defer { Task { _ = try? await other.execute("DROP TABLE IF EXISTS cp_pg", params: nil) } }
         _ = try await other.execute(
             "INSERT INTO cp_pg (id, name, payload, qty) VALUES (1, 'first', '{\"a\":1}', 3)", params: nil)
 
