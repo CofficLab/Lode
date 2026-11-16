@@ -236,6 +236,7 @@ struct QueryResultView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: Self.rowNumberWidth, alignment: .center)
                 .border(theme.appSubtleBorder)
+                .accessibilityHidden(true)
             ForEach(orderedColumnIndices, id: \.self) { colIndex in
                 headerCell(for: colIndex)
             }
@@ -282,9 +283,17 @@ struct QueryResultView: View {
             }
             if onResizeColumn != nil {
                 resizeHandle(for: name, colIndex: colIndex)
+                    .accessibilityHidden(true)
             }
         }
         .frame(width: cellWidth)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(name)
+        .accessibilityValue(isSorted
+            ? pluginLocalization.string(sortAscending ? "Sorted ascending" : "Sorted descending")
+            : "")
+        .accessibilityAddTraits(onToggleSort != nil ? .isButton : [])
+        .accessibilityAction { onToggleSort?(name) }
     }
 
     /// 列宽拖拽手柄：拖拽中实时更新显示宽度，结束时回调持久化。
@@ -321,6 +330,7 @@ struct QueryResultView: View {
                 .frame(width: Self.rowNumberWidth, alignment: .center)
                 .background(isDeleted ? theme.error.opacity(0.1) : Color.secondary.opacity(0.04))
                 .border(theme.appSubtleBorder.opacity(0.7))
+                .accessibilityLabel(String(format: pluginLocalization.string("Row %d"), rowIndex + 1))
 
             ForEach(orderedColumnIndices.filter { $0 < row.count }, id: \.self) { colIndex in
                 cellView(row: row, rowIndex: rowIndex, colIndex: colIndex, width: displayWidth(for: colIndex))
@@ -391,6 +401,7 @@ struct QueryResultView: View {
                 .frame(width: Self.rowNumberWidth, alignment: .center)
                 .background(theme.success.opacity(0.08))
                 .border(theme.appSubtleBorder.opacity(0.7))
+                .accessibilityLabel(pluginLocalization.string("New row"))
 
             ForEach(orderedColumnIndices, id: \.self) { colIndex in
                 insertCellView(insert: insert, column: result.columns[colIndex], width: displayWidth(for: colIndex))
@@ -431,6 +442,11 @@ struct QueryResultView: View {
                 .frame(width: width, alignment: .leading)
                 .background(theme.success.opacity(0.06))
                 .border(theme.appSubtleBorder.opacity(0.7))
+                .accessibilityLabel(GridAccessibility.cellLabel(column: column, value: text))
+                .accessibilityAction(named: pluginLocalization.string("Edit")) {
+                    editInsertText = usesDefault ? "" : editRepresentation(for: value)
+                    editingInsert = key
+                }
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     editInsertText = usesDefault ? "" : editRepresentation(for: value)
@@ -497,6 +513,14 @@ struct QueryResultView: View {
                 .frame(width: width, alignment: .leading)
                 .background(cellBackground(isChanged: isChanged, isSelected: isSelected, isFindMatch: isFindMatch, isActiveFind: isActiveFind))
                 .border(isSelected ? theme.primary.opacity(0.6) : theme.appSubtleBorder.opacity(0.7))
+                .accessibilityLabel(GridAccessibility.cellLabel(column: column, value: text))
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityAction { handleCellTap(row: rowIndex, col: colIndex) }
+                .accessibilityAction(named: pluginLocalization.string("Edit")) {
+                    guard changeManager?.isEditable == true else { return }
+                    editText = isDefault ? "" : editRepresentation(for: displayed)
+                    editingCell = key
+                }
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     guard changeManager?.isEditable == true else { return }

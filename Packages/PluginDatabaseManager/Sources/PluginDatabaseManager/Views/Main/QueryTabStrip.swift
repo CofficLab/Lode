@@ -113,6 +113,19 @@ struct QueryTabStrip: View {
         .background(isSelected ? theme.primary.opacity(0.15) : Color.clear)
         .clipShape(.rect(cornerRadius: 6))
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(tab.title)
+        .accessibilityValue(tab.isDirty
+            ? pluginLocalization.string("Unsaved changes")
+            : (isRunning ? pluginLocalization.string("Running") : ""))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { viewModel.selectQueryTab(id: tab.id) }
+        .accessibilityAction(named: pluginLocalization.string("Close")) {
+            viewModel.closeQueryTab(id: tab.id)
+        }
+        .accessibilityAction(named: pluginLocalization.string("Rename…")) {
+            renameRequest = RenameRequest(id: tab.id, title: tab.title)
+        }
         .onHover { hoveredTabID = $0 ? tab.id : (hoveredTabID == tab.id ? nil : hoveredTabID) }
         .onTapGesture { viewModel.selectQueryTab(id: tab.id) }
         .onTapGesture(count: 2) { renameRequest = RenameRequest(id: tab.id, title: tab.title) }

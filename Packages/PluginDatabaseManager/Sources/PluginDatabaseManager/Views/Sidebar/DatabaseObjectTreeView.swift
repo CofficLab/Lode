@@ -246,6 +246,7 @@ struct DatabaseObjectTreeView: View {
             guard let object = node.object else { return }
             Task { await viewModel.openObject(object) }
         }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .contextMenu {
             if let object = node.object {
                 Button {
