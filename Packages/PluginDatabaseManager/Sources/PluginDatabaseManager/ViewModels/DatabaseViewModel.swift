@@ -46,6 +46,16 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 侧边栏当前展示的内容：数据浏览（Tables/Keys）或连接列表。
     @Published public var sidebarMode: DatabaseSidebarMode = .browser
 
+    /// 当前活动的库/schema 上下文。可与持久化的 ``DatabaseConfig/database`` 不同：
+    /// 用户在对象树切换库（MySQL/PG，重连）或 schema（PG，SET search_path）后在此反映，
+    /// 侧边栏对象树与查询限定都跟随它，而不改动已保存的连接配置。
+    @Published public private(set) var activeDatabase: String?
+    @Published public private(set) var activeSchema: String?
+    /// 服务器上可切换的库列表（MySQL/PG）与当前库下的 schema 列表（PG）。
+    @Published public private(set) var availableDatabases: [String] = []
+    @Published public private(set) var availableSchemas: [String] = []
+    @Published public private(set) var isLoadingSchemaContext: Bool = false
+
     /// 结构元数据缓存（表/列/索引等），侧边栏对象树与结构 Tab 共用。
     public let schemaCache = SchemaCacheService()
 
@@ -410,6 +420,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             queryResult = nil
             workspace.clearAllResults()
             clearRedisBrowserState()
+            resetSchemaContext()
             sqliteTables = []
             selectedSQLiteTable = nil
             openTableObject = nil
@@ -463,6 +474,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 }
             }
 
+            // 先确立库/schema 上下文（MySQL/PG 多库、PG 多 schema），再据此预加载对象树。
+            await loadSchemaContext()
             // 为侧边栏对象树预加载可见分类（表/视图/例程），MySQL/PG 由此不再空白。
             await refreshSidebarObjects()
 
@@ -520,6 +533,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         workspace.clearAllResults()
         syncActiveSnapshot()
         clearRedisBrowserState()
+        resetSchemaContext()
         sqliteTables = []
         selectedSQLiteTable = nil
         openTableObject = nil
@@ -1302,7 +1316,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard let config = selectedConfig, config.type != .redis else { return }
         guard let connection = await manager.getConnection(for: config.id) else { return }
         guard isCurrentConnection(generation, configId: config.id) else { return }
-        let database: String? = config.type == .sqlite ? nil : config.database
+        // Reload 同时刷新可切换的库/schema 列表（保留当前活动选择），使新建库/schema 可见。
+        await refreshSchemaLists()
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let database: String? = config.type == .sqlite ? nil : (activeDatabase ?? config.database)
+        let schema: String? = config.type == .postgresql ? activeSchema : nil
         for kind in config.type.sidebarObjectKinds {
             guard isCurrentConnection(generation, configId: config.id) else { return }
             // 这是用户可见的 Reload：必须绕过缓存重新读库，
@@ -1311,11 +1329,94 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 for: config,
                 kind: kind,
                 database: database,
-                schema: nil,
+                schema: schema,
                 connection: connection,
                 refresh: true
             )
         }
+    }
+
+    /// 清空库/schema 上下文（连接切换/断开时调用，避免旧连接的库/schema 泄漏到新连接）。
+    private func resetSchemaContext() {
+        activeDatabase = nil
+        activeSchema = nil
+        availableDatabases = []
+        availableSchemas = []
+        isLoadingSchemaContext = false
+    }
+
+    /// 确立当前连接的库/schema 上下文：活动库默认取连接配置，PG 活动 schema 默认 public
+    /// （不存在时取首个），并加载可切换列表。
+    private func loadSchemaContext() async {
+        let generation = connectionGeneration
+        guard let config = selectedConfig, config.type == .mysql || config.type == .postgresql else { return }
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        isLoadingSchemaContext = true
+        defer { isLoadingSchemaContext = false }
+        activeDatabase = config.database
+        activeSchema = config.type == .postgresql ? "public" : nil
+        await refreshSchemaLists()
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        if config.type == .postgresql, let schema = activeSchema, !availableSchemas.contains(schema) {
+            activeSchema = availableSchemas.contains("public") ? "public" : availableSchemas.first
+        }
+    }
+
+    /// 重新加载可切换的库列表（MySQL/PG）与 schema 列表（PG），保留当前活动库/schema 选择。
+    /// 供 Reload 与切换后刷新使用，使外部新建的库/schema 进入选择菜单。
+    private func refreshSchemaLists() async {
+        let generation = connectionGeneration
+        guard let config = selectedConfig, config.type == .mysql || config.type == .postgresql else { return }
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        if let databases = try? await schemaCache.loadDatabases(for: config, connection: connection, refresh: true) {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            availableDatabases = databases
+        }
+        if config.type == .postgresql {
+            if let schemas = try? await schemaCache.loadSchemas(for: config, database: activeDatabase ?? config.database, connection: connection, refresh: true) {
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                availableSchemas = schemas
+            }
+        } else {
+            availableSchemas = []
+        }
+    }
+
+    /// 切换活动库（MySQL/PG）：库名在连接时绑定，故以新库名重连（保留编辑器文本，
+    /// 清掉旧库的打开表上下文）。不改动已保存的连接配置，切换仅是会话级上下文。
+    public func switchDatabase(_ database: String) async {
+        guard let config = selectedConfig, config.type == .mysql || config.type == .postgresql else { return }
+        guard !database.isEmpty, database != (activeDatabase ?? config.database) else { return }
+        var updated = config
+        updated.database = database
+        openTableObject = nil
+        selectedTableSchema = nil
+        await connect(config: updated, isReconnect: true)
+    }
+
+    /// 切换活动 schema（PG）：下发 SET search_path 使未限定查询跟随，再刷新对象树。
+    /// search_path 是会话上下文而非数据写，直接经连接下发（不经写闸门），readOnly 亦允许。
+    public func switchSchema(_ schema: String) async {
+        guard let config = selectedConfig, config.type == .postgresql else { return }
+        guard !schema.isEmpty, schema != activeSchema else { return }
+        let generation = connectionGeneration
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let quoted = Self.quoteIdentifier(schema, for: .postgresql)
+        do {
+            _ = try await connection.execute("SET search_path TO \(quoted)", params: nil)
+        } catch {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            presentError(error)
+            return
+        }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        activeSchema = schema
+        openTableObject = nil
+        selectedTableSchema = nil
+        await refreshSidebarObjects()
     }
 
     /// 统一打开一个数据库对象。表/视图进入分页浏览主区；其它对象暂不处理。

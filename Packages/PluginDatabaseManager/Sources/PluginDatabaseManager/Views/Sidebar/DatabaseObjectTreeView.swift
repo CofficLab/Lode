@@ -26,6 +26,10 @@ struct DatabaseObjectTreeView: View {
                 toggleMode: viewModel.sidebarMode
             )
 
+            if let config = viewModel.selectedConfig, config.type == .mysql || config.type == .postgresql {
+                schemaContextBar(config)
+            }
+
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
@@ -78,6 +82,86 @@ struct DatabaseObjectTreeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: - Schema Context Bar
+
+    /// 库/schema 切换条：MySQL/PG 显示库选择，PG 额外显示 schema 选择。
+    /// 切换后对象树与查询上下文跟随 ``DatabaseViewModel/activeDatabase``/``DatabaseViewModel/activeSchema``。
+    @ViewBuilder
+    private func schemaContextBar(_ config: DatabaseConfig) -> some View {
+        HStack(spacing: 6) {
+            contextMenu(
+                title: viewModel.activeDatabase ?? config.database,
+                systemImage: "cylinder",
+                items: viewModel.availableDatabases,
+                selection: viewModel.activeDatabase ?? config.database
+            ) { database in
+                Task { await viewModel.switchDatabase(database) }
+            }
+            if config.type == .postgresql {
+                contextMenu(
+                    title: viewModel.activeSchema ?? "public",
+                    systemImage: "square.stack.3d.down.right",
+                    items: viewModel.availableSchemas,
+                    selection: viewModel.activeSchema ?? "public"
+                ) { schema in
+                    Task { await viewModel.switchSchema(schema) }
+                }
+            }
+            if viewModel.isLoadingSchemaContext {
+                ProgressView()
+                    .controlSize(.mini)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.bottom, 6)
+    }
+
+    /// 单个上下文选择菜单：列出可选项，当前项打勾，点击触发切换。
+    @ViewBuilder
+    private func contextMenu(
+        title: String,
+        systemImage: String,
+        items: [String],
+        selection: String,
+        onSelect: @escaping (String) -> Void
+    ) -> some View {
+        Menu {
+            if items.isEmpty {
+                Text(pluginLocalization.string("None available"))
+            } else {
+                ForEach(items, id: \.self) { item in
+                    Button {
+                        onSelect(item)
+                    } label: {
+                        if item == selection {
+                            Label(item, systemImage: "checkmark")
+                        } else {
+                            Text(item)
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 10))
+                Text(title)
+                    .font(.appCaption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8))
+            }
+            .foregroundStyle(theme.textSecondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(theme.appSubtleBorder, in: .rect(cornerRadius: 6))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
     // MARK: - Derived
 
     private var headerTitle: String {
@@ -98,8 +182,8 @@ struct DatabaseObjectTreeView: View {
             let key = SchemaCacheService.CacheKey(
                 configId: config.id,
                 kind: kind,
-                database: config.type == .sqlite ? nil : config.database,
-                schema: nil
+                database: config.type == .sqlite ? nil : (viewModel.activeDatabase ?? config.database),
+                schema: config.type == .postgresql ? viewModel.activeSchema : nil
             )
             let objects = (viewModel.schemaCache.objectsByKey[key] ?? []).filter(predicate)
             if objects.isEmpty { continue }
