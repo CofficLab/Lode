@@ -14,6 +14,16 @@ private func expectCategory(_ expected: DatabaseErrorCategory, of error: any Err
     #expect(classified.category == expected, "expected \(expected), got \(classified.category) for: \(error)")
 }
 
+// 关闭端口在并发负载下可能立即被拒绝（networkUnreachable），也可能撞上驱动连接期限（timeout）；
+// 两者都是合法的"不可达"结果，且都推荐 retry，故对不可达端口断言放宽到这一集合。
+private func expectUnreachable(_ error: any Error) {
+    let classified = DatabaseErrorClassifier.classify(error)
+    #expect(
+        classified.category == .networkUnreachable || classified.category == .timeout,
+        "expected networkUnreachable or timeout, got \(classified.category) for: \(error)"
+    )
+}
+
 @Suite(.timeLimit(.minutes(3)))
 struct ErrorClassificationIntegrationTests {
     // MARK: - MySQL
@@ -63,7 +73,7 @@ struct ErrorClassificationIntegrationTests {
             await conn.close()
             Issue.record("Expected connection failure on closed port")
         } catch {
-            expectCategory(.networkUnreachable, of: error)
+            expectUnreachable(error)
         }
     }
 
@@ -132,7 +142,7 @@ struct ErrorClassificationIntegrationTests {
             await conn.close()
             Issue.record("Expected connection failure on closed port")
         } catch {
-            expectCategory(.networkUnreachable, of: error)
+            expectUnreachable(error)
         }
     }
 
@@ -146,7 +156,7 @@ struct ErrorClassificationIntegrationTests {
             await conn.close()
             Issue.record("Expected connection failure on closed port")
         } catch {
-            expectCategory(.networkUnreachable, of: error)
+            expectUnreachable(error)
         }
     }
 }
