@@ -23,6 +23,9 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     @Published public private(set) var classifiedError: ClassifiedDatabaseError?
     /// 待编辑的连接；错误恢复动作「编辑连接」会置位并弹出表单。
     @Published public var configPendingEdit: DatabaseConfig?
+    /// 连接级 startup SQL 执行失败的非阻塞提示（连接本身仍成功）。nil 表示无提示。
+    /// 与 ``errorMessage`` 区分：后者意味着查询/连接失败，前者仅是会话引导脚本未跑通。
+    @Published public private(set) var startupSQLNotice: String?
     @Published var isConnected: Bool = false
     @Published var isLoading: Bool = false
     @Published var redisKeys: [String] = []
@@ -404,6 +407,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
         isLoading = true
         errorMessage = nil
+        startupSQLNotice = nil
         do {
             _ = try await manager.connect(config: config)
             // 连接期间用户已切换/断开：回收刚建立的连接，不再写任何状态。
@@ -474,6 +478,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 }
             }
 
+            // 连接级 startup SQL：用户为该连接编写的会话引导脚本，连接成功后执行。
+            // 放在库/schema 上下文与对象树预加载之前，使脚本建立的会话状态/对象能被后续读取反映。
+            await runStartupSQL(for: config, generation: generation)
+            guard connectionGeneration == generation else { return }
+
             // 先确立库/schema 上下文（MySQL/PG 多库、PG 多 schema），再据此预加载对象树。
             await loadSchemaContext()
             // 为侧边栏对象树预加载可见分类（表/视图/例程），MySQL/PG 由此不再空白。
@@ -509,6 +518,39 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         isLoading = false
     }
 
+    /// 执行连接级 startup SQL（会话引导脚本）。这是用户为该连接显式编写的初始化语句，
+    /// 连接成功后经连接直接下发（不经交互式写闸门），与 schema 切换的 `SET search_path` 同理。
+    /// 任一语句失败即停止并置 ``startupSQLNotice``，但**不** teardown 连接——连接本身已成功。
+    /// SQL 引擎按 ``SQLStatementParser/split(_:)`` 切分；Redis 按换行逐条命令执行。
+    private func runStartupSQL(for config: DatabaseConfig, generation: Int) async {
+        guard let sql = config.startupSQL, !sql.isEmpty else { return }
+        guard let connection = await manager.getConnection(for: config.id) else { return }
+        guard isCurrentConnection(generation, configId: config.id) else { return }
+        let statements: [String]
+        if config.type == .redis {
+            statements = sql.split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+        } else {
+            statements = SQLStatementParser.split(sql)
+        }
+        for statement in statements {
+            guard isCurrentConnection(generation, configId: config.id) else { return }
+            do {
+                _ = try await connection.query(statement, params: nil)
+            } catch {
+                guard isCurrentConnection(generation, configId: config.id) else { return }
+                startupSQLNotice = String(format: pluginLocalization.string("Startup SQL failed: %@"), error.localizedDescription)
+                return
+            }
+        }
+    }
+
+    /// 关闭 startup SQL 失败提示（界面横幅的关闭按钮调用）。
+    public func dismissStartupSQLNotice() {
+        startupSQLNotice = nil
+    }
+
     public func disconnect() async {
         guard let config = selectedConfig else { return }
         stopHeartbeat()
@@ -525,6 +567,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         isLoading = false
         selectedConfig = nil
         connectedConfigId = nil
+        startupSQLNotice = nil
         queryResult = nil
         multiExecutions = []
         selectedExecutionIndex = 0

@@ -80,30 +80,62 @@ public struct MainView: View {
 
     @ViewBuilder
     private var connectedContent: some View {
-        if viewModel.openTableObject != nil {
-            // 从侧边栏打开了表/视图 → 统一分页浏览
-            TableDataView(viewModel: viewModel)
-        } else if viewModel.selectedRedisKey != nil {
-            // 从键树打开了 Redis 键 → 类型化查看/编辑面板
-            RedisKeyDetailView(viewModel: viewModel)
-        } else {
-            VStack(spacing: 0) {
-                QueryTabStrip(viewModel: viewModel)
-                AppDivider()
-                sqlFileConflictBanner
-                largeDocumentNotice
-                queryEditor
-                sqlDiagnosticsStrip
-                if !viewModel.activeParameterNames.isEmpty {
-                    QueryParameterPanel(viewModel: viewModel)
+        VStack(spacing: 0) {
+            startupSQLNoticeBanner
+            if viewModel.openTableObject != nil {
+                // 从侧边栏打开了表/视图 → 统一分页浏览
+                TableDataView(viewModel: viewModel)
+            } else if viewModel.selectedRedisKey != nil {
+                // 从键树打开了 Redis 键 → 类型化查看/编辑面板
+                RedisKeyDetailView(viewModel: viewModel)
+            } else {
+                VStack(spacing: 0) {
+                    QueryTabStrip(viewModel: viewModel)
                     AppDivider()
+                    sqlFileConflictBanner
+                    largeDocumentNotice
+                    queryEditor
+                    sqlDiagnosticsStrip
+                    if !viewModel.activeParameterNames.isEmpty {
+                        QueryParameterPanel(viewModel: viewModel)
+                        AppDivider()
+                    }
+                    toolbar
+                    AppDivider()
+                    QueryResultSectionView(viewModel: viewModel)
+                        .frame(maxHeight: .infinity, alignment: .top)
                 }
-                toolbar
-                AppDivider()
-                QueryResultSectionView(viewModel: viewModel)
-                    .frame(maxHeight: .infinity, alignment: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// 连接级 startup SQL 失败提示：连接已成功，仅会话引导脚本未跑通，故用 warning 语义色
+    /// 自绘可关闭横幅（AppErrorBanner 无关闭按钮，且其 error 语义会误导为连接失败）。
+    @ViewBuilder
+    private var startupSQLNoticeBanner: some View {
+        if let notice = viewModel.startupSQLNotice {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(theme.warning)
+                Text(notice)
+                    .font(.appCaption)
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(2)
+                Spacer(minLength: 8)
+                AppIconButton(
+                    systemImage: "xmark",
+                    label: pluginLocalization.string("Dismiss"),
+                    size: .compact,
+                    action: { viewModel.dismissStartupSQLNotice() }
+                )
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(theme.warning.opacity(0.1))
+            AppDivider()
         }
     }
 

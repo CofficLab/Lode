@@ -27,6 +27,9 @@ struct ConnectionFormView: View {
     @State private var sqlitePath = ""
     @State private var sslOption: ConnectionSSLOption = .require
     @State private var safeMode: ConnectionSafeMode = .off
+    @State private var group = ""
+    @State private var color: ConnectionColor = .none
+    @State private var startupSQL = ""
     @State private var sshEnabled = false
     @State private var sshHost = ""
     @State private var sshPortText = ""
@@ -93,13 +96,15 @@ struct ConnectionFormView: View {
                     }
 
                     safeModePicker
+                    organizationSection
+                    startupSQLSection
                 }
             }
 
             HStack {
                 AppButton(pluginLocalization.string("Cancel"), style: .ghost, fillsWidth: true, action: { isPresented = false })
-                AppButton(pluginLocalization.string("Test Connection"), style: .secondary, fillsWidth: true, action: testConnection)
-                    .disabled(!canTestConnection())
+                AppButton(isTesting ? pluginLocalization.string("Testing…") : pluginLocalization.string("Test Connection"), style: .secondary, fillsWidth: true, action: testConnection)
+                    .disabled(!canTestConnection() || isTesting)
                 AppButton(saveLabel, style: .primary, fillsWidth: true, action: save)
                     .disabled(!isValid())
             }
@@ -238,6 +243,66 @@ struct ConnectionFormView: View {
         }
     }
 
+    /// 组织：分组名（侧边栏分区）+ 颜色标签（连接行彩色圆点）。适用于所有引擎。
+    @ViewBuilder
+    private var organizationSection: some View {
+        GlassTextField(title: pluginLocalization.string("Group"), text: $group, placeholder: pluginLocalization.string("Optional, e.g. Production"))
+        HStack {
+            Text(pluginLocalization.string("Color"))
+                .foregroundColor(theme.textSecondary)
+            Spacer()
+            Picker("", selection: $color) {
+                ForEach(ConnectionColor.allCases, id: \.self) { option in
+                    HStack(spacing: 6) {
+                        if let swatch = themeColor(for: option) {
+                            Circle().fill(swatch).frame(width: 8, height: 8)
+                        } else {
+                            Circle().stroke(theme.appSubtleBorder, lineWidth: 1).frame(width: 8, height: 8)
+                        }
+                        Text(pluginLocalization.string(option.displayTitle))
+                    }
+                    .tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 160)
+        }
+    }
+
+    /// 连接级 startup SQL：每次连接成功后自动执行的会话引导脚本（可多语句）。
+    @ViewBuilder
+    private var startupSQLSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(pluginLocalization.string("Startup SQL"))
+                .font(.appCaption)
+                .foregroundColor(theme.textSecondary)
+            Text(pluginLocalization.string("Runs after each successful connection. Failures don't block the connection."))
+                .font(.appMicro)
+                .foregroundColor(theme.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextEditor(text: $startupSQL)
+                .font(.appBody)
+                .scrollContentBackground(.hidden)
+                .padding(6)
+                .frame(height: 72)
+                .background(theme.surface, in: .rect(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.appSubtleBorder, lineWidth: 1))
+        }
+    }
+
+    /// 颜色标签 → LumiUI 主题语义色（与侧边栏连接行圆点一致）。
+    private func themeColor(for color: ConnectionColor) -> Color? {
+        switch color {
+        case .none: return nil
+        case .blue: return theme.primary
+        case .green: return theme.success
+        case .orange: return theme.warning
+        case .red: return theme.error
+        case .purple: return theme.primarySecondary
+        case .cyan: return theme.info
+        }
+    }
+
     // MARK: - Derived
 
     private var title: String {
@@ -298,6 +363,9 @@ struct ConnectionFormView: View {
             clientKeyPath = tls.clientKeyPath ?? ""
         }
         safeMode = editing.safeMode
+        group = editing.group ?? ""
+        color = editing.connectionColor
+        startupSQL = editing.startupSQL ?? ""
         if let ssh = editing.sshConfig {
             sshEnabled = true
             sshHost = ssh.host
@@ -418,6 +486,10 @@ struct ConnectionFormView: View {
         }
         // 安全模式适用于所有引擎（off 档移除该键，回退默认）。
         config = config.withSafeMode(safeMode)
+        // 组织选项（分组/颜色/startup SQL）适用于所有引擎；空值移除对应键。
+        config = config.withGroup(group)
+        config = config.withConnectionColor(color)
+        config = config.withStartupSQL(startupSQL)
         return config
     }
 }

@@ -40,9 +40,14 @@ struct ConnectionsListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 4) {
-                        ForEach(viewModel.configs, id: \.id) { config in
-                            connectionRow(config)
+                    LazyVStack(alignment: .leading, spacing: 4) {
+                        ForEach(connectionSections) { section in
+                            if let title = section.title {
+                                sectionHeader(title)
+                            }
+                            ForEach(section.configs, id: \.id) { config in
+                                connectionRow(config)
+                            }
                         }
                     }
                     .padding(.horizontal, 8)
@@ -110,6 +115,54 @@ struct ConnectionsListView: View {
 
     // MARK: - Row
 
+    /// 侧边栏分区：未分组连接在前（无标题），命名分组按字母序在后，各带一个分区标题。
+    private struct ConnectionSection: Identifiable {
+        let id: String
+        let title: String?
+        let configs: [DatabaseConfig]
+    }
+
+    private var connectionSections: [ConnectionSection] {
+        let ungrouped = viewModel.configs.filter { $0.group == nil }
+        let grouped = Dictionary(grouping: viewModel.configs.filter { $0.group != nil }, by: { $0.group! })
+        var sections: [ConnectionSection] = []
+        if !ungrouped.isEmpty {
+            sections.append(ConnectionSection(id: "\u{0}ungrouped", title: nil, configs: ungrouped))
+        }
+        for name in grouped.keys.sorted(by: { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }) {
+            sections.append(ConnectionSection(id: name, title: name, configs: grouped[name] ?? []))
+        }
+        return sections
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "folder")
+                .font(.system(size: 9, weight: .semibold))
+            Text(title)
+                .font(.appMicroEmphasized)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(theme.textTertiary)
+        .padding(.horizontal, 6)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
+    }
+
+    /// 颜色标签 → LumiUI 主题语义色（none 不显示圆点）。
+    private func themeColor(for color: ConnectionColor) -> Color? {
+        switch color {
+        case .none: return nil
+        case .blue: return theme.primary
+        case .green: return theme.success
+        case .orange: return theme.warning
+        case .red: return theme.error
+        case .purple: return theme.primarySecondary
+        case .cyan: return theme.info
+        }
+    }
+
     private func connectionRow(_ config: DatabaseConfig) -> some View {
         let isSelected = viewModel.selectedConfig?.id == config.id
         let isConnected = isSelected && viewModel.isConnected
@@ -118,6 +171,12 @@ struct ConnectionsListView: View {
             Task { await viewModel.connect(config: config) }
         }) {
             HStack(spacing: 8) {
+                if let dotColor = themeColor(for: config.connectionColor) {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 7, height: 7)
+                        .help(pluginLocalization.string(config.connectionColor.displayTitle))
+                }
                 Image(systemName: icon(for: config.type))
                     .foregroundStyle(.secondary)
 
