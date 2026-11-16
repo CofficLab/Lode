@@ -301,7 +301,16 @@ public final class RedisDriver: DatabaseDriver, Sendable {
     }
 }
 
-public actor RedisConnection: DatabaseConnection {
+/// 增量扫描能力：暴露 SCAN 游标以便键空间分页浏览。
+///
+/// 包装连接（``SafeModeConnection`` / ``TunneledConnection``）须把本协议转发到内层
+/// Redis 连接，使键浏览器在安全模式/SSH 隧道下也能取到游标——避免对具体
+/// `RedisConnection` 类型做脆弱 cast。SCAN 是读命令，转发无需写闸门。
+protocol RedisCursorScanning: AnyObject {
+    func scanKeys(cursor: String, match: String?, count: Int) async throws -> (nextCursor: String, keys: [String])
+}
+
+public actor RedisConnection: DatabaseConnection, RedisCursorScanning {
     private let connection: NWConnection
     private var alive = false
     private var cancelRequested = false
@@ -408,61 +417,7 @@ public actor RedisConnection: DatabaseConnection {
         let args = try RedisCommandArguments.compose(command: sql, params: params)
         let command = args.first?.uppercased() ?? ""
         let response = try await send(args)
-
-        switch command {
-        case "GET":
-            let key = args.count > 1 ? args[1] : ""
-            let value: DatabaseValue
-            switch response {
-            case .bulkString(let data):
-                value = RedisValueConverter.databaseValue(fromBulkString: data)
-            case .simpleString(let string):
-                value = .string(string)
-            case .integer(let integer):
-                value = .integer(integer)
-            case .error(let error):
-                throw DatabaseError.queryFailed(error)
-            default:
-                value = .string("\(response)")
-            }
-            return QueryResult(columns: ["Key", "Value"], rows: [[.string(key), value]], rowsAffected: 0)
-
-        case "SCAN":
-            var keys: [String] = []
-            if case .array(let outer?) = response,
-               outer.count >= 2,
-               case .array(let inner?) = outer[1] {
-                keys = inner.compactMap { value in
-                    if case .bulkString(let data?) = value {
-                        return String(data: data, encoding: .utf8)
-                    }
-                    return nil
-                }
-            }
-            return QueryResult(columns: ["Key"], rows: keys.map { [.string($0)] }, rowsAffected: 0)
-
-        default:
-            switch response {
-            case .array(let values):
-                return QueryResult(
-                    columns: ["Value"],
-                    rows: flattenArray(values ?? []).map { [$0] },
-                    rowsAffected: 0
-                )
-            case .bulkString(let data):
-                return QueryResult(
-                    columns: ["Value"],
-                    rows: [[RedisValueConverter.databaseValue(fromBulkString: data)]],
-                    rowsAffected: 0
-                )
-            case .simpleString(let value):
-                return QueryResult(columns: ["Value"], rows: [[.string(value)]], rowsAffected: 0)
-            case .integer(let value):
-                return QueryResult(columns: ["Value"], rows: [[.integer(value)]], rowsAffected: 0)
-            case .error(let error):
-                throw DatabaseError.queryFailed(error)
-            }
-        }
+        return try RedisQueryResultShaper.shape(command: command, args: args, response: response)
     }
 
     public func beginTransaction() async throws -> any DatabaseTransaction {
@@ -576,25 +531,6 @@ public actor RedisConnection: DatabaseConnection {
 
     private func markDead() {
         alive = false
-    }
-
-    private func flattenArray(_ values: [RespValue]) -> [DatabaseValue] {
-        var flattened: [DatabaseValue] = []
-        for value in values {
-            switch value {
-            case .bulkString(let data):
-                flattened.append(RedisValueConverter.databaseValue(fromBulkString: data))
-            case .simpleString(let string):
-                flattened.append(.string(string))
-            case .integer(let integer):
-                flattened.append(.integer(integer))
-            case .array(let nested):
-                flattened.append(contentsOf: flattenArray(nested ?? []))
-            case .error(let error):
-                flattened.append(.string("ERR: \(error)"))
-            }
-        }
-        return flattened
     }
 
     func sendCommand(_ args: [String]) async throws -> RespValue {

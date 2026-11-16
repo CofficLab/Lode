@@ -104,3 +104,13 @@ final class TunneledConnection: DatabaseConnection, @unchecked Sendable {
 
     func cancel() async { await wrapped.cancel() }
 }
+
+/// SCAN 游标转发到隧道内层连接，使键浏览器在 SSH 隧道下也能分页扫描。
+extension TunneledConnection: RedisCursorScanning {
+    func scanKeys(cursor: String, match: String?, count: Int) async throws -> (nextCursor: String, keys: [String]) {
+        guard let inner = wrapped as? RedisCursorScanning else {
+            throw DatabaseError.queryFailed("Underlying connection does not support Redis SCAN")
+        }
+        return try await inner.scanKeys(cursor: cursor, match: match, count: count)
+    }
+}

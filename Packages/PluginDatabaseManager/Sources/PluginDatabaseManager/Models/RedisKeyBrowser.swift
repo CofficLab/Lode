@@ -1,0 +1,230 @@
+import Foundation
+
+/// Redis 键的数据类型，对应 `TYPE` 命令的返回值。
+public enum RedisKeyType: String, Sendable, CaseIterable, Equatable {
+    case string
+    case hash
+    case list
+    case set
+    case zset
+    case stream
+    /// 键不存在（TYPE 返回 "none"）。
+    case none
+    /// 无法识别的类型（模块自定义类型等），保守归一。
+    case unknown
+
+    /// 由 TYPE 命令的原始字符串构造；未知值归 ``unknown``。
+    public init(commandResult raw: String) {
+        self = RedisKeyType(rawValue: raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) ?? .unknown
+    }
+
+    public var displayTitle: String {
+        switch self {
+        case .string: return "String"
+        case .hash: return "Hash"
+        case .list: return "List"
+        case .set: return "Set"
+        case .zset: return "Sorted Set"
+        case .stream: return "Stream"
+        case .none: return "None"
+        case .unknown: return "Unknown"
+        }
+    }
+
+    public var systemImage: String {
+        switch self {
+        case .string: return "textformat"
+        case .hash: return "tablecells"
+        case .list: return "list.bullet"
+        case .set: return "circle.grid.2x2"
+        case .zset: return "list.number"
+        case .stream: return "waveform"
+        case .none: return "questionmark"
+        case .unknown: return "questionmark.circle"
+        }
+    }
+}
+
+/// 键元信息：类型 + TTL（秒）。`ttl == -1` 表示永不过期，`-2` 表示键已不存在。
+public struct RedisKeyInfo: Sendable, Equatable, Identifiable {
+    public var key: String
+    public var type: RedisKeyType
+    public var ttl: Int
+
+    public init(key: String, type: RedisKeyType, ttl: Int) {
+        self.key = key
+        self.type = type
+        self.ttl = ttl
+    }
+
+    public var id: String { key }
+    public var hasExpiry: Bool { ttl >= 0 }
+}
+
+/// 命名空间键树节点：按分隔符（默认 `:`）聚合扁平键列表得到的折叠树。
+/// 分支节点 ``fullKey`` 为 nil；叶子节点携带完整键名。
+public struct RedisKeyTreeNode: Identifiable, Equatable, Sendable {
+    public var id: String
+    public var name: String
+    public var fullKey: String?
+    public var children: [RedisKeyTreeNode]
+    /// 子树内叶子键的数量（含本节点若为叶子）。
+    public var keyCount: Int
+
+    public init(id: String, name: String, fullKey: String?, children: [RedisKeyTreeNode], keyCount: Int) {
+        self.id = id
+        self.name = name
+        self.fullKey = fullKey
+        self.children = children
+        self.keyCount = keyCount
+    }
+
+    public var isLeaf: Bool { fullKey != nil }
+}
+
+/// 把扁平键列表聚合成命名空间树（纯函数，确定性排序，便于快照测试）。
+public enum RedisKeyTreeBuilder {
+    public static func build(keys: [String], separator: String = ":") -> [RedisKeyTreeNode] {
+        final class Trie {
+            var children: [String: Trie] = [:]
+            var fullKey: String?
+        }
+
+        let root = Trie()
+        // 去重，避免重复键产生重复叶子。
+        for key in Set(keys) {
+            var node = root
+            for part in key.components(separatedBy: separator) {
+                if let existing = node.children[part] {
+                    node = existing
+                } else {
+                    let child = Trie()
+                    node.children[part] = child
+                    node = child
+                }
+            }
+            node.fullKey = key
+        }
+
+        func convert(_ trie: Trie, name: String, path: String) -> RedisKeyTreeNode {
+            let children = trie.children
+                .map { childName, childTrie -> RedisKeyTreeNode in
+                    let childPath = path.isEmpty ? childName : path + separator + childName
+                    return convert(childTrie, name: childName, path: childPath)
+                }
+                .sorted { lhs, rhs in
+                    // 分支（命名空间）排在叶子键之前，组内按名称升序，保证确定性。
+                    if lhs.isLeaf != rhs.isLeaf { return !lhs.isLeaf }
+                    return lhs.name < rhs.name
+                }
+            let selfLeaf = trie.fullKey != nil ? 1 : 0
+            let count = selfLeaf + children.reduce(0) { $0 + $1.keyCount }
+            return RedisKeyTreeNode(
+                id: path,
+                name: name,
+                fullKey: trie.fullKey,
+                children: children,
+                keyCount: count
+            )
+        }
+
+        return root.children
+            .map { name, trie in convert(trie, name: name, path: name) }
+            .sorted { lhs, rhs in
+                if lhs.isLeaf != rhs.isLeaf { return !lhs.isLeaf }
+                return lhs.name < rhs.name
+            }
+    }
+}
+
+/// Hash 字段 / Stream 字段键值对。
+public struct RedisHashEntry: Sendable, Equatable {
+    public var field: String
+    public var value: DatabaseValue
+
+    public init(field: String, value: DatabaseValue) {
+        self.field = field
+        self.value = value
+    }
+}
+
+/// Sorted Set 成员及其分数。
+public struct RedisZSetEntry: Sendable, Equatable {
+    public var member: DatabaseValue
+    public var score: Double
+
+    public init(member: DatabaseValue, score: Double) {
+        self.member = member
+        self.score = score
+    }
+}
+
+/// Stream 条目：ID + 字段键值对。
+public struct RedisStreamEntry: Sendable, Equatable {
+    public var id: String
+    public var fields: [RedisHashEntry]
+
+    public init(id: String, fields: [RedisHashEntry]) {
+        self.id = id
+        self.fields = fields
+    }
+}
+
+/// 类型化的键值，供查看/编辑器按类型渲染。
+public enum RedisKeyValue: Sendable, Equatable {
+    case string(DatabaseValue)
+    case hash([RedisHashEntry])
+    case list([DatabaseValue])
+    case set([DatabaseValue])
+    case zset([RedisZSetEntry])
+    case stream([RedisStreamEntry])
+
+    /// 由驱动整形后的 ``QueryResult`` 还原类型化值。
+    /// 列约定：HGETALL=Field/Value，ZRANGE WITHSCORES=Member/Score，XRANGE=ID/Field/Value。
+    public static func from(type: RedisKeyType, result: QueryResult) -> RedisKeyValue {
+        func column(_ row: [DatabaseValue], _ index: Int) -> DatabaseValue {
+            index < row.count ? row[index] : .null
+        }
+        func text(_ value: DatabaseValue) -> String {
+            if case .string(let s) = value { return s }
+            return value.description
+        }
+        func score(_ value: DatabaseValue) -> Double {
+            switch value {
+            case .double(let d): return d
+            case .integer(let i): return Double(i)
+            case .string(let s): return Double(s) ?? 0
+            default: return 0
+            }
+        }
+
+        switch type {
+        case .string:
+            // GET 整形为 Key/Value 两列，值在第 1 列。
+            let value = result.rows.first.map { column($0, 1) } ?? .null
+            return .string(value)
+        case .hash:
+            return .hash(result.rows.map { RedisHashEntry(field: text(column($0, 0)), value: column($0, 1)) })
+        case .list:
+            return .list(result.rows.map { column($0, 0) })
+        case .set:
+            return .set(result.rows.map { column($0, 0) })
+        case .zset:
+            return .zset(result.rows.map { RedisZSetEntry(member: column($0, 0), score: score(column($0, 1))) })
+        case .stream:
+            var entries: [RedisStreamEntry] = []
+            for row in result.rows {
+                let id = text(column(row, 0))
+                let field = RedisHashEntry(field: text(column(row, 1)), value: column(row, 2))
+                if let last = entries.last, last.id == id {
+                    entries[entries.count - 1].fields.append(field)
+                } else {
+                    entries.append(RedisStreamEntry(id: id, fields: [field]))
+                }
+            }
+            return .stream(entries)
+        case .none, .unknown:
+            return .string(.null)
+        }
+    }
+}

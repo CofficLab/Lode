@@ -45,6 +45,16 @@ final class SafeModeConnection: DatabaseConnection, @unchecked Sendable {
     }
 }
 
+/// SCAN 游标转发：读命令，无需写闸门；内层非 Redis 时不支持。
+extension SafeModeConnection: RedisCursorScanning {
+    func scanKeys(cursor: String, match: String?, count: Int) async throws -> (nextCursor: String, keys: [String]) {
+        guard let inner = wrapped as? RedisCursorScanning else {
+            throw DatabaseError.queryFailed("Underlying connection does not support Redis SCAN")
+        }
+        return try await inner.scanKeys(cursor: cursor, match: match, count: count)
+    }
+}
+
 /// readOnly 连接的事务包装：事务内写语句同样被拒绝，commit/rollback 透传。
 final class SafeModeTransaction: DatabaseTransaction, @unchecked Sendable {
     private let wrapped: any DatabaseTransaction
