@@ -6,8 +6,17 @@ public actor DatabaseManagerCore {
     private var drivers: [DatabaseType: any DatabaseDriver] = [:]
     private var activeConnections: [UUID: any DatabaseConnection] = [:]
     private var pools: [UUID: ConnectionPool] = [:]
+    private var builtinsRegistered = false
 
     public init() {}
+
+    /// 标记内置驱动已注册；仅首次返回 true。状态随 manager 实例存亡，
+    /// 避免用全局 ObjectIdentifier 集合时地址复用导致新 manager 误判「已注册」。
+    func markBuiltinsRegistered() -> Bool {
+        if builtinsRegistered { return false }
+        builtinsRegistered = true
+        return true
+    }
 
     public func register(driver: any DatabaseDriver) {
         drivers[driver.type] = driver
