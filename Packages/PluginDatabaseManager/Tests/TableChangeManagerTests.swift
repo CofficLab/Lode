@@ -44,7 +44,10 @@ struct TableChangeManagerTests {
         #expect(parseEditedCellValue("42", columnType: "TEXT") == .string("42"))
         #expect(parseEditedCellValue("3.14", columnType: "numeric(10,2)") == .double(3.14))
         #expect(parseEditedCellValue("true", columnType: "boolean") == .bool(true))
-        #expect(parseEditedCellValue("1", columnType: "tinyint(1)") == .integer(1))
+        // MySQL 用 tinyint(1) 表示 BOOLEAN：按布尔解析，true/false/1/0 都绑定为 1/0。
+        #expect(parseEditedCellValue("1", columnType: "tinyint(1)") == .bool(true))
+        #expect(parseEditedCellValue("false", columnType: "tinyint(1)") == .bool(false))
+        #expect(parseEditedCellValue("1", columnType: "tinyint(4)") == .integer(1))
     }
 
     @Test("无列类型时沿用原值类型，文本不被误转数字")

@@ -37,9 +37,15 @@ public enum CellColumnTypeFamily: Sendable {
 
     /// 从 catalog 报告的类型名归类（忽略长度/精度修饰符与 unsigned 等后缀）。
     public init(dataType: String) {
-        let base = dataType.lowercased()
+        let lowered = dataType.lowercased()
+        let base = lowered
             .split(separator: "(").first.map(String.init)?
             .trimmingCharacters(in: .whitespaces) ?? ""
+        // MySQL 以 tinyint(1) 表示 BOOLEAN；归为布尔才能把 true/false 绑定为 1/0。
+        if base == "tinyint", lowered.contains("(1)") {
+            self = .boolean
+            return
+        }
         switch base {
         case "int", "integer", "smallint", "bigint", "tinyint", "mediumint",
              "int2", "int4", "int8", "serial", "bigserial", "smallserial", "year":

@@ -262,8 +262,10 @@ public struct MySQLIntrospector: DatabaseIntrospector {
             return TableSchema(table: object, columns: [])
         }
         let qualified = "`\(Self.escape(database))`.`\(Self.escape(object.name))`"
+        // column_type 带长度/精度修饰符（如 tinyint(1)、varchar(255)）；
+        // data_type 只有裸类型名，会丢掉 MySQL 用 tinyint(1) 表示 BOOLEAN 的约定。
         let sql = """
-        SELECT column_name, data_type, is_nullable, column_default, column_key, column_comment, ordinal_position
+        SELECT column_name, column_type, is_nullable, column_default, column_key, column_comment, ordinal_position
         FROM information_schema.columns
         WHERE table_schema = '\(Self.escape(database))' AND table_name = '\(Self.escape(object.name))'
         ORDER BY ordinal_position;
