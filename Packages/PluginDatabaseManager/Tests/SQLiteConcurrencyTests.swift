@@ -68,6 +68,9 @@ struct SQLiteConcurrencyTests {
                 lockHeld.signal()
                 return
             }
+            // 等待方忙等重试会瞬间持有 SHARED 锁；持有方若无 busy_timeout，
+            // COMMIT 可能立即 BUSY 并在 close 时回滚，丢掉持有行导致计数断言抖动。
+            sqlite3_busy_timeout(db, 5000)
             for sql in [
                 "CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)",
                 "BEGIN IMMEDIATE",
@@ -83,7 +86,10 @@ struct SQLiteConcurrencyTests {
             lockHeld.signal()
             // 150ms 后释放写锁（独立线程，不受协作池调度影响）。
             Thread.sleep(forTimeInterval: 0.15)
-            sqlite3_exec(db, "COMMIT", nil, nil, nil)
+            if sqlite3_exec(db, "COMMIT", nil, nil, nil) != SQLITE_OK {
+                setup.ok = false
+                setup.message = "holder COMMIT failed"
+            }
         }
         holder.name = "lode-sqlite-lock-holder"
         holder.start()
@@ -98,6 +104,7 @@ struct SQLiteConcurrencyTests {
         let affected = try await b.execute("INSERT INTO t (id, v) VALUES (2, 'b')", params: nil)
         #expect(affected == 1)
         await released.wait()
+        try #require(setup.ok, "lock holder failed: \(setup.message)")
 
         let count = try await b.query("SELECT COUNT(*) FROM t", params: nil)
         #expect(count.rows.first?.first == .integer(2))
