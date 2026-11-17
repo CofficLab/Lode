@@ -361,6 +361,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     private var workspacePersistTask: Task<Void, Never>?
     /// 工作区持久化所用的 UserDefaults（测试可注入独立 suite 避免串扰）。
     private let workspaceDefaults: UserDefaults
+    /// 用户选择文件的 security-scoped bookmark（SQL 文件等）：跨重启稳健访问、沙箱就绪。
+    private let fileBookmarks = SecurityScopedBookmarkStore()
     /// 活动标签 SQL 文件的外部变更冲突（驱动 Reload / Save As 横幅）；nil 表示无冲突。
     @Published public private(set) var sqlFileConflict: SQLFileConflict?
     /// SQL 文件外部变更轮询任务（仅连接且活动标签关联文件时实际探测）。
@@ -4074,10 +4076,26 @@ extension DatabaseViewModel {
     }
 
     /// 打开 .sql 文件为新标签并激活（切回编辑器视图）。读取失败走统一错误入口。
+    // MARK: SQL 文件 security-scoped 访问
+
+    /// 经 bookmark 解析并在 security-scoped 访问下读文件（无 bookmark 时回落原始路径）。
+    private func readSQLFile(_ url: URL) throws -> String {
+        try fileBookmarks.accessing(url) { try SQLFileStore.read($0) }
+    }
+
+    private func writeSQLFile(_ text: String, to url: URL) throws {
+        try fileBookmarks.accessing(url) { try SQLFileStore.write(text, to: $0) }
+    }
+
+    private func snapshotSQLFile(_ url: URL) -> SQLFileSnapshot? {
+        fileBookmarks.accessing(url) { SQLFileStore.snapshot(of: $0) }
+    }
+
     public func openSQLFile(at url: URL) {
         do {
-            let text = try SQLFileStore.read(url)
-            let baseline = SQLFileStore.snapshot(of: url)
+            fileBookmarks.remember(url)
+            let text = try readSQLFile(url)
+            let baseline = snapshotSQLFile(url)
             syncActiveSnapshot()
             openTableObject = nil
             let id = workspace.newTab(title: url.lastPathComponent, text: text)
@@ -4112,8 +4130,9 @@ extension DatabaseViewModel {
 
     func writeActiveSQLFile(to url: URL) {
         do {
-            try SQLFileStore.write(queryText, to: url)
-            let baseline = SQLFileStore.snapshot(of: url)
+            fileBookmarks.remember(url)
+            try writeSQLFile(queryText, to: url)
+            let baseline = snapshotSQLFile(url)
             let retitle = workspace.activeTab.fileURL != url
             workspace.updateActive { tab in
                 tab.fileURL = url
@@ -4132,8 +4151,8 @@ extension DatabaseViewModel {
     public func reloadActiveSQLFile() {
         guard let url = workspace.activeTab.fileURL else { return }
         do {
-            let text = try SQLFileStore.read(url)
-            let baseline = SQLFileStore.snapshot(of: url)
+            let text = try readSQLFile(url)
+            let baseline = snapshotSQLFile(url)
             queryText = text
             workspace.updateActive { tab in
                 tab.text = text
@@ -4151,7 +4170,7 @@ extension DatabaseViewModel {
     /// 后续真正的外部变更仍会再次触发横幅。
     public func dismissSQLFileConflict() {
         if let url = workspace.activeTab.fileURL {
-            let baseline = SQLFileStore.snapshot(of: url)
+            let baseline = snapshotSQLFile(url)
             workspace.updateActive { $0.fileBaseline = baseline }
             workspace.persist()
         }
@@ -4166,7 +4185,7 @@ extension DatabaseViewModel {
             sqlFileConflict = nil
             return
         }
-        let current = SQLFileStore.snapshot(of: url)
+        let current = snapshotSQLFile(url)
         let change = SQLFileChangeDetector.classify(baseline: baseline, current: current)
         if change == .unchanged {
             sqlFileConflict = nil
