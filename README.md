@@ -18,7 +18,7 @@ Lode was extracted from [Lumi](https://github.com/CofficLab/Lumi) and keeps Lumi
 - **SQL editor** — tree-sitter based SQL syntax highlighting and a dedicated editor host.
 - **Table editing** — inspect table structure and edit data with an in-memory change queue before writing back.
 - **Query history** — persisted history for revisiting and re-running previous queries.
-- **Agent tools** — database tools that let the agent inspect schemas and run queries.
+- **Agent tools** — read-only database tools for the agent, with a per-connection access allowlist, approval prompts for cross-connection access and sensitive table samples, and a redacted audit log in Settings.
 
 ## Architecture
 

@@ -9,6 +9,7 @@ import SwiftUI
 struct DatabaseSettingsView: View {
     @LumiUI.LumiTheme private var theme: any LumiUITheme
     @ObservedObject var viewModel: DatabaseViewModel
+    @State private var auditEntries: [DatabaseAgentAuditEntry] = []
 
     var body: some View {
         ScrollView {
@@ -18,12 +19,14 @@ struct DatabaseSettingsView: View {
                 editorSection
                 historySection
                 diagnosticsSection
+                agentSection
                 shortcutsSection
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { auditEntries = DatabaseAgentAuditLog.shared.recent() }
     }
 
     // MARK: - Query
@@ -198,6 +201,63 @@ struct DatabaseSettingsView: View {
                 systemImage: "ladybug",
                 isOn: $viewModel.settings.debugLoggingEnabled
             )
+        }
+    }
+
+    // MARK: - AI Agent
+
+    private var agentSection: some View {
+        AppSettingsSection(
+            title: pluginLocalization.string("AI Agent"),
+            subtitle: pluginLocalization.string("Recent agent tool activity across connections. Details are truncated and redacted before storage.")
+        ) {
+            VStack(alignment: .leading, spacing: 0) {
+                if auditEntries.isEmpty {
+                    Text(pluginLocalization.string("No agent activity yet."))
+                        .font(.appCaption)
+                        .foregroundColor(theme.textSecondary)
+                        .padding(.vertical, 6)
+                } else {
+                    ForEach(Array(auditEntries.prefix(20))) { entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text(entry.tool)
+                                    .font(.appCaption)
+                                    .foregroundColor(theme.textPrimary)
+                                if let name = entry.connectionName {
+                                    Text(name)
+                                        .font(.appCaption)
+                                        .foregroundColor(theme.textSecondary)
+                                }
+                                Spacer()
+                                Text(entry.outcome)
+                                    .font(.appMicro)
+                                    .foregroundColor(entry.outcome == "ok" ? theme.success : theme.error)
+                                Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.appMicro)
+                                    .foregroundColor(theme.textTertiary)
+                            }
+                            if !entry.detail.isEmpty {
+                                Text(entry.detail)
+                                    .font(.appMicro)
+                                    .foregroundColor(theme.textTertiary)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        AppDivider()
+                    }
+                }
+                HStack {
+                    Spacer()
+                    AppButton(pluginLocalization.string("Clear Audit Log"), style: .ghost) {
+                        DatabaseAgentAuditLog.shared.clear()
+                        auditEntries = []
+                    }
+                    .disabled(auditEntries.isEmpty)
+                }
+                .padding(.top, 6)
+            }
         }
     }
 

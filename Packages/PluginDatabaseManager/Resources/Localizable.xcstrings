@@ -128,6 +128,40 @@
     },
     "%lld structure changes" : {},
     "+" : {},
+    "AI Agent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Agent"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 代理"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 代理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 代理"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 代理"
+          }
+        }
+      }
+    },
     "Aa" : {
       "localizations" : {
         "en" : {
@@ -536,6 +570,40 @@
         }
       }
     },
+    "Agent Access" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent Access"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent 存取"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent 访问"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent 存取"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent 存取"
+          }
+        }
+      }
+    },
     "All Rows" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -635,6 +703,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有已記錄的查詢將被移除。此操作無法復原。"
+          }
+        }
+      }
+    },
+    "Allow AI agent tools to list and query this connection. Cross-connection access and sensitive table samples ask for approval." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow AI agent tools to list and query this connection. Cross-connection access and sensitive table samples ask for approval."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容許 AI 代理工具列出並查詢此連線。跨連線存取同敏感表取樣會要求審批。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 AI 代理工具列出并查询此连接。跨连接访问与敏感表采样会请求审批。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許 AI 代理工具列出並查詢此連線。跨連線存取與敏感資料表取樣會要求審批。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許 AI 代理工具列出並查詢此連線。跨連線存取與敏感資料表取樣會要求審批。"
           }
         }
       }
@@ -2371,6 +2473,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清空全部"
+          }
+        }
+      }
+    },
+    "Clear Audit Log" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Audit Log"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除審計日誌"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空审计日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除審計日誌"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除稽核日誌"
           }
         }
       }
@@ -10288,6 +10424,40 @@
         }
       }
     },
+    "No agent activity yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No agent activity yet."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫時冇代理活動。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无代理活动。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無代理活動。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無代理活動。"
+          }
+        }
+      }
+    },
     "No changes" : {
       "localizations" : {
         "en" : {
@@ -13792,6 +13962,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "釘選"
+          }
+        }
+      }
+    },
+    "Recent agent tool activity across connections. Details are truncated and redacted before storage." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent agent tool activity across connections. Details are truncated and redacted before storage."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各連線最近嘅代理工具活動。詳情喺儲存之前會截斷同脫敏。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各连接上最近的代理工具活动。详情在存储前会截断并脱敏。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各連線上最近的代理工具活動。詳情在儲存前會截斷並脫敏。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各連線上最近的代理工具活動。詳情在儲存前會截斷並脫敏。"
           }
         }
       }

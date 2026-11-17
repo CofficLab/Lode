@@ -436,6 +436,15 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         }
     }
 
+    /// Agent 工具能否访问该连接（允许列表；默认允许）。
+    public func isAgentAccessAllowed(_ id: UUID) -> Bool {
+        DatabaseAgentAccessPolicy.shared.isAllowed(id)
+    }
+
+    public func setAgentAccessAllowed(_ allowed: Bool, for id: UUID) {
+        DatabaseAgentAccessPolicy.shared.setAllowed(allowed, for: id)
+    }
+
     /// 批量导入连接：跳过与现有配置同名+同引擎+同主机+同库的重复项（含批次内重复），
     /// 一次性保存。返回实际新增数量。导入只还原非秘密字段，密码/SSH 由用户后续补填。
     @discardableResult
@@ -549,6 +558,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             let previousConfigId = selectedConfig?.id
             selectedConfig = config
             connectedConfigId = config.id
+            DatabaseAgentAccessPolicy.shared.activeConnectionId = config.id
             isConnected = true
             queryRowLimit = settings.defaultQueryRowLimit > 0
                 ? settings.defaultQueryRowLimit
@@ -690,6 +700,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         isLoading = false
         selectedConfig = nil
         connectedConfigId = nil
+        DatabaseAgentAccessPolicy.shared.activeConnectionId = nil
         startupSQLNotice = nil
         queryResult = nil
         multiExecutions = []

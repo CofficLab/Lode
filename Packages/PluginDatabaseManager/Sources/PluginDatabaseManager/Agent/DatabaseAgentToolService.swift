@@ -22,6 +22,7 @@ public enum DatabaseAgentToolError: LocalizedError {
     case missingArgument(String)
     case invalidConnectionId(String)
     case connectionNotFound(String)
+    case connectionNotAllowed(String)
     case unsafeSQL(String)
     case invalidLimit
     case unsupportedDatabaseType(String)
@@ -34,6 +35,8 @@ public enum DatabaseAgentToolError: LocalizedError {
             return "Invalid connection_id: \(value)"
         case .connectionNotFound(let id):
             return "Database connection is not available to Agent tools: \(id)"
+        case .connectionNotAllowed(let id):
+            return "Agent access is disabled for this connection: \(id)"
         case .unsafeSQL(let reason):
             return "SQL rejected by read-only policy: \(reason)"
         case .invalidLimit:
@@ -52,33 +55,38 @@ public actor DatabaseAgentToolService {
 
     private let manager = DatabaseManagerCore.shared
     private let registry = DatabaseAgentConnectionRegistry.shared
+    private let policy = DatabaseAgentAccessPolicy.shared
+    private let audit = DatabaseAgentAuditLog.shared
     /// 每个连接建立时使用的配置快照，用于判断是否可以复用。
     private var connectedConfigs: [UUID: DatabaseConfig] = [:]
 
     private init() {}
 
     public func listConnections() async throws -> String {
-        let configs = await registry.allConfigs()
-        let summaries = configs.map { config in
-            DatabaseConnectionSummary(
-                id: config.id.uuidString,
-                name: config.name,
-                type: config.type.rawValue,
-                host: config.host,
-                port: config.port,
-                database: config.database
-            )
+        try await audited(tool: "database_list_connections", connectionId: nil, detail: "") {
+            let configs = await registry.allConfigs().filter { policy.isAllowed($0.id) }
+            let summaries = configs.map { config in
+                DatabaseConnectionSummary(
+                    id: config.id.uuidString,
+                    name: config.name,
+                    type: config.type.rawValue,
+                    host: config.host,
+                    port: config.port,
+                    database: config.database
+                )
+            }
+            return try Self.encodeJSON(summaries)
         }
-        return try Self.encodeJSON(summaries)
     }
 
     /// 描述连接的表结构。
     ///
     /// - Parameter schemaName: 只描述某个 schema（PostgreSQL）。为空时描述全部非系统 schema。
     public func describeSchema(connectionId: UUID, limit: Int, schemaName: String? = nil) async throws -> String {
-        let limit = try Self.normalizedLimit(limit)
-        let config = try await config(for: connectionId)
-        let connection = try await connection(for: config)
+        try await audited(tool: "database_describe_schema", connectionId: connectionId, detail: "schema=\(schemaName ?? "*")") {
+            let limit = try Self.normalizedLimit(limit)
+            let config = try await config(for: connectionId)
+            let connection = try await connection(for: config)
 
         switch config.type {
         case .sqlite:
@@ -129,10 +137,17 @@ public actor DatabaseAgentToolService {
         case .redis:
             let result = try await connection.query("SCAN 0 MATCH * COUNT \(min(limit, 100))", params: nil)
             return try Self.encodeJSON(Self.rowsAsDictionaries(result, limit: limit))
+            }
         }
     }
 
     public func queryReadonly(connectionId: UUID, sql: String, limit: Int) async throws -> String {
+        try await audited(tool: "database_query_readonly", connectionId: connectionId, detail: sql) {
+            try await performReadonlyQuery(connectionId: connectionId, sql: sql, limit: limit)
+        }
+    }
+
+    private func performReadonlyQuery(connectionId: UUID, sql: String, limit: Int) async throws -> String {
         let limit = try Self.normalizedLimit(limit)
         let config = try await config(for: connectionId)
         let checkedSQL = try Self.readonlySQL(sql, type: config.type, limit: limit)
@@ -142,20 +157,52 @@ public actor DatabaseAgentToolService {
     }
 
     public func sampleTable(connectionId: UUID, table: String, limit: Int) async throws -> String {
-        let limit = try Self.normalizedLimit(limit)
-        let config = try await config(for: connectionId)
-        guard config.type != .redis else {
-            throw DatabaseAgentToolError.unsupportedDatabaseType(config.type.rawValue)
+        try await audited(tool: "database_sample_table", connectionId: connectionId, detail: "table=\(table)") {
+            let limit = try Self.normalizedLimit(limit)
+            let config = try await config(for: connectionId)
+            guard config.type != .redis else {
+                throw DatabaseAgentToolError.unsupportedDatabaseType(config.type.rawValue)
+            }
+            let quoted = Self.quoteIdentifierPath(table, type: config.type)
+            return try await performReadonlyQuery(connectionId: connectionId, sql: "SELECT * FROM \(quoted) LIMIT \(limit)", limit: limit)
         }
-        let quoted = Self.quoteIdentifierPath(table, type: config.type)
-        return try await queryReadonly(connectionId: connectionId, sql: "SELECT * FROM \(quoted) LIMIT \(limit)", limit: limit)
     }
 
     private func config(for id: UUID) async throws -> DatabaseConfig {
         guard let config = await registry.config(id: id) else {
             throw DatabaseAgentToolError.connectionNotFound(id.uuidString)
         }
+        guard policy.isAllowed(id) else {
+            throw DatabaseAgentToolError.connectionNotAllowed(id.uuidString)
+        }
         return config
+    }
+
+    /// 审计包装：记录工具/连接/摘要/结果；detail 由审计日志截断并脱敏。
+    private func audited<T>(
+        tool: String,
+        connectionId: UUID?,
+        detail: String,
+        _ body: () async throws -> T
+    ) async rethrows -> T {
+        var connectionName: String?
+        if let connectionId {
+            connectionName = await registry.config(id: connectionId)?.name
+        }
+        do {
+            let result = try await body()
+            audit.record(tool: tool, connectionId: connectionId?.uuidString, connectionName: connectionName, detail: detail, outcome: "ok")
+            return result
+        } catch {
+            let outcome: String
+            switch error {
+            case DatabaseAgentToolError.connectionNotAllowed: outcome = "denied"
+            case DatabaseAgentToolError.unsafeSQL: outcome = "rejected"
+            default: outcome = "error"
+            }
+            audit.record(tool: tool, connectionId: connectionId?.uuidString, connectionName: connectionName, detail: detail, outcome: outcome)
+            throw error
+        }
     }
 
     private func connection(for config: DatabaseConfig) async throws -> any DatabaseConnection {

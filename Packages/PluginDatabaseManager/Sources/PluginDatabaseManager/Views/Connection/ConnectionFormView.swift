@@ -48,12 +48,14 @@ struct ConnectionFormView: View {
     @State private var isTesting = false
     @State private var testMessage: String?
     @State private var testSuccess = false
+    @State private var agentAccessEnabled = true
 
     init(viewModel: DatabaseViewModel, isPresented: Binding<Bool>, editing: DatabaseConfig? = nil) {
         self.viewModel = viewModel
         self._isPresented = isPresented
         self.editing = editing
         self._safeMode = State(initialValue: editing?.safeMode ?? viewModel.defaultSafeMode)
+        self._agentAccessEnabled = State(initialValue: editing.map { viewModel.isAgentAccessAllowed($0.id) } ?? true)
     }
 
     var body: some View {
@@ -101,6 +103,7 @@ struct ConnectionFormView: View {
                     }
 
                     safeModePicker
+                    agentAccessRow
                     organizationSection
                     startupSQLSection
                 }
@@ -231,6 +234,24 @@ struct ConnectionFormView: View {
 
     /// 安全模式选择：off / confirmWrites / readOnly，适用于所有引擎（含 SQLite）。
     @ViewBuilder
+    private var agentAccessRow: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(pluginLocalization.string("Agent Access"))
+                    .font(.appCaption)
+                    .foregroundColor(theme.textSecondary)
+                Text(pluginLocalization.string("Allow AI agent tools to list and query this connection. Cross-connection access and sensitive table samples ask for approval."))
+                    .font(.appMicro)
+                    .foregroundColor(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Toggle("", isOn: $agentAccessEnabled)
+                .labelsHidden()
+                .toggleStyle(.switch)
+        }
+    }
+
     private var safeModePicker: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
@@ -481,6 +502,7 @@ struct ConnectionFormView: View {
             } else {
                 viewModel.addConfig(config)
             }
+            viewModel.setAgentAccessAllowed(agentAccessEnabled, for: config.id)
             isPresented = false
         } catch {
             testMessage = error.localizedDescription
