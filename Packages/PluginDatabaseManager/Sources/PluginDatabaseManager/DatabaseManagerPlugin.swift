@@ -12,11 +12,11 @@ import ProviderStorage
 import ProviderToolbar
 import ProviderToolManager
 import SwiftUI
-import os
 import LumiLoggingKit
 struct DatabaseManagerPluginSupport {
-    nonisolated static let verbose = false
-    nonisolated static let logger = Logger(subsystem: "com.coffic.lumi", category: "DatabaseManagerPlugin")
+    /// 共享诊断日志：debug 级受设置开关门控，info/warning/error 始终写出，
+    /// 所有消息写出前经 ``LogRedactor`` 脱敏。由 ``DatabaseViewModel`` 按设置同步开关。
+    nonisolated static let debugLog = PluginDebugLog()
 }
 
 /// DatabaseManager 的 KernelCore 入口，复用既有数据库连接、查询与 SQL 编辑体验。

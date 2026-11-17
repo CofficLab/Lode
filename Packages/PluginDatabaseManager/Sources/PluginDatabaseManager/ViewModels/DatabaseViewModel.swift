@@ -9,7 +9,6 @@ import UniformTypeIdentifiers
 @MainActor
 public class DatabaseViewModel: ObservableObject, SuperLog {
     public nonisolated static let emoji = "🗄️"
-    public nonisolated static let verbose: Bool = false
     @Published var configs: [DatabaseConfig] = []
     @Published var selectedConfig: DatabaseConfig?
     @Published var queryText: String = "SELECT * FROM sqlite_master;" {
@@ -308,7 +307,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     /// 全局偏好设置；任何改动经 didSet 持久化到工作区 UserDefaults。
     @Published public var settings: DatabaseSettings = DatabaseSettings() {
-        didSet { settingsStore.save(settings) }
+        didSet {
+            settingsStore.save(settings)
+            DatabaseManagerPluginSupport.debugLog.setDebugEnabled(settings.debugLoggingEnabled)
+        }
     }
 
     private let settingsStore: DatabaseSettingsStore
@@ -391,14 +393,11 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         self.snippets = savedQueryStore.loadSnippets()
         self.settingsStore = DatabaseSettingsStore(defaults: workspaceDefaults)
         self.settings = settingsStore.load()
+        DatabaseManagerPluginSupport.debugLog.setDebugEnabled(settings.debugLoggingEnabled)
         Task {
             await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         }
-        if Self.verbose {
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.info("\(Self.t)初始化数据库视图模型")
-            }
-        }
+        DatabaseManagerPluginSupport.debugLog.debug("\(Self.t)初始化数据库视图模型")
         // 恢复上次保存的连接；首次使用时保留一个内存 demo 连接
         let savedConfigs = loadSavedConfigs ? DatabaseConnectionStore.loadConfigs() : []
         if savedConfigs.isEmpty {
@@ -526,11 +525,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         await DatabaseDriverBootstrap.registerBuiltinsIfNeeded(on: manager)
         guard connectionGeneration == generation else { return }
         cancelPendingPasswordRequests()
-        if Self.verbose {
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.info("\(self.t)连接数据库: \(config.name)")
-            }
-        }
+        DatabaseManagerPluginSupport.debugLog.debug("\(self.t)连接数据库: \(config.name)")
         isLoading = true
         errorMessage = nil
         startupSQLNotice = nil
@@ -634,16 +629,10 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 await manager.disconnect(configId: previousConfigId)
             }
 
-            if Self.verbose {
-                if DatabaseManagerPluginSupport.verbose {
-                                    DatabaseManagerPluginSupport.logger.info("\(self.t)数据库连接成功: \(config.name)")
-                }
-            }
+            DatabaseManagerPluginSupport.debugLog.debug("\(self.t)数据库连接成功: \(config.name)")
         } catch {
             guard connectionGeneration == generation else { return }
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.error("\(self.t)数据库连接失败: \(error.localizedDescription)")
-            }
+            DatabaseManagerPluginSupport.debugLog.error("\(self.t)数据库连接失败: \(error.localizedDescription)")
             // 重连失败时旧连接已不可用，必须落回未连接态，避免界面误判仍在线。
             isConnected = false
             stopHeartbeat()
@@ -689,11 +678,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         guard let config = selectedConfig else { return }
         stopHeartbeat()
         let generation = beginConnectionGeneration()
-        if Self.verbose {
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.info("\(self.t)断开数据库连接: \(config.name)")
-            }
-        }
+        DatabaseManagerPluginSupport.debugLog.debug("\(self.t)断开数据库连接: \(config.name)")
         await manager.disconnect(configId: config.id)
         // 断开等待期间又建立了新连接：不要清掉新连接的状态。
         guard connectionGeneration == generation else { return }
@@ -913,17 +898,13 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         let sql = sqlOverride ?? queryText
         guard let config = selectedConfig else {
             presentError(DatabaseError.connectionFailed("Not connected to a database"))
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.error("\(self.t)执行查询失败: 未连接到数据库")
-            }
+            DatabaseManagerPluginSupport.debugLog.error("\(self.t)执行查询失败: 未连接到数据库")
             return
         }
         guard let connection = await manager.getConnection(for: config.id) else {
             guard isCurrentConnection(generation, configId: config.id) else { return }
             presentError(DatabaseError.connectionFailed("Not connected to a database"))
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.error("\(self.t)执行查询失败: 未连接到数据库")
-            }
+            DatabaseManagerPluginSupport.debugLog.error("\(self.t)执行查询失败: 未连接到数据库")
             return
         }
         // 取连接期间用户可能已经切走：旧连接的结果不允许再落到界面上。
@@ -945,11 +926,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             return
         }
 
-        if Self.verbose {
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.info("\(self.t)执行查询: \(sql.prefix(50))...")
-            }
-        }
+        DatabaseManagerPluginSupport.debugLog.debug("\(self.t)执行查询: \(sql.prefix(50))...")
 
         isLoading = true
         runningTabID = origin
@@ -966,27 +943,17 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
                 guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
                 let hasMore = limited.injectedLimit.map { result.rows.count >= $0 } ?? false
                 commitQueryResult(result, origin: origin, baseSQL: limited.baseSQL, baseParams: resolved.params, fetchedRows: result.rows.count, hasMore: hasMore)
-                if Self.verbose {
-                    if DatabaseManagerPluginSupport.verbose {
-                                                DatabaseManagerPluginSupport.logger.info("\(self.t)查询成功，返回 \(result.rows.count) 行")
-                    }
-                }
+                DatabaseManagerPluginSupport.debugLog.debug("\(self.t)查询成功，返回 \(result.rows.count) 行")
             } else {
                 let affected = try await connection.execute(resolved.sql, params: resolved.params)
                 guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
                 let result = QueryResult(columns: ["Result"], rows: [[.string("Success. Rows affected: \(affected)")]], rowsAffected: affected)
                 commitQueryResult(result, origin: origin, baseSQL: nil, baseParams: nil, fetchedRows: 0, hasMore: false)
-                if Self.verbose {
-                    if DatabaseManagerPluginSupport.verbose {
-                                                DatabaseManagerPluginSupport.logger.info("\(self.t)执行成功，影响 \(affected) 行")
-                    }
-                }
+                DatabaseManagerPluginSupport.debugLog.debug("\(self.t)执行成功，影响 \(affected) 行")
             }
         } catch {
             guard isCurrentConnection(generation, configId: config.id), sequence == executionSequence else { return }
-            if DatabaseManagerPluginSupport.verbose {
-                            DatabaseManagerPluginSupport.logger.error("\(self.t)查询执行失败: \(error.localizedDescription)")
-            }
+            DatabaseManagerPluginSupport.debugLog.error("\(self.t)查询执行失败: \(error.localizedDescription)")
             // 断线类错误：一次自动重连并重跑当前语句（保留编辑器上下文）。
             let classified = DatabaseErrorClassifier.classify(error)
             if classified.category == .connectionLost, !isRetry, !didAttemptAutoReconnect {

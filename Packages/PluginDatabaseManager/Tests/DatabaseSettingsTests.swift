@@ -23,6 +23,7 @@ struct DatabaseSettingsModelTests {
         #expect(s.useTabs == false)
         #expect(s.clausePerLine == true)
         #expect(s.commaNewlineInList == true)
+        #expect(s.debugLoggingEnabled == false)
     }
 
     @Test func codableRoundTrip() throws {
@@ -34,7 +35,8 @@ struct DatabaseSettingsModelTests {
             indentWidth: 4,
             useTabs: true,
             clausePerLine: false,
-            commaNewlineInList: false
+            commaNewlineInList: false,
+            debugLoggingEnabled: true
         )
         let data = try JSONEncoder().encode(s)
         let decoded = try JSONDecoder().decode(DatabaseSettings.self, from: data)
@@ -48,6 +50,7 @@ struct DatabaseSettingsModelTests {
         #expect(decoded.defaultQueryRowLimit == 0)
         #expect(decoded.indentWidth == 2)
         #expect(decoded.commaNewlineInList == true)
+        #expect(decoded.debugLoggingEnabled == false)
     }
 
     @Test func formatterOptionsMapsKeywordCase() {
@@ -142,10 +145,23 @@ struct DatabaseSettingsViewModelTests {
         vm.settings.defaultQueryRowLimit = 123
         vm.settings.editorFontSize = 16
         vm.settings.keywordCase = "lower"
+        vm.settings.debugLoggingEnabled = true
         let reopened = await makeSUT(suite)
         #expect(reopened.settings.defaultQueryRowLimit == 123)
         #expect(reopened.settings.editorFontSize == 16)
         #expect(reopened.settings.keywordCase == "lower")
+        #expect(reopened.settings.debugLoggingEnabled == true)
+    }
+
+    @Test func debugLoggingSettingDrivesSharedLogGate() async {
+        let suite = makeSuite()
+        defer { cleanup(suite) }
+        let vm = await makeSUT(suite)
+        // 设置与断言之间无挂起点，MainActor 上同步执行，避免跨套件并行翻转全局开关。
+        vm.settings.debugLoggingEnabled = true
+        #expect(DatabaseManagerPluginSupport.debugLog.debugEnabled)
+        vm.settings.debugLoggingEnabled = false
+        #expect(!DatabaseManagerPluginSupport.debugLog.debugEnabled)
     }
 
     @Test func defaultSafeModeReflectsSetting() async {
