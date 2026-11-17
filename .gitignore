@@ -12,10 +12,14 @@ build/
 .build/
 SourcePackages/
 Packages/*/Package.resolved
+!Packages/PluginDatabaseManager/Package.resolved
 !Lode.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # Generated project (xcodegen)
 # Lode.xcodeproj is generated from project.yml; regenerate with `xcodegen generate`.
+# The committed project definition is the new-format project.xcproj; the legacy
+# pbxproj produced by xcodegen (e.g. for CI on older Xcode) is generated, not tracked.
+Lode.xcodeproj/project.pbxproj
 
 # Integration test fixtures (generated TLS certs / ACL / keys; never committed)
 scripts/integration/.fixtures/

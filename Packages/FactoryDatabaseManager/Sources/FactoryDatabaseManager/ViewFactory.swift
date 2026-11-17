@@ -54,7 +54,7 @@ public struct DefaultViewFactory: ViewFactory {
             rootView.bindRailViewVisibility(to: rail)
             rootView.bindRailViewWidth(
                 to: rail,
-                onResize: rail.saveCurrentWidth
+                onResize: { rail.saveCurrentWidth($0) }
             )
         }
         if let contentView = kernel.resolveProvider((any ContentViewProviding).self) {
@@ -70,7 +70,7 @@ public struct DefaultViewFactory: ViewFactory {
             trailingPane.bindVisibility(to: chat)
             trailingPane.bindWidth(
                 to: chat,
-                onResize: chat.saveCurrentWidth
+                onResize: { chat.saveCurrentWidth($0) }
             )
             rootView.setTrailingPane(trailingPane)
         }
