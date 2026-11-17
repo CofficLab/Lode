@@ -41,7 +41,7 @@ final class HeadlessUserDriver: NSObject, SPUUserDriver {
         print("drill: checking for updates")
     }
 
-    func showUpdateFound(_ appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
+    func showUpdateFound(with appcastItem: SUAppcastItem, state updateState: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
         let version = appcastItem.displayVersionString
         print("drill: update found version=\(version)")
         guard version == expectedVersion || appcastItem.versionString == expectedVersion else {
@@ -82,7 +82,7 @@ final class HeadlessUserDriver: NSObject, SPUUserDriver {
     }
     func showExtractionReceivedProgress(_ progress: Double) {}
 
-    func showReadyToInstallAndRelaunch(_ reply: @escaping (SPUUserUpdateChoice) -> Void) {
+    func showReady(toInstallAndRelaunch reply: @escaping (SPUUserUpdateChoice) -> Void) {
         print("drill: ready to install")
         reply(.install)
     }

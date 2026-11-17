@@ -54,7 +54,11 @@ it builds an old and a new version, serves a signed appcast plus DMG over
 local HTTP, and drives the old app through discovery, download, signature
 verification and installation with a headless Sparkle user driver
 (`scripts/update-drill`). It fails unless the old app bundle ends up at the
-new version.
+new version. Both copies are signed with one real code-signing identity from
+the keychain (Sparkle rejects updates whose signature does not match the old
+app; override the identity with `LODE_DRILL_SIGN_IDENTITY`). The headless
+driver runs as a background app bundle launched via LaunchServices, which
+recent macOS requires for the installer's authorization.
 
 ```sh
 LODE_SPARKLE_ED_KEY_FILE=/secure/path/private.key.b64 scripts/release/drill-update.sh

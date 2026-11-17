@@ -20,6 +20,12 @@
     }, {
       "kind": "local",
       "path": "Packages/FactoryDatabaseManager",
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/sparkle-project/Sparkle",
+      "version": {
+        "up-to-next-major-version": "2.10.1",
+      },
     },
   ],
   "files": [
@@ -28,6 +34,8 @@
       "path": "LodeApp",
       "children": [
         { "path": "LodeApp.swift", "target-membership": [ "Lode/compile-sources" ] },
+        { "path": "UpdateController.swift", "target-membership": [ "Lode/compile-sources" ] },
+        { "path": "Localizable.xcstrings", "target-membership": [ "Lode/resources" ] },
       ],
     }, {
       "kind": "group",
@@ -54,6 +62,7 @@
       "build-phases": [
         "compile-sources",
         "frameworks",
+        "resources",
       ],
       "package-product-members": [
         {
@@ -62,6 +71,10 @@
         }, {
           "package": "LumiKernel",
           "product-name": "KernelCore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "Sparkle",
+          "product-name": "Sparkle",
           "build-phase": { "build-phase": "frameworks" },
         },
       ],
