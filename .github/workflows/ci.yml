@@ -42,6 +42,19 @@ jobs:
         run: |
           swift --version
           xcodebuild -version
+      - name: Install XcodeGen
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: |
+          set -euo pipefail
+          # The repository commits the new-format project.xcproj (read by Xcode 27+).
+          # Generate the legacy project.pbxproj from project.yml so the runner's
+          # Xcode can read it; only one project definition file may exist.
+          rm -f Lode.xcodeproj/project.xcproj
+          xcodegen generate
       - name: Build app (single architecture, unsigned)
         run: |
           set -euo pipefail
