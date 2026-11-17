@@ -53,14 +53,26 @@ public actor DatabaseAgentToolService {
     public static let defaultRows = 100
     public static let maxCellLength = 2_000
 
-    private let manager = DatabaseManagerCore.shared
-    private let registry = DatabaseAgentConnectionRegistry.shared
-    private let policy = DatabaseAgentAccessPolicy.shared
-    private let audit = DatabaseAgentAuditLog.shared
+    private let manager: DatabaseManagerCore
+    private let registry: DatabaseAgentConnectionRegistry
+    private let policy: DatabaseAgentAccessPolicy
+    private let audit: DatabaseAgentAuditLog
     /// 每个连接建立时使用的配置快照，用于判断是否可以复用。
     private var connectedConfigs: [UUID: DatabaseConfig] = [:]
 
-    private init() {}
+    /// 依赖注入入口：独立进程（MCP server）用应用域偏好与自建注册表构造，
+    /// 与宿主 App 共享允许列表和审计日志；默认参数保持 App 内单例行为。
+    public init(
+        manager: DatabaseManagerCore = .shared,
+        registry: DatabaseAgentConnectionRegistry = .shared,
+        policy: DatabaseAgentAccessPolicy = .shared,
+        audit: DatabaseAgentAuditLog = .shared
+    ) {
+        self.manager = manager
+        self.registry = registry
+        self.policy = policy
+        self.audit = audit
+    }
 
     public func listConnections() async throws -> String {
         try await audited(tool: "database_list_connections", connectionId: nil, detail: "") {

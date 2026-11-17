@@ -19,6 +19,7 @@ Lode was extracted from [Lumi](https://github.com/CofficLab/Lumi) and keeps Lumi
 - **Table editing** — inspect table structure and edit data with an in-memory change queue before writing back.
 - **Query history** — persisted history for revisiting and re-running previous queries.
 - **Agent tools** — read-only database tools for the agent, with a per-connection access allowlist, approval prompts for cross-connection access and sensitive table samples, and a redacted audit log in Settings.
+- **MCP server** — `lode-db-mcp` exposes the same read-only tools to external agents over stdio, with token authentication and per-call approval for sensitive samples.
 
 ## Architecture
 
@@ -103,6 +104,51 @@ scripts/perf/measure-launch.sh /path/to/Lode.app 5
 # Regenerate the assembly baseline deliberately, then commit the new value:
 LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline
 ```
+
+## MCP server
+
+`lode-db-mcp` exposes the four read-only agent tools (`database_list_connections`,
+`database_describe_schema`, `database_query_readonly`, `database_sample_table`)
+to external MCP clients over stdio. It reads the connections saved in Lode and
+enforces the same per-connection Agent Access allowlist; every call is recorded
+in the agent audit log shown in Settings.
+
+```sh
+# Build the server
+swift build -c release --package-path Packages/PluginDatabaseManager --product lode-db-mcp
+
+# Create an access token (printed once; stored with 0600 permissions)
+.build/release/lode-db-mcp --generate-token
+```
+
+Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "lode-database": {
+      "command": "/path/to/lode-db-mcp",
+      "env": { "LODE_MCP_TOKEN": "<token from --generate-token>" }
+    }
+  }
+}
+```
+
+Security model:
+
+- The server refuses to start unless `LODE_MCP_TOKEN` matches the stored token
+  (constant-time comparison). Rotate the token any time with `--generate-token`.
+- Only read-only tools are exposed; mutating SQL is rejected by the same
+  read-only policy as the in-app agent tools.
+- Connections disabled under Agent Access are invisible and unreachable.
+- Sampling a sensitive table (passwords, tokens, payment data, ...) requires
+  interactive approval through MCP elicitation; clients without elicitation
+  support are denied. `--require-consent` extends per-call approval to every
+  tool call.
+- Error messages are redacted before they leave the process. Passwords are
+  loaded from the system Keychain, which may ask for authorization once.
+- `LODE_MCP_TOKEN_FILE` and `LODE_MCP_APP_DOMAIN` override the token file and
+  the preferences domain (useful for tests and isolated instances).
 
 ## License
 

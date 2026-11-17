@@ -26,8 +26,9 @@ enum DatabaseConnectionStore {
     // MARK: - Configs
 
     /// 读取已保存的配置，并从 Keychain 回填密码。
-    static func loadConfigs() -> [DatabaseConfig] {
-        guard let data = UserDefaults.standard.data(forKey: configsKey),
+    /// 独立进程（MCP server）传入应用域偏好以读取同一份配置。
+    static func loadConfigs(defaults: UserDefaults = .standard) -> [DatabaseConfig] {
+        guard let data = defaults.data(forKey: configsKey),
               var decoded = try? JSONDecoder().decode([DatabaseConfig].self, from: data) else {
             return []
         }

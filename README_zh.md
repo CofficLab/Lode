@@ -19,6 +19,7 @@ Lode 从 [Lumi](https://github.com/CofficLab/Lumi) 中剥离而来，保留 Lumi
 - **表数据编辑** — 查看表结构并编辑数据，修改先进入内存变更队列，再统一写回。
 - **查询历史** — 持久化历史记录，便于回看与重新执行。
 - **Agent 工具** — 面向 Agent 的只读数据库工具：连接级访问允许列表、跨连接访问与敏感表采样需审批、设置中可查看脱敏审计日志。
+- **MCP server** — `lode-db-mcp` 以 stdio 向外部 Agent 暴露同一组只读工具：令牌认证，敏感表采样逐次审批。
 
 ## 结构
 
@@ -95,6 +96,49 @@ scripts/perf/measure-launch.sh /path/to/Lode.app 5
 # 有意识地重测装配基线，然后提交新值：
 LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline
 ```
+
+## MCP server
+
+`lode-db-mcp` 以 stdio 向外部 MCP 客户端暴露四个只读 Agent 工具
+（`database_list_connections`、`database_describe_schema`、
+`database_query_readonly`、`database_sample_table`）。它读取 Lode 中保存的
+连接，强制执行同一份连接级 Agent Access 允许列表；每次调用都记入设置中
+可见的 Agent 审计日志。
+
+```sh
+# 构建 server
+swift build -c release --package-path Packages/PluginDatabaseManager --product lode-db-mcp
+
+# 生成访问令牌（一次性打印；以 0600 权限保存）
+.build/release/lode-db-mcp --generate-token
+```
+
+客户端配置示例：
+
+```json
+{
+  "mcpServers": {
+    "lode-database": {
+      "command": "/path/to/lode-db-mcp",
+      "env": { "LODE_MCP_TOKEN": "<--generate-token 打印的令牌>" }
+    }
+  }
+}
+```
+
+安全模型：
+
+- 环境变量 `LODE_MCP_TOKEN` 必须与存储的令牌一致（恒时比较），否则拒绝启动；
+  随时可用 `--generate-token` 轮换。
+- 只暴露只读工具；写 SQL 由与 App 内 Agent 工具相同的只读策略拒绝。
+- 在 Agent Access 中禁用的连接不可见也不可访问。
+- 采样敏感表（密码、令牌、支付数据等）必须经 MCP elicitation 交互审批；
+  不支持 elicitation 的客户端一律拒绝。`--require-consent` 把逐次审批
+  扩展到所有工具调用。
+- 错误文本离开进程前一律脱敏。密码从系统 Keychain 读取，可能触发一次
+  系统授权询问。
+- `LODE_MCP_TOKEN_FILE` 与 `LODE_MCP_APP_DOMAIN` 可覆盖令牌文件与偏好域
+  （测试与隔离实例用）。
 
 ## 许可
 

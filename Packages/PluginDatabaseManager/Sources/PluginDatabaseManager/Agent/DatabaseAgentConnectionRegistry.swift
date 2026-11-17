@@ -5,7 +5,7 @@ public actor DatabaseAgentConnectionRegistry {
 
     private var configsById: [UUID: DatabaseConfig] = [:]
 
-    private init() {}
+    public init() {}
 
     public func upsert(_ config: DatabaseConfig) {
         configsById[config.id] = config

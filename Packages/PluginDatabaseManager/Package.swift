@@ -12,6 +12,10 @@ let package = Package(
         .library(
             name: "PluginDatabaseManager",
             targets: ["DatabaseManagerPlugin"]
+        ),
+        .executable(
+            name: "lode-db-mcp",
+            targets: ["LodeDatabaseMCP"]
         )
     ],
     dependencies: [
@@ -71,6 +75,11 @@ let package = Package(
                 .process("../../Resources/Localizable.xcstrings"),
                 .copy("../../Resources/tree-sitter-sql")
             ]
+        ),
+        .executableTarget(
+            name: "LodeDatabaseMCP",
+            dependencies: ["DatabaseManagerPlugin"],
+            path: "Sources/LodeDatabaseMCP"
         ),
         .target(
             name: "TreeSitterSQL",
