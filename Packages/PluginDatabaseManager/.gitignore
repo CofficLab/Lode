@@ -1,3 +1,5 @@
 .build/
 
-Package.resolved
+# Package.resolved is tracked so CI resolves the exact dependency graph the
+# plugin tests are verified against (fresh resolution drifts into renamed
+# Kit*/LumiKit* packages and newer LumiProviders with conflicting targets).
