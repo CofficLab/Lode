@@ -517,6 +517,8 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     /// 建立连接。`isReconnect` 为 true 时保留编辑器文本与当前打开表的上下文。
     private func connect(config: DatabaseConfig, isReconnect: Bool) async {
+        let launchSpan = LaunchPerformance.shared.begin(.firstConnection)
+        defer { if let launchSpan { LaunchPerformance.shared.end(launchSpan) } }
         lastAttemptedConfig = config
         stopHeartbeat()
         let preservedQueryText = queryText

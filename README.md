@@ -84,6 +84,23 @@ the TLS suites) and run `swift test` directly.
 If the SSH image build cannot reach the official Alpine package CDN, point it at a
 reachable mirror, e.g. `LODE_APK_MIRROR=https://mirrors.aliyun.com scripts/integration/run-all-tests.sh`.
 
+### Launch performance
+
+Launch is instrumented in three phases — kernel assembly, first window
+construction and first database connection — with signposts and a rolling
+history persisted to UserDefaults. CI enforces an assembly budget: the median
+kernel-assembly time in `FactoryDatabaseManagerTests` must stay within 1.25x of
+`scripts/perf/launch-baseline.json`. Debug builds additionally run a main-thread
+stall watchdog that logs any main-queue block longer than 250 ms.
+
+```sh
+# Real cold-launch medians from a built app (assembly / firstWindow / firstConnection):
+scripts/perf/measure-launch.sh /path/to/Lode.app 5
+
+# Regenerate the assembly baseline deliberately, then commit the new value:
+LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline
+```
+
 ## License
 
 GPL-3.0. See [LICENSE](LICENSE).

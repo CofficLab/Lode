@@ -80,6 +80,21 @@ Redis TLS 63792、SSH 2222。生成的证书与 ACL 文件位于 `scripts/integr
 若 SSH 镜像构建无法访问 Alpine 官方包 CDN，可指向可达镜像，例如
 `LODE_APK_MIRROR=https://mirrors.aliyun.com scripts/integration/run-all-tests.sh`。
 
+### 启动性能
+
+启动分三阶段埋点——内核装配、首窗口构建、首次数据库连接——带 signpost 与
+持久化到 UserDefaults 的滚动历史。CI 强制装配预算：`FactoryDatabaseManagerTests`
+中内核装配耗时中位数不得超过 `scripts/perf/launch-baseline.json` 的 1.25 倍。
+Debug 构建另运行主线程卡顿看门狗，主队列阻塞超过 250ms 即记录警告。
+
+```sh
+# 用构建好的 App 实测冷启动中位数（assembly / firstWindow / firstConnection）：
+scripts/perf/measure-launch.sh /path/to/Lode.app 5
+
+# 有意识地重测装配基线，然后提交新值：
+LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline
+```
+
 ## 许可
 
 GPL-3.0，见 [LICENSE](LICENSE)。

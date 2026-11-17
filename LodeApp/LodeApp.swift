@@ -43,14 +43,24 @@ struct LodeApp: App {
     private let settingsView: AnyView
 
     init() {
-        guard let kernel = try? FactoryDatabaseManager.makeKernel() else {
+        #if DEBUG
+        MainThreadStallMonitor.shared.start()
+        #endif
+        var assembled: KernelCoreContainer?
+        LaunchPerformance.shared.measure(.assembly) {
+            assembled = try? FactoryDatabaseManager.makeKernel()
+        }
+        guard let kernel = assembled else {
             mainView = AnyView(Text("Failed to assemble Lode"))
             settingsView = AnyView(Text("Failed to assemble settings"))
             return
         }
         LodeFileOpenAgent.configure(kernel: kernel)
-        mainView = (try? FactoryDatabaseManager.makeMainView(kernel: kernel))
-            ?? AnyView(Text("Failed to assemble Lode"))
+        var firstWindow: AnyView?
+        LaunchPerformance.shared.measure(.firstWindow) {
+            firstWindow = try? FactoryDatabaseManager.makeMainView(kernel: kernel)
+        }
+        mainView = firstWindow ?? AnyView(Text("Failed to assemble Lode"))
         settingsView = (try? FactoryDatabaseManager.makeSettingsView(kernel: kernel))
             ?? AnyView(Text("Failed to assemble settings"))
     }

@@ -1,0 +1,7 @@
+{
+  "assemblyMedianMs": 4.2,
+  "measuredAt": "2026-11-17",
+  "samples": 7,
+  "platform": "macOS arm64",
+  "note": "Median of 7 kernel-assembly samples measured via LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline. The gate allows 1.25x this value. Regenerate deliberately and commit the new value with justification when the measurement environment changes."
+}

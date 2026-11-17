@@ -77,3 +77,10 @@ jobs:
           # disabled without the LODE_TEST_* environment; see
           # scripts/integration/run-all-tests.sh for the disposable Docker harness.
           swift test --package-path Packages/PluginDatabaseManager
+      - name: Test factory (launch assembly budget gate)
+        run: |
+          set -euo pipefail
+          # LaunchBudgetGateTests compares the kernel-assembly median against
+          # scripts/perf/launch-baseline.json (1.25x tolerance). The opt-in
+          # baseline measurement stays disabled without LODE_PERF_MEASURE=1.
+          swift test --package-path Packages/FactoryDatabaseManager
