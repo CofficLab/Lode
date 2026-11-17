@@ -21191,7 +21191,109 @@
         }
       }
     },
-    "·" : {}
+    "·" : {},
+    "Diagnostics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診斷"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "诊断"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診斷"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診斷"
+          }
+        }
+      }
+    },
+    "Debug logging" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debug logging"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除錯日誌"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调试日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除錯日誌"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除錯日誌"
+          }
+        }
+      }
+    },
+    "Record detailed diagnostic logs for troubleshooting. Credentials and passwords are always redacted before writing." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record detailed diagnostic logs for troubleshooting. Credentials and passwords are always redacted before writing."
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄詳細的診斷日誌以便排查問題。憑證和密碼在寫入前一律脫敏。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录详细的诊断日志以便排查问题。凭据和密码在写入前一律脱敏。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄詳細的診斷日誌以便排查問題。憑證和密碼在寫入前一律脫敏。"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄詳細的診斷日誌以便排查問題。憑證和密碼在寫入前一律脫敏。"
+          }
+        }
+      }
+    }
   },
   "version" : "1.1"
 }

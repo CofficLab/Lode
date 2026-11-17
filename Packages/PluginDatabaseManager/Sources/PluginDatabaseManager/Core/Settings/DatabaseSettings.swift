@@ -21,6 +21,8 @@ public struct DatabaseSettings: Codable, Equatable, Sendable {
     public var clausePerLine: Bool
     /// SELECT/GROUP BY/ORDER BY 列表逐项换行。
     public var commaNewlineInList: Bool
+    /// 可选开启的调试日志；写出前一律经脱敏过滤。默认关闭。
+    public var debugLoggingEnabled: Bool
 
     public init(
         defaultQueryRowLimit: Int = 0,
@@ -30,7 +32,8 @@ public struct DatabaseSettings: Codable, Equatable, Sendable {
         indentWidth: Int = 2,
         useTabs: Bool = false,
         clausePerLine: Bool = true,
-        commaNewlineInList: Bool = true
+        commaNewlineInList: Bool = true,
+        debugLoggingEnabled: Bool = false
     ) {
         self.defaultQueryRowLimit = defaultQueryRowLimit
         self.defaultSafeMode = defaultSafeMode
@@ -40,6 +43,7 @@ public struct DatabaseSettings: Codable, Equatable, Sendable {
         self.useTabs = useTabs
         self.clausePerLine = clausePerLine
         self.commaNewlineInList = commaNewlineInList
+        self.debugLoggingEnabled = debugLoggingEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -53,6 +57,7 @@ public struct DatabaseSettings: Codable, Equatable, Sendable {
         useTabs = try container.decodeIfPresent(Bool.self, forKey: .useTabs) ?? defaults.useTabs
         clausePerLine = try container.decodeIfPresent(Bool.self, forKey: .clausePerLine) ?? defaults.clausePerLine
         commaNewlineInList = try container.decodeIfPresent(Bool.self, forKey: .commaNewlineInList) ?? defaults.commaNewlineInList
+        debugLoggingEnabled = try container.decodeIfPresent(Bool.self, forKey: .debugLoggingEnabled) ?? defaults.debugLoggingEnabled
     }
 
     /// 映射到格式化器选项；非法关键字大小写回退 upper，缩进宽度至少 1。

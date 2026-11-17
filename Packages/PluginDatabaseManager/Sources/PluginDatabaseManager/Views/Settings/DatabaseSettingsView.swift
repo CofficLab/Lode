@@ -17,6 +17,7 @@ struct DatabaseSettingsView: View {
                 connectionSection
                 editorSection
                 historySection
+                diagnosticsSection
                 shortcutsSection
             }
             .padding(20)
@@ -185,6 +186,19 @@ struct DatabaseSettingsView: View {
             get: { viewModel.historyRetentionDays },
             set: { newValue in Task { await viewModel.setHistoryRetentionDays(newValue) } }
         )
+    }
+
+    // MARK: - Diagnostics
+
+    private var diagnosticsSection: some View {
+        AppSettingsSection(title: pluginLocalization.string("Diagnostics")) {
+            AppSettingsToggleRow(
+                pluginLocalization.string("Debug logging"),
+                description: pluginLocalization.string("Record detailed diagnostic logs for troubleshooting. Credentials and passwords are always redacted before writing."),
+                systemImage: "ladybug",
+                isOn: $viewModel.settings.debugLoggingEnabled
+            )
+        }
     }
 
     // MARK: - Shortcuts
