@@ -3,5 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 libssh2.pc
-libssh2_config.h
 libssh2_config.h.in
+
+# libssh2_config.h is a hand-written portable macOS configuration tracked as
+# source (see Vendor/README.md), not a generated file, so it is NOT ignored.
