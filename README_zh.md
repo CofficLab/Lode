@@ -83,8 +83,9 @@ Redis TLS 63792、SSH 2222。生成的证书与 ACL 文件位于 `scripts/integr
 ### 启动性能
 
 启动分三阶段埋点——内核装配、首窗口构建、首次数据库连接——带 signpost 与
-持久化到 UserDefaults 的滚动历史。CI 强制装配预算：`FactoryDatabaseManagerTests`
-中内核装配耗时中位数不得超过 `scripts/perf/launch-baseline.json` 的 1.25 倍。
+持久化到 UserDefaults 的滚动历史。CI 强制装配预算（`scripts/perf/launch-baseline.json`）：
+本地内核装配耗时中位数不得超过基线的 2 倍，忙轮询 CPU 探针检测到调度争用
+（并发构建）时放宽到 5 倍，不会误触发；共享 CI runner 慢数倍，恒按墙钟时间放宽到 5 倍。
 Debug 构建另运行主线程卡顿看门狗，主队列阻塞超过 250ms 即记录警告。
 
 ```sh

@@ -81,6 +81,7 @@ jobs:
         run: |
           set -euo pipefail
           # LaunchBudgetGateTests compares the kernel-assembly median against
-          # scripts/perf/launch-baseline.json (1.25x tolerance). The opt-in
-          # baseline measurement stays disabled without LODE_PERF_MEASURE=1.
+          # scripts/perf/launch-baseline.json (2x locally when idle, 5x when a
+          # CPU-noise probe detects load, flat 5x on CI runners).
+          # The opt-in baseline measurement stays disabled without LODE_PERF_MEASURE=1.
           swift test --package-path Packages/FactoryDatabaseManager

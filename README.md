@@ -88,9 +88,12 @@ reachable mirror, e.g. `LODE_APK_MIRROR=https://mirrors.aliyun.com scripts/integ
 
 Launch is instrumented in three phases — kernel assembly, first window
 construction and first database connection — with signposts and a rolling
-history persisted to UserDefaults. CI enforces an assembly budget: the median
-kernel-assembly time in `FactoryDatabaseManagerTests` must stay within 1.25x of
-`scripts/perf/launch-baseline.json`. Debug builds additionally run a main-thread
+history persisted to UserDefaults. CI enforces an assembly budget against
+`scripts/perf/launch-baseline.json`: locally the median kernel-assembly time
+must stay within 2x of the baseline, and a busy-spin CPU probe relaxes that
+to 5x when it detects scheduler contention (so concurrent builds do not trip
+the gate); on shared CI runners a flat 5x wall-clock tolerance always applies
+(they run several times slower). Debug builds additionally run a main-thread
 stall watchdog that logs any main-queue block longer than 250 ms.
 
 ```sh
