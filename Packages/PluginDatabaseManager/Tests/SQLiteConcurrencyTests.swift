@@ -19,6 +19,11 @@ struct SQLiteConcurrencyTests {
         _ = try await a.execute("BEGIN IMMEDIATE", params: nil)
         _ = try await a.execute("INSERT INTO t (id, v) VALUES (1, 'a')", params: nil)
 
+        // 全量并发负载下（如 CI），释放锁的 Task 可能被协作线程池延迟数秒才调度，
+        // 超过驱动默认 5s busy_timeout 会让等待方误报 "database is locked"。
+        // 放宽等待方的 busy_timeout 到 30s，只考验「等待后成功」这一不变量。
+        _ = try await b.execute("PRAGMA busy_timeout=30000", params: nil)
+
         // 150ms 后释放写锁。
         let release = Task {
             try? await Task.sleep(nanoseconds: 150_000_000)
