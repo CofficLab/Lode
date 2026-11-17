@@ -1,0 +1,120 @@
+# Disposable engines for Lode integration tests.
+# Generated fixtures (TLS certs, Redis ACL, SSH keys) live in .fixtures/ and are
+# created by gen-fixtures.sh; nothing secret is committed. Bring everything up
+# with run-all-tests.sh, which also generates fixtures and tears down on exit.
+#
+# Host ports match the LODE_TEST_*_PORT defaults used by the env-gated tests:
+#   mysql 33061, postgres 54321, redis 63791,
+#   postgres-tls 54322, redis-tls 63792, ssh 2222.
+
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: testdb
+    ports:
+      - "33061:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-uroot", "-ptest", "--silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: testdb
+    ports:
+      - "54321:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "63791:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  postgres-tls:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: testdb
+    ports:
+      - "54322:5432"
+    volumes:
+      - .fixtures/certs:/certs-src:ro
+    # The server key must be owned by postgres and mode 600; copy out of the
+    # read-only bind mount before starting with TLS enabled.
+    command:
+      - sh
+      - -c
+      - >-
+        cp /certs-src/server.pem /certs-src/server.key /tmp/ &&
+        chown postgres:postgres /tmp/server.pem /tmp/server.key &&
+        chmod 600 /tmp/server.key &&
+        exec docker-entrypoint.sh postgres
+        -c ssl=on
+        -c ssl_cert_file=/tmp/server.pem
+        -c ssl_key_file=/tmp/server.key
+        -c ssl_ca_file=/certs-src/ca.pem
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis-tls:
+    image: redis:7-alpine
+    ports:
+      - "63792:6379"
+    volumes:
+      - .fixtures/certs:/certs:ro
+    command:
+      - redis-server
+      - --tls-port
+      - "6379"
+      - --port
+      - "0"
+      - --tls-cert-file
+      - /certs/server.pem
+      - --tls-key-file
+      - /certs/server.key
+      - --tls-ca-cert-file
+      - /certs/ca.pem
+      - --tls-auth-clients
+      - "no"
+      - --aclfile
+      - /certs/users.acl
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --tls --cert /certs/server.pem --key /certs/server.key --cacert /certs/ca.pem ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  ssh:
+    build:
+      context: ./ssh
+      args:
+        APK_MIRROR: ${LODE_APK_MIRROR:-https://dl-cdn.alpinelinux.org}
+    ports:
+      - "2222:22"
+    # The SSH jump host reaches the engines via host.docker.internal:<host port>,
+    # matching LODE_TEST_SSH_TARGET_HOST. host-gateway makes this resolvable on
+    # Linux CI; macOS Docker/OrbStack provides it natively.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

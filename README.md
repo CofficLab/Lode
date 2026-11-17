@@ -59,6 +59,31 @@ swift test --package-path Packages/PluginDatabaseManager
 swift test --package-path Packages/FactoryDatabaseManager
 ```
 
+### Integration tests (real engines)
+
+Driver handshake, introspection, edit/commit, filtering, TLS, SSH tunnelling and
+import/export paths are covered by integration tests that talk to real database
+servers. They are skipped by default and enabled by `LODE_TEST_*` environment
+variables. A disposable Docker harness brings up MySQL, PostgreSQL, Redis, TLS
+variants of PostgreSQL/Redis and an SSH jump host, generates throwaway TLS
+fixtures, runs the suite and tears everything down:
+
+```sh
+# Requires Docker (with the compose plugin) and OpenSSL.
+scripts/integration/run-all-tests.sh                 # whole plugin suite
+scripts/integration/run-all-tests.sh SSHTunnelIntegrationTests   # one suite
+```
+
+The harness publishes MySQL on 33061, PostgreSQL on 54321, Redis on 63791,
+PostgreSQL TLS on 54322, Redis TLS on 63792 and SSH on 2222. Generated certificates
+and ACL files live in `scripts/integration/.fixtures/` (gitignored); no credentials
+are committed. To run against engines you manage yourself, export the
+`LODE_TEST_*_PORT` variables (and `LODE_TEST_TLS_CA` / `LODE_TEST_TLS_WRONG_CA` for
+the TLS suites) and run `swift test` directly.
+
+If the SSH image build cannot reach the official Alpine package CDN, point it at a
+reachable mirror, e.g. `LODE_APK_MIRROR=https://mirrors.aliyun.com scripts/integration/run-all-tests.sh`.
+
 ## License
 
 GPL-3.0. See [LICENSE](LICENSE).

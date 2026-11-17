@@ -59,6 +59,27 @@ swift test --package-path Packages/PluginDatabaseManager
 swift test --package-path Packages/FactoryDatabaseManager
 ```
 
+### 集成测试（真实引擎）
+
+驱动握手、introspection、编辑提交、筛选、TLS、SSH 隧道与导入导出关键路径由集成测试覆盖，
+这些测试连接真实数据库服务器。默认跳过，由 `LODE_TEST_*` 环境变量启用。一套一次性 Docker
+harness 会拉起 MySQL、PostgreSQL、Redis、PostgreSQL/Redis 的 TLS 变体以及 SSH 跳板机，
+生成一次性 TLS 夹具，跑完测试后全部拆除：
+
+```sh
+# 需要 Docker（含 compose 插件）与 OpenSSL。
+scripts/integration/run-all-tests.sh                 # 整个插件套件
+scripts/integration/run-all-tests.sh SSHTunnelIntegrationTests   # 单个套件
+```
+
+harness 将 MySQL 发布在 33061、PostgreSQL 54321、Redis 63791、PostgreSQL TLS 54322、
+Redis TLS 63792、SSH 2222。生成的证书与 ACL 文件位于 `scripts/integration/.fixtures/`
+（已 gitignore），不提交任何凭据。若要对自管引擎运行，导出 `LODE_TEST_*_PORT` 变量
+（TLS 套件另需 `LODE_TEST_TLS_CA` / `LODE_TEST_TLS_WRONG_CA`）后直接 `swift test`。
+
+若 SSH 镜像构建无法访问 Alpine 官方包 CDN，可指向可达镜像，例如
+`LODE_APK_MIRROR=https://mirrors.aliyun.com scripts/integration/run-all-tests.sh`。
+
 ## 许可
 
 GPL-3.0，见 [LICENSE](LICENSE)。

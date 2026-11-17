@@ -16,3 +16,6 @@ Packages/*/Package.resolved
 
 # Generated project (xcodegen)
 # Lode.xcodeproj is generated from project.yml; regenerate with `xcodegen generate`.
+
+# Integration test fixtures (generated TLS certs / ACL / keys; never committed)
+scripts/integration/.fixtures/
