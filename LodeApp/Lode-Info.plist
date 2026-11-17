@@ -46,5 +46,11 @@
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/CofficLab/Lode/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>nmRyCIGhzxX0Xc2y/UrWelxFPlSkT68GPtwq2kQPH1w=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

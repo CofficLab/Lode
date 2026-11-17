@@ -11,6 +11,9 @@ packages:
   LumiKernel:
     url: https://github.com/lumi-softworks/LumiKernel.git
     from: 1.1.1
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    version: 2.10.1
 
 targets:
   Lode:
@@ -27,6 +30,8 @@ targets:
         product: FactoryDatabaseManager
       - package: LumiKernel
         product: KernelCore
+      - package: Sparkle
+        product: Sparkle
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode

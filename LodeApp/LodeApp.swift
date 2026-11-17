@@ -39,6 +39,7 @@ private final class LodeFileOpenAgent: NSObject, NSApplicationDelegate {
 struct LodeApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: LodeFileOpenAgent
 
+    private let updates = UpdateController()
     private let mainView: AnyView
     private let settingsView: AnyView
 
@@ -71,6 +72,11 @@ struct LodeApp: App {
         }
         .defaultSize(width: 1100, height: 760)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button(String(localized: "Check for Updates…")) {
+                    updates.checkForUpdates()
+                }
+            }
             DatabaseGridEditCommands()
             DatabaseSQLFileCommands()
             DatabaseQueryCommands()
