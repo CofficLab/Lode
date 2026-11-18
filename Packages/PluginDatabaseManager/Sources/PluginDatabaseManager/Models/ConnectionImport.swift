@@ -39,24 +39,30 @@ enum ConnectionImporter {
     /// 各客户端在本机的默认配置文件位置；不存在返回 nil。路径基于当前用户 home 动态拼接。
     static func defaultURL(for source: ConnectionImportSource) -> URL? {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let candidates: [URL]
+        return candidateURLs(for: source, home: home)
+            .first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    /// 候选配置文件路径，按优先级排列：先常规安装路径，再 App Store 沙箱容器路径。
+    static func candidateURLs(for source: ConnectionImportSource, home: URL) -> [URL] {
         switch source {
         case .tablePlus:
-            candidates = [
+            return [
                 home.appendingPathComponent("Library/Application Support/com.tinyapp.TablePlus/Data/Connections.plist"),
             ]
         case .sequelAce:
-            candidates = [
+            return [
                 home.appendingPathComponent("Library/Application Support/Sequel Ace/Data/Favorites.plist"),
                 home.appendingPathComponent("Library/Application Support/Sequel Pro/Data/Favorites.plist"),
+                home.appendingPathComponent("Library/Containers/com.sequel-ace.sequel-ace/Data/Library/Application Support/Sequel Ace/Data/Favorites.plist"),
+                home.appendingPathComponent("Library/Containers/com.sequelpro.SequelPro/Data/Library/Application Support/Sequel Pro/Data/Favorites.plist"),
             ]
         case .dbeaver:
-            candidates = [
+            return [
                 home.appendingPathComponent("Library/DBeaverData/workspace6/General/.dbeaver/data-sources.json"),
                 home.appendingPathComponent(".local/share/DBeaverData/workspace6/General/.dbeaver/data-sources.json"),
             ]
         }
-        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     /// 本机已安装（默认配置文件存在）的客户端来源。
@@ -120,19 +126,34 @@ enum ConnectionImporter {
         return sortedForDisplay(result)
     }
 
-    // MARK: - Sequel Ace / Sequel Pro（Favorites.plist，Favorites Root.children）
+    // MARK: - Sequel Ace / Sequel Pro（Favorites.plist，Favorites Root 下的 children/Children）
 
     private static func parseSequelAce(_ data: Data) throws -> [DatabaseConfig] {
         guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
               let root = plist as? [String: Any],
               let favoritesRoot = root["Favorites Root"] as? [String: Any],
-              let children = favoritesRoot["children"] as? [[String: Any]] else {
+              let children = sequelChildren(of: favoritesRoot) else {
             throw ConnectionImportError.unsupportedFormat
         }
         var result: [DatabaseConfig] = []
-        for child in children {
-            // 文件夹节点没有 host，跳过；仅导入实际连接。
-            guard let host = trimmedString(child["host"]) else { continue }
+        collectSequelFavorites(children, into: &result)
+        return sortedForDisplay(result)
+    }
+
+    /// Sequel Pro 用小写 `children`，Sequel Ace 用大写 `Children`。
+    private static func sequelChildren(of node: [String: Any]) -> [[String: Any]]? {
+        (node["children"] as? [[String: Any]]) ?? (node["Children"] as? [[String: Any]])
+    }
+
+    /// 文件夹节点没有 host，递归展开其子节点；仅导入实际连接。
+    private static func collectSequelFavorites(_ nodes: [[String: Any]], into result: inout [DatabaseConfig]) {
+        for child in nodes {
+            guard let host = trimmedString(child["host"]) else {
+                if let sub = sequelChildren(of: child) {
+                    collectSequelFavorites(sub, into: &result)
+                }
+                continue
+            }
             let name = trimmedString(child["name"]) ?? host
             let type = mapType(child["type"] as? String ?? "mysql") ?? .mysql
             let config = DatabaseConfig(
@@ -146,7 +167,6 @@ enum ConnectionImporter {
             )
             result.append(config)
         }
-        return sortedForDisplay(result)
     }
 
     // MARK: - DBeaver（data-sources.json，connections 映射）

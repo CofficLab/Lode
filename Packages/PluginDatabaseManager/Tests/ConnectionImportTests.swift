@@ -146,6 +146,49 @@ struct ConnectionImportTests {
         }
     }
 
+    @Test func sequelAceParsesCapitalChildrenKey() throws {
+        let plist: [String: Any] = [
+            "Favorites Root": [
+                "IsExpanded": true,
+                "Name": "Favorites",
+                "Children": [
+                    ["name": "Cloud", "host": "127.0.0.1", "port": "", "database": "", "sshHost": "203.0.113.7"],
+                ],
+            ],
+        ]
+        let config = try #require(ConnectionImporter.parse(plistData(plist), source: .sequelAce).first)
+        #expect(config.name == "Cloud")
+        #expect(config.host == "127.0.0.1")
+        #expect(config.port == 3306)
+        #expect(config.database == "")
+    }
+
+    @Test func sequelAceRecursesIntoNestedFolders() throws {
+        let plist: [String: Any] = [
+            "Favorites Root": [
+                "Children": [
+                    [
+                        "Name": "Production", "IsExpanded": true,
+                        "Children": [
+                            ["name": "Nested A", "host": "a.example.com", "port": 3306],
+                            [
+                                "Name": "Sub Folder",
+                                "children": [
+                                    ["name": "Nested B", "host": "b.example.com", "port": "3307"],
+                                ],
+                            ],
+                        ],
+                    ],
+                    ["name": "Top Level", "host": "c.example.com"],
+                    ["Name": "Empty Folder", "Children": [[String: Any]]()],
+                ],
+            ],
+        ]
+        let configs = try ConnectionImporter.parse(plistData(plist), source: .sequelAce)
+        #expect(configs.map(\.name) == ["Nested A", "Nested B", "Top Level"])
+        #expect(configs.map(\.port) == [3306, 3307, 3306])
+    }
+
     // MARK: - DBeaver
 
     @Test func dbeaverParsesConnections() throws {
@@ -241,6 +284,30 @@ struct ConnectionImportTests {
         #expect(try ConnectionImporter.parse(plistData([[String: Any]]()), source: .tablePlus).isEmpty)
         #expect(try ConnectionImporter.parse(plistData(["Favorites Root": ["children": [[String: Any]]()]]), source: .sequelAce).isEmpty)
         #expect(try ConnectionImporter.parse(jsonData(["connections": [String: Any]()]), source: .dbeaver).isEmpty)
+    }
+
+    // MARK: - 默认配置文件候选路径
+
+    @Test func sequelAceCandidatesIncludeSandboxContainers() {
+        let home = URL(fileURLWithPath: "/Users/tester", isDirectory: true)
+        let paths = ConnectionImporter.candidateURLs(for: .sequelAce, home: home).map(\.path)
+        #expect(paths == [
+            "/Users/tester/Library/Application Support/Sequel Ace/Data/Favorites.plist",
+            "/Users/tester/Library/Application Support/Sequel Pro/Data/Favorites.plist",
+            "/Users/tester/Library/Containers/com.sequel-ace.sequel-ace/Data/Library/Application Support/Sequel Ace/Data/Favorites.plist",
+            "/Users/tester/Library/Containers/com.sequelpro.SequelPro/Data/Library/Application Support/Sequel Pro/Data/Favorites.plist",
+        ])
+    }
+
+    @Test func candidateURLsAreAnchoredToHome() {
+        let home = URL(fileURLWithPath: "/Users/tester", isDirectory: true)
+        for source in ConnectionImportSource.allCases {
+            let candidates = ConnectionImporter.candidateURLs(for: source, home: home)
+            #expect(!candidates.isEmpty)
+            for url in candidates {
+                #expect(url.path.hasPrefix(home.path))
+            }
+        }
     }
 }
 
