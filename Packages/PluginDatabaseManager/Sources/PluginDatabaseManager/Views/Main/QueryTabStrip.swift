@@ -57,7 +57,7 @@ struct QueryTabStrip: View {
                 .help(pluginLocalization.string("New query tab"))
                 .keyboardShortcut("t", modifiers: .command)
             }
-            .padding(.trailing, 8)
+            .padding(.trailing, 8 + viewModel.workspaceOverlayTrailingInset)
         }
         .frame(height: 36)
         .background(Material.regularMaterial)

@@ -1,4 +1,5 @@
 @_exported import DatabaseManagerPlugin
+@_exported import ProviderSettingView
 import KernelCore
 import PluginCodeEditorHost
 import ProviderExternalFile
@@ -34,6 +35,7 @@ private struct DedicatedPluginFactory: PluginFactory {
         [
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin()),
+            SettingsToolbarPlugin(),
         ]
     }
 }

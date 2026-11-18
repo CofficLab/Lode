@@ -35,7 +35,15 @@ public final class QueryWorkspaceStore: ObservableObject {
     // MARK: - 访问
 
     public var activeIndex: Int {
-        tabs.firstIndex { $0.id == activeTabID } ?? 0
+        // 谓词只捕获局部值：捕获 self 的隔离闭包经 firstIndex 调用时会插入
+        // MainActor.shared 动态隔离检查，其懒初始化争用曾让主线程空转数秒。
+        let id = activeTabID
+        return tabs.firstIndex { $0.id == id } ?? 0
+    }
+
+    /// 是否存在文件关联标签；供外部变更轮询在做任何活动标签计算前廉价短路。
+    public var hasFileBackedTab: Bool {
+        tabs.contains { $0.fileURL != nil }
     }
 
     public var activeTab: QueryTab {

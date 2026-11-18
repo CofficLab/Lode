@@ -136,7 +136,6 @@ struct SavedQueriesSectionView: View {
             }
             .padding(.vertical, 4)
         }
-        .scrollIndicators(.hidden)
     }
 
     // MARK: - Rows

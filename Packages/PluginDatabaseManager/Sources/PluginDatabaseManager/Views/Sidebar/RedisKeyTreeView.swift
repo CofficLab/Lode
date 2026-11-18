@@ -45,7 +45,6 @@ struct RedisKeyTreeView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                 }
-                .scrollIndicators(.hidden)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
 

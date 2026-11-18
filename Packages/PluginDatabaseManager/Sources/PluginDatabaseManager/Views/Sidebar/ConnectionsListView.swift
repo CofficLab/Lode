@@ -55,7 +55,6 @@ struct ConnectionsListView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                 }
-                .scrollIndicators(.hidden)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 footer
