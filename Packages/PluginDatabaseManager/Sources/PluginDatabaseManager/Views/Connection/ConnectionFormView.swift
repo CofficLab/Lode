@@ -64,48 +64,50 @@ struct ConnectionFormView: View {
                 .font(.appTitle)
                 .foregroundColor(theme.textPrimary)
 
-            AppCard {
-                VStack(alignment: .leading, spacing: 8) {
-                    GlassTextField(title: pluginLocalization.string("Connection Name"), text: $name, placeholder: pluginLocalization.string("My Database"))
+            ScrollView {
+                AppCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        GlassTextField(title: pluginLocalization.string("Connection Name"), text: $name, placeholder: pluginLocalization.string("My Database"))
 
-                    HStack {
-                        Text(pluginLocalization.string("Database Type"))
-                            .foregroundColor(theme.textSecondary)
-                        Spacer()
-                        Picker("", selection: $type) {
-                            ForEach(DatabaseType.allCases, id: \.self) { t in
-                                Text(t.rawValue).tag(t)
+                        HStack {
+                            Text(pluginLocalization.string("Database Type"))
+                                .foregroundColor(theme.textSecondary)
+                            Spacer()
+                            Picker("", selection: $type) {
+                                ForEach(DatabaseType.allCases, id: \.self) { t in
+                                    Text(t.rawValue).tag(t)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 160)
+                            .disabled(editing != nil)  // 编辑模式下不切换类型，避免配置语义错乱
+                        }
+
+                        if type == .sqlite {
+                            GlassTextField(title: pluginLocalization.string("Database Path"), text: $sqlitePath, placeholder: "/path/to/db.sqlite")
+                        } else {
+                            GlassTextField(title: pluginLocalization.string("Host"), text: $host, placeholder: "127.0.0.1")
+                            GlassTextField(title: pluginLocalization.string("Port"), text: $portText, placeholder: "\(type.defaultPort ?? 0)")
+                            GlassTextField(title: pluginLocalization.string("Database"), text: $database, placeholder: databasePlaceholder)
+                            GlassTextField(title: pluginLocalization.string("Username"), text: $username, placeholder: type == .redis ? "default" : "user")
+                            passwordSourceSection
+
+                            if type.capabilities.supportsSSL {
+                                sslPicker
+                                if sslOption != .disable {
+                                    tlsCertFields
+                                }
+                            }
+                            if type.capabilities.supportsSSH {
+                                sshSection
                             }
                         }
-                        .pickerStyle(.menu)
-                        .frame(width: 160)
-                        .disabled(editing != nil)  // 编辑模式下不切换类型，避免配置语义错乱
+
+                        safeModePicker
+                        agentAccessRow
+                        organizationSection
+                        startupSQLSection
                     }
-
-                    if type == .sqlite {
-                        GlassTextField(title: pluginLocalization.string("Database Path"), text: $sqlitePath, placeholder: "/path/to/db.sqlite")
-                    } else {
-                        GlassTextField(title: pluginLocalization.string("Host"), text: $host, placeholder: "127.0.0.1")
-                        GlassTextField(title: pluginLocalization.string("Port"), text: $portText, placeholder: "\(type.defaultPort ?? 0)")
-                        GlassTextField(title: pluginLocalization.string("Database"), text: $database, placeholder: databasePlaceholder)
-                        GlassTextField(title: pluginLocalization.string("Username"), text: $username, placeholder: type == .redis ? "default" : "user")
-                        passwordSourceSection
-
-                        if type.capabilities.supportsSSL {
-                            sslPicker
-                            if sslOption != .disable {
-                                tlsCertFields
-                            }
-                        }
-                        if type.capabilities.supportsSSH {
-                            sshSection
-                        }
-                    }
-
-                    safeModePicker
-                    agentAccessRow
-                    organizationSection
-                    startupSQLSection
                 }
             }
 
@@ -131,7 +133,9 @@ struct ConnectionFormView: View {
             }
         }
         .padding()
-        .frame(width: 400)
+        // 固定面板高度：字段区 ScrollView 吸收剩余空间，标题与操作按钮始终可见，
+        // 避免字段全展开时理想高度超出窗口被裁切（与 ConnectionImportSheet 的定高做法一致）。
+        .frame(width: 400, height: 620)
         .onAppear {
             prefill()
             viewModel.isConnectionFormPresented = true
