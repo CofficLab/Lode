@@ -142,13 +142,18 @@ jobs:
             "${{ steps.signing.outputs.signing_identity }}" \
             "${{ env.ENTITLEMENTS_PATH }}"
 
-      - name: Create DMG
+      - name: Create designed DMG
         run: |
           set -euo pipefail
-          mkdir -p updates
-          hdiutil create -volname "Lode" \
-            -srcfolder "build/DerivedData/Build/Products/Release/Lode.app" \
-            -ov -format UDZO "updates/Lode-${VERSION}.dmg"
+          chmod +x .github/scripts/create-designed-dmg.sh .github/scripts/sign-dmg.sh
+          .github/scripts/create-designed-dmg.sh \
+            "build/DerivedData/Build/Products/Release/Lode.app" \
+            "updates/Lode-${VERSION}.dmg" \
+            "Lode" .github/dmg/Lode-dmg-background.png Lode
+
+      - name: Sign disk image
+        run: |
+          .github/scripts/sign-dmg.sh "updates/Lode-${VERSION}.dmg" "${{ steps.signing.outputs.signing_identity }}"
 
       - name: Notarize DMG
         run: |
