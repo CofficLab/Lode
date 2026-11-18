@@ -4094,7 +4094,8 @@ extension DatabaseViewModel {
                     return
                 }
                 guard !Task.isCancelled, let self else { return }
-                if self.isConnected, self.workspace.activeTab.fileURL != nil {
+                if self.isConnected, self.workspace.hasFileBackedTab,
+                   self.workspace.activeTab.fileURL != nil {
                     self.refreshExternalChangeState()
                 }
             }
