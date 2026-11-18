@@ -18,7 +18,7 @@ public struct DatabaseQueryPayload: Encodable {
     public let truncated: Bool
 }
 
-public enum DatabaseAgentToolError: LocalizedError {
+public enum DatabaseAgentToolError: LocalizedError, Equatable {
     case missingArgument(String)
     case invalidConnectionId(String)
     case connectionNotFound(String)

@@ -234,4 +234,19 @@ struct PasswordSourceResolverTests {
         #expect(PasswordSourceResolver.trimTrailingNewlines("") == "")
         #expect(PasswordSourceResolver.trimTrailingNewlines("\n") == "")
     }
+
+    @Test("默认执行器真实运行 /bin/sh 命令并去掉尾部换行")
+    func shellCommandRunsRealProcess() async throws {
+        let resolver = PasswordSourceResolver(environment: [:])
+        let value = try await resolver.resolve(ConnectionPasswordSource(kind: .command, command: "echo shellpass"), keychainPassword: nil)
+        #expect(value == "shellpass")
+    }
+
+    @Test("默认执行器对非零退出只报退出码")
+    func shellCommandReportsExitStatus() async {
+        let resolver = PasswordSourceResolver(environment: [:])
+        await #expect(throws: PasswordSourceResolutionError.commandFailed(status: 7)) {
+            _ = try await resolver.resolve(ConnectionPasswordSource(kind: .command, command: "exit 7"), keychainPassword: nil)
+        }
+    }
 }

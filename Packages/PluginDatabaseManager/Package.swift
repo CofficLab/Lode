@@ -111,6 +111,7 @@ let package = Package(
             name: "DatabaseManagerPluginTests",
             dependencies: [
                 "DatabaseManagerPlugin",
+                .product(name: "NIOEmbedded", package: "swift-nio"),
                 .product(name: "ProviderEditor", package: "ProviderEditor"),
                 .product(name: "PluginCodeEditorHost", package: "PluginCodeEditorHost"),
                 .product(name: "KernelCore", package: "LumiKernel"),
