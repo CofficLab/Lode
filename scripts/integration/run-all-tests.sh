@@ -4,9 +4,10 @@
 # SSH jump host via docker compose, waits for health, runs swift test with the
 # LODE_TEST_* environment wired to those engines, then tears everything down.
 #
-# Usage: scripts/integration/run-all-tests.sh [swift-test-filter]
-#   no argument  -> run the whole plugin test suite
-#   argument     -> passed to `swift test --filter`
+# Usage: scripts/integration/run-all-tests.sh [--coverage] [swift-test-filter]
+#   no argument   -> run the whole plugin test suite
+#   --coverage    -> enable llvm code coverage (.build/debug/codecov)
+#   argument      -> passed to `swift test --filter`
 #
 # Ports and credentials are throwaway test values. The optional connection-import
 # tests need a real local client plist (LODE_TEST_TABLEPLUS_PLIST); they are left
@@ -17,7 +18,15 @@ cd "$(dirname "$0")/../.."
 ROOT="$(pwd)"
 COMPOSE_FILE="$ROOT/scripts/integration/docker-compose.yml"
 CERT="$ROOT/scripts/integration/.fixtures/certs"
-FILTER="${1:-}"
+FILTER=""
+COVERAGE=0
+for arg in "$@"; do
+  if [[ "$arg" == "--coverage" ]]; then
+    COVERAGE=1
+  else
+    FILTER="$arg"
+  fi
+done
 
 MYSQL_PORT="${LODE_TEST_MYSQL_PORT:-33061}"
 PG_PORT="${LODE_TEST_PG_PORT:-54321}"
@@ -52,7 +61,8 @@ LODE_TEST_SSH_PORT="$SSH_PORT" \
 LODE_TEST_SSH_TARGET_HOST="$SSH_TARGET_HOST" \
 LODE_TEST_TLS_CA="${LODE_TEST_TLS_CA:-$CERT/ca.pem}" \
 LODE_TEST_TLS_WRONG_CA="${LODE_TEST_TLS_WRONG_CA:-$CERT/wrong-ca.pem}" \
-  swift test --package-path Packages/PluginDatabaseManager ${FILTER:+--filter "$FILTER"}
+  swift test --package-path Packages/PluginDatabaseManager \
+    ${COVERAGE:+--enable-code-coverage} ${FILTER:+--filter "$FILTER"}
 STATUS=$?
 set -e
 
