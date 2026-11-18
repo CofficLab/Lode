@@ -306,7 +306,8 @@ struct TableDataView: View {
             .fixedSize()
             .help(pluginLocalization.string("Display Options"))
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 12)
+        .padding(.trailing, 12 + viewModel.workspaceOverlayTrailingInset)
         .frame(height: 48)
         .appSurface(style: .toolbar, cornerRadius: 0)
     }

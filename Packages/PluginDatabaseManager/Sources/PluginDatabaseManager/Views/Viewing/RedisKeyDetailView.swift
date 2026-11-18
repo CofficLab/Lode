@@ -81,7 +81,8 @@ struct RedisKeyDetailView: View {
             }
             .help(pluginLocalization.string("Delete this key"))
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 12)
+        .padding(.trailing, 12 + viewModel.workspaceOverlayTrailingInset)
         .frame(height: 48)
     }
 
