@@ -32,6 +32,19 @@ struct MainEmptyStateView: View {
     // MARK: - Body
 
     var body: some View {
+        // 连接数多或窗口矮时整页可滚，避免内容理想高度撑破 split view 布局。
+        ViewThatFits(in: .vertical) {
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 24)
+    }
+
+    private var content: some View {
         VStack(spacing: 20) {
             if let classified = viewModel.classifiedError {
                 DatabaseErrorBannerView(viewModel: viewModel, classified: classified)
@@ -40,8 +53,6 @@ struct MainEmptyStateView: View {
             MainEmptyStateHeaderView(onAddConnection: onAddConnection)
             savedConnectionsSection
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, 24)
     }
 
     // MARK: - Saved connections
