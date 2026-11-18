@@ -105,17 +105,12 @@ jobs:
           echo "team_id=${TEAM_ID}" >> "$GITHUB_OUTPUT"
           echo "api_key_path=${API_KEY_PATH}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve SPM dependencies
-        run: |
-          set -euo pipefail
-          xcodebuild -project Lode.xcodeproj -scheme Lode \
-            -resolvePackageDependencies \
-            -skipPackagePluginValidation \
-            -skipMacroValidation
-
       - name: Build app (Release, arm64, ad-hoc signed)
         run: |
           set -euo pipefail
+          # A SYMROOT override would leak into every SPM checkout and break
+          # cross-package swiftmodule discovery (TextStory/Rearrange failure on
+          # the first run); -derivedDataPath keeps package builds intact.
           xcodebuild \
             -project Lode.xcodeproj \
             -scheme Lode \
@@ -132,15 +127,15 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             CODE_SIGNING_REQUIRED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            -derivedDataPath build/DerivedData \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            SYMROOT=build/sym \
             build
 
       - name: Codesign app
         run: |
           set -euo pipefail
-          app="build/sym/Release/Lode.app"
+          app="build/DerivedData/Build/Products/Release/Lode.app"
           [[ -d "$app" ]] || { echo "::error::Built app not found at $app"; exit 1; }
           chmod +x .github/scripts/sign_app.sh
           .github/scripts/sign_app.sh "$app" \
@@ -151,7 +146,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p updates
-          hdiutil create -volname "Lode" -srcfolder "build/sym/Release/Lode.app" \
+          hdiutil create -volname "Lode" \
+            -srcfolder "build/DerivedData/Build/Products/Release/Lode.app" \
             -ov -format UDZO "updates/Lode-${VERSION}.dmg"
 
       - name: Notarize DMG
