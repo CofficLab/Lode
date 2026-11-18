@@ -39,6 +39,7 @@ targets:
         INFOPLIST_FILE: LodeApp/Lode-Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Lode
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: Y6HZ9JJYV6
         CODE_SIGN_ENTITLEMENTS: LodeApp/App.entitlements

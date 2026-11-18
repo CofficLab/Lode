@@ -36,6 +36,7 @@
         { "path": "LodeApp.swift", "target-membership": [ "Lode/compile-sources" ] },
         { "path": "UpdateController.swift", "target-membership": [ "Lode/compile-sources" ] },
         { "path": "Localizable.xcstrings", "target-membership": [ "Lode/resources" ] },
+        { "path": "Assets.xcassets", "target-membership": [ "Lode/resources" ] },
       ],
     }, {
       "kind": "group",
