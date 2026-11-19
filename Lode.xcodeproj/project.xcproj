@@ -61,6 +61,9 @@
       },
     }, {
       "kind": "local",
+      "path": "../../Lumi-Softworks/LumiChat",
+    }, {
+      "kind": "local",
       "path": "Packages/PluginCodeEditorHost",
     }, {
       "kind": "local",
@@ -70,37 +73,37 @@
       "path": "Packages/PluginRootView",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderAgentLoop",
+      "path": "../Lumi/Packages/ProviderAgentLoop",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderConversationInputBlock",
+      "path": "../Lumi/Packages/ProviderConversationInputBlock",
     }, {
       "kind": "local",
       "path": "Packages/ProviderExternalFile",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderLLMContext",
+      "path": "../Lumi/Packages/ProviderLLMContext",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderLLMManager",
+      "path": "../Lumi/Packages/ProviderLLMManager",
     }, {
       "kind": "local",
       "path": "Packages/ProviderLegacyData",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderLifecycleHooks",
+      "path": "../Lumi/Packages/ProviderLifecycleHooks",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderMessage",
+      "path": "../Lumi/Packages/ProviderMessage",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderMessageRendering",
+      "path": "../Lumi/Packages/ProviderMessageRendering",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderMessageStreaming",
+      "path": "../Lumi/Packages/ProviderMessageStreaming",
     }, {
       "kind": "local",
-      "path": "Packages/ProviderPromptSuggestionExecutor",
+      "path": "../Lumi/Packages/ProviderPromptSuggestionExecutor",
     }, {
       "kind": "local",
       "path": "Packages/ProviderWebServer",
@@ -129,20 +132,21 @@
       "kind": "group",
       "path": "Packages",
       "children": [
+        { "path": "<PROJECT>/../../Lumi-Softworks/LumiChat" },
         { "path": "<PROJECT>/Packages/PluginCodeEditorHost" },
         { "path": "<PROJECT>/Packages/PluginDatabaseManager" },
         { "path": "<PROJECT>/Packages/PluginRootView" },
-        { "path": "<PROJECT>/Packages/ProviderAgentLoop" },
-        { "path": "<PROJECT>/Packages/ProviderConversationInputBlock" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderAgentLoop" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderConversationInputBlock" },
         { "path": "<PROJECT>/Packages/ProviderExternalFile" },
-        { "path": "<PROJECT>/Packages/ProviderLLMContext" },
-        { "path": "<PROJECT>/Packages/ProviderLLMManager" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderLLMContext" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderLLMManager" },
         { "path": "<PROJECT>/Packages/ProviderLegacyData" },
-        { "path": "<PROJECT>/Packages/ProviderLifecycleHooks" },
-        { "path": "<PROJECT>/Packages/ProviderMessage" },
-        { "path": "<PROJECT>/Packages/ProviderMessageRendering" },
-        { "path": "<PROJECT>/Packages/ProviderMessageStreaming" },
-        { "path": "<PROJECT>/Packages/ProviderPromptSuggestionExecutor" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderLifecycleHooks" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderMessage" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderMessageRendering" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderMessageStreaming" },
+        { "path": "<PROJECT>/../Lumi/Packages/ProviderPromptSuggestionExecutor" },
         { "path": "<PROJECT>/Packages/ProviderWebServer" },
       ],
     }, {
@@ -196,6 +200,38 @@
         }, {
           "package": "LumiKitLLM",
           "product-name": "KitLLM",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginConversationInput",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginConversationState",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginMessageListStandard",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginMessageRenderer",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginMessageSender",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginModelSelector",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginLLMProviderSettings",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginLLMProviderOpenAI",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "product-name": "ProviderAgentLoop",

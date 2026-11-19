@@ -11,6 +11,7 @@ struct DatabaseAgentV2ToolContractTests {
     private let describe = DatabaseDescribeSchemaV2Tool()
     private let query = DatabaseReadonlyQueryV2Tool()
     private let sample = DatabaseSampleTableV2Tool()
+    private let propose = DatabaseProposeSQLV2Tool()
 
     private func args(_ pairs: (String, Any)...) -> [String: ToolArgument] {
         Dictionary(uniqueKeysWithValues: pairs.map { ($0.0, ToolArgument($0.1)) })
@@ -26,12 +27,14 @@ struct DatabaseAgentV2ToolContractTests {
         #expect(query.name == DatabaseReadonlyQueryV2Tool.toolName)
         #expect(DatabaseSampleTableV2Tool.toolName == "database_sample_table")
         #expect(sample.name == DatabaseSampleTableV2Tool.toolName)
+        #expect(DatabaseProposeSQLV2Tool.toolName == "database_propose_sql")
+        #expect(propose.name == DatabaseProposeSQLV2Tool.toolName)
     }
 
     @Test("描述与展示文案覆盖语言偏好且非空")
     func descriptionsNonEmpty() {
         for language in [LanguagePreference.chinese, .english] {
-            for tool in [list, describe, query, sample] as [any SuperAgentTool] {
+            for tool in [list, describe, query, sample, propose] as [any SuperAgentTool] {
                 #expect(!tool.description(for: language).isEmpty)
                 #expect(!tool.displayDescription(for: [:]).isEmpty)
             }
@@ -47,6 +50,7 @@ struct DatabaseAgentV2ToolContractTests {
         #expect(required(describe.inputSchema(for: .english)) == ["connection_id"])
         #expect(required(query.inputSchema(for: .english)) == ["connection_id", "sql"])
         #expect(required(sample.inputSchema(for: .english)) == ["connection_id", "table"])
+        #expect(required(propose.inputSchema(for: .english)) == ["connection_id", "query_tab_id", "proposal_token", "sql"])
     }
 
     @Test("list 工具固定低风险")
@@ -104,6 +108,34 @@ struct DatabaseAgentV2ToolContractTests {
         }
         await #expect(throws: DatabaseAgentToolError.invalidLimit) {
             try await describe.execute(arguments: args(("connection_id", id), ("limit", "abc")))
+        }
+    }
+
+    @Test("SQL 提案校验目标 UUID 与非空 SQL")
+    func proposalValidation() async {
+        let connectionID = UUID().uuidString
+        let tabID = UUID().uuidString
+        let token = UUID().uuidString
+        await #expect(throws: DatabaseAgentToolError.missingArgument("query_tab_id")) {
+            try await propose.execute(arguments: args(("connection_id", connectionID)))
+        }
+        await #expect(throws: DatabaseAgentToolError.invalidUUID(argument: "query_tab_id", value: "tab")) {
+            try await propose.execute(arguments: args(("connection_id", connectionID), ("query_tab_id", "tab")))
+        }
+        await #expect(throws: DatabaseAgentToolError.invalidUUID(argument: "proposal_token", value: "token")) {
+            try await propose.execute(arguments: args(
+                ("connection_id", connectionID),
+                ("query_tab_id", tabID),
+                ("proposal_token", "token")
+            ))
+        }
+        await #expect(throws: DatabaseAgentToolError.missingArgument("sql")) {
+            try await propose.execute(arguments: args(
+                ("connection_id", connectionID),
+                ("query_tab_id", tabID),
+                ("proposal_token", token),
+                ("sql", "  \n ")
+            ))
         }
     }
 

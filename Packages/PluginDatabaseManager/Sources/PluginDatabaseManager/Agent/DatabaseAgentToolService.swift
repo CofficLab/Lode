@@ -25,6 +25,7 @@ public enum DatabaseAgentToolError: LocalizedError, Equatable {
     case connectionNotAllowed(String)
     case unsafeSQL(String)
     case invalidLimit
+    case invalidUUID(argument: String, value: String)
     case unsupportedDatabaseType(String)
 
     public var errorDescription: String? {
@@ -41,6 +42,8 @@ public enum DatabaseAgentToolError: LocalizedError, Equatable {
             return "SQL rejected by read-only policy: \(reason)"
         case .invalidLimit:
             return "limit must be between 1 and \(DatabaseAgentToolService.maxRows)"
+        case .invalidUUID(let argument, let value):
+            return "Invalid \(argument): \(value). Expected a UUID."
         case .unsupportedDatabaseType(let type):
             return "Unsupported database type for this tool: \(type)"
         }

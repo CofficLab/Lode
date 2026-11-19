@@ -5,6 +5,7 @@ import ProviderChatSection
 import ProviderDocsView
 import ProviderContentView
 import ProviderExternalFile
+import ProviderLifecycleHooks
 import ProviderRailView
 import ProviderRootView
 import ProviderSettingView
@@ -37,6 +38,7 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
     public static let railTabID = "com.coffic.lumi.plugin.database-manager.sidebar"
 
     private let viewModel: DatabaseViewModel
+    private var lifecycleHookHandle: (any LifecycleHookHandle)?
 
     /// - Parameter loadSavedConfigs: UI 测试隔离时传 `false`，跳过真实
     ///   UserDefaults/Keychain 读取（宿主进程里会触发钥匙串授权弹窗并挂起启动）。
@@ -54,6 +56,12 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
     public func onBoot(kernel: KernelCoreContainer) throws {
         viewModel.embeddedEditorProvider = kernel.resolveProvider(EditorEmbeddedEditorProviding.self)
         try installEditorContributions(kernel: kernel)
+        lifecycleHookHandle?.cancel()
+        let contextHook = DatabaseAgentContextHook()
+        lifecycleHookHandle = kernel.resolveProvider((any LifecycleHooksProviding).self)?
+            .addWillSendToLLMHook { context in
+                contextHook.apply(to: context)
+            }
         let contentView = kernel.resolveProvider((any ContentViewProviding).self)
         let chat = kernel.resolveProvider((any ChatSectionProviding).self)
         let railView = kernel.resolveProvider((any RailViewProviding).self)
@@ -67,6 +75,15 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
                     fileURL: storage
                         .pluginDataDirectory(for: pluginID)
                         .appendingPathComponent("rail-view-width.plist", isDirectory: false)
+                )
+            }
+        let chatWidthStore = kernel
+            .resolveProvider((any StorageProviding).self)
+            .map { storage in
+                FileChatSectionWidthStore(
+                    fileURL: storage
+                        .pluginDataDirectory(for: pluginID)
+                        .appendingPathComponent("chat-section-width.plist", isDirectory: false)
                 )
             }
         railView?.addTabs([
@@ -89,6 +106,7 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
                 ownerPluginID: id
             ) { state in
                 if state == .activated {
+                    DatabaseSQLProposalRuntime.shared.activate(viewModel: self.viewModel)
                     toolbar?.setVisibleCategories([.global])
                     railView?.setVisibleTabID(Self.railTabID)
                     rootView?.setRailViewVisible(railView?.hasVisibleTabs ?? false)
@@ -97,7 +115,14 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
                         recommended: RailViewWidth(minWidth: 260, idealWidth: 320, maxWidth: 460),
                         store: railWidthStore
                     )
-                    chat?.setVisible(false)
+                    chat?.setVisible(true)
+                    chat?.setContextActive(true)
+                    chat?.setActiveContext(.defaultChat)
+                    chat?.activateWidthProfile(
+                        ownerID: pluginID,
+                        recommended: .standard,
+                        store: chatWidthStore
+                    )
                     rootView?.setContentHeaderViewHidden(true)
                     contentView?.setContentView(
                         AnyView(DatabaseManagerV2Workspace(viewModel: self.viewModel))
@@ -108,11 +133,15 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
                         },
                     ])
                 } else {
+                    DatabaseSQLProposalRuntime.shared.deactivate(viewModel: self.viewModel)
                     toolbar?.setVisibleCategories(Set(ToolbarItemCategory.allCases))
                     railView?.setVisibleCategories(Set(RailViewCategory.allCases))
                     rootView?.setRailViewVisible(railView?.hasVisibleTabs ?? false)
                     railView?.deactivateWidthProfile(ownerID: pluginID)
-                    chat?.setVisible(true)
+                    chat?.deactivateWidthProfile(ownerID: pluginID)
+                    chat?.setContextActive(false)
+                    chat?.setActiveContext(nil)
+                    chat?.setVisible(false)
                     rootView?.setContentHeaderViewHidden(false)
                     toolbar?.removeToolbarItems(ids: ["\(self.id).title"])
                 }
@@ -126,6 +155,7 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
         tools?.add(DatabaseDescribeSchemaV2Tool(), pluginID: id)
         tools?.add(DatabaseReadonlyQueryV2Tool(), pluginID: id)
         tools?.add(DatabaseSampleTableV2Tool(), pluginID: id)
+        tools?.add(DatabaseProposeSQLV2Tool(), pluginID: id)
         kernel.resolveProvider((any SettingViewProviding).self)?.addEntries([
             SettingEntryItem(
                 id: "\(id).settings",
@@ -139,6 +169,9 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
     }
 
     public func onShutdown(kernel: KernelCoreContainer) throws {
+        lifecycleHookHandle?.cancel()
+        lifecycleHookHandle = nil
+        DatabaseSQLProposalRuntime.shared.deactivate(viewModel: viewModel)
         try withdrawEditorContributions(kernel: kernel)
         let activityBar = kernel.resolveProvider((any ActivityBarProviding).self)
         let wasActive = activityBar?.activeItemID == "\(id).entry"
@@ -146,7 +179,11 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
         if wasActive {
             kernel.resolveProvider((any RailViewProviding).self)?.deactivateWidthProfile(ownerID: id)
             kernel.resolveProvider((any RailViewProviding).self)?.setVisibleCategories(Set(RailViewCategory.allCases))
-            kernel.resolveProvider((any ChatSectionProviding).self)?.setVisible(true)
+            let chat = kernel.resolveProvider((any ChatSectionProviding).self)
+            chat?.deactivateWidthProfile(ownerID: id)
+            chat?.setContextActive(false)
+            chat?.setActiveContext(nil)
+            chat?.setVisible(false)
             kernel.resolveProvider((any RootViewProviding).self)?.setContentHeaderViewHidden(false)
         }
         kernel.resolveProvider((any RailViewProviding).self)?.removeTabs(ids: [Self.railTabID])
@@ -162,6 +199,7 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
         tools?.remove(id: DatabaseDescribeSchemaV2Tool.toolName)
         tools?.remove(id: DatabaseReadonlyQueryV2Tool.toolName)
         tools?.remove(id: DatabaseSampleTableV2Tool.toolName)
+        tools?.remove(id: DatabaseProposeSQLV2Tool.toolName)
         kernel.resolveProvider((any SettingViewProviding).self)?.removeEntries(ids: ["\(id).settings"])
         viewModel.embeddedEditorProvider = nil
     }

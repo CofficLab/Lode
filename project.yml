@@ -30,6 +30,8 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     version: 2.10.1
+  LumiChat:
+    path: ../../Lumi-Softworks/LumiChat
   PluginCodeEditorHost:
     path: Packages/PluginCodeEditorHost
   PluginDatabaseManager:
@@ -37,27 +39,27 @@ packages:
   PluginRootView:
     path: Packages/PluginRootView
   ProviderAgentLoop:
-    path: Packages/ProviderAgentLoop
+    path: ../Lumi/Packages/ProviderAgentLoop
   ProviderConversationInputBlock:
-    path: Packages/ProviderConversationInputBlock
+    path: ../Lumi/Packages/ProviderConversationInputBlock
   ProviderExternalFile:
     path: Packages/ProviderExternalFile
   ProviderLLMContext:
-    path: Packages/ProviderLLMContext
+    path: ../Lumi/Packages/ProviderLLMContext
   ProviderLLMManager:
-    path: Packages/ProviderLLMManager
+    path: ../Lumi/Packages/ProviderLLMManager
   ProviderLegacyData:
     path: Packages/ProviderLegacyData
   ProviderLifecycleHooks:
-    path: Packages/ProviderLifecycleHooks
+    path: ../Lumi/Packages/ProviderLifecycleHooks
   ProviderMessage:
-    path: Packages/ProviderMessage
+    path: ../Lumi/Packages/ProviderMessage
   ProviderMessageRendering:
-    path: Packages/ProviderMessageRendering
+    path: ../Lumi/Packages/ProviderMessageRendering
   ProviderMessageStreaming:
-    path: Packages/ProviderMessageStreaming
+    path: ../Lumi/Packages/ProviderMessageStreaming
   ProviderPromptSuggestionExecutor:
-    path: Packages/ProviderPromptSuggestionExecutor
+    path: ../Lumi/Packages/ProviderPromptSuggestionExecutor
   ProviderWebServer:
     path: Packages/ProviderWebServer
 
@@ -88,6 +90,22 @@ targets:
         product: LodePluginRootView
       - package: LumiKitLLM
         product: KitLLM
+      - package: LumiChat
+        product: PluginConversationInput
+      - package: LumiChat
+        product: PluginConversationState
+      - package: LumiChat
+        product: PluginMessageListStandard
+      - package: LumiChat
+        product: PluginMessageRenderer
+      - package: LumiChat
+        product: PluginMessageSender
+      - package: LumiChat
+        product: PluginModelSelector
+      - package: LumiChat
+        product: PluginLLMProviderSettings
+      - package: LumiChat
+        product: PluginLLMProviderOpenAI
       - package: ProviderAgentLoop
         product: ProviderAgentLoop
       - package: LumiProviders

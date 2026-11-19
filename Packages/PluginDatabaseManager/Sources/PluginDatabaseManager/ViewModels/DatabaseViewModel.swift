@@ -4288,3 +4288,47 @@ extension DatabaseViewModel {
         }
     }
 }
+
+// MARK: - Agent SQL 提案
+
+extension DatabaseViewModel {
+    func makeSQLProposalContext(token: UUID) -> DatabaseSQLProposalContext? {
+        guard isConnected,
+              let config = selectedConfig,
+              connectedConfigId == config.id,
+              config.type != .redis,
+              DatabaseAgentAccessPolicy.shared.isAllowed(config.id) else { return nil }
+        return DatabaseSQLProposalContext(
+            token: token,
+            connectionID: config.id,
+            queryTabID: workspace.activeTabID,
+            dialect: config.type.rawValue,
+            database: activeDatabase ?? config.database,
+            schema: activeSchema,
+            connectionGeneration: connectionGeneration,
+            originalText: queryText
+        )
+    }
+
+    func applySQLProposal(_ proposal: DatabaseSQLProposalContext, sql: String) throws {
+        guard isConnected,
+              let config = selectedConfig,
+              connectedConfigId == config.id,
+              config.type != .redis else {
+            throw DatabaseSQLProposalError.noActiveSQLConnection
+        }
+        guard config.id == proposal.connectionID,
+              connectionGeneration == proposal.connectionGeneration,
+              workspace.activeTabID == proposal.queryTabID,
+              (activeDatabase ?? config.database) == proposal.database,
+              activeSchema == proposal.schema else {
+            throw DatabaseSQLProposalError.staleProposal
+        }
+        guard queryText == proposal.originalText else {
+            throw DatabaseSQLProposalError.editorChanged
+        }
+        switchToQueryEditor()
+        queryText = sql
+        syncActiveSnapshot()
+    }
+}

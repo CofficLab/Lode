@@ -2,6 +2,14 @@ import DatabaseManagerPlugin
 import KernelCore
 import LumiFactory
 import PluginCodeEditorHost
+import PluginConversationInput
+import PluginConversationState
+import PluginLLMProviderOpenAI
+import PluginLLMProviderSettings
+import PluginMessageListStandard
+import PluginMessageRenderer
+import PluginMessageSender
+import PluginModelSelector
 import LodePluginRootView
 import ProviderExternalFile
 import ProviderRootView
@@ -80,13 +88,21 @@ enum LodeHostManifest {
 
     // MARK: - Plugin Assembly
 
-    /// 专用插件目录：编辑器宿主与数据库插件都是硬依赖，强制 alwaysOn，
-    /// 不允许用户在插件管理里禁用（禁用后主窗口只剩空内容）。
+    /// 聊天能力由 LumiChat 同源插件提供；编辑器宿主与数据库插件是硬依赖，
+    /// 强制 alwaysOn，不允许用户在插件管理里禁用（禁用后主窗口只剩空内容）。
     static func makePlugins() -> [any SuperPlugin] {
         // 测试隔离模式下不读真实保存的连接配置：宿主进程共享用户真实的
         // UserDefaults/Keychain，启动期同步读密码会触发钥匙串授权弹窗并挂起装配。
         let loadSavedConfigs = uiTestDataRoot() == nil
         return [
+            MessageSenderPlugin(),
+            ConversationStatePlugin(),
+            MessageRendererPlugin(),
+            OpenAIProviderPlugin(),
+            PluginMessageListStandardPlugin(),
+            ModelSelectorPlugin(),
+            ConversationInputPlugin(),
+            LLMProviderSettingsPlugin(),
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin(loadSavedConfigs: loadSavedConfigs)),
         ]
