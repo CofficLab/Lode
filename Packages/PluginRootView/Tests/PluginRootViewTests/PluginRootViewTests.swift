@@ -2,7 +2,7 @@ import ProviderChatSection
 import ProviderRailView
 import SwiftUI
 import Testing
-@testable import PluginRootView
+@testable import LodePluginRootView
 import ProviderRootView
 import KernelCore
 

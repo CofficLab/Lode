@@ -1,2 +1,0 @@
-# Package.resolved is tracked so CI resolves the exact dependency graph the
-# factory tests (including the launch assembly budget gate) are verified against.

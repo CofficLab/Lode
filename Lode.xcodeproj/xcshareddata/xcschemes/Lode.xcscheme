@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Lode.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8E2F89C60FBBBCD3C942EEAD"
+               BuildableName = "LodeTests.xctest"
+               BlueprintName = "LodeTests"
+               ReferencedContainer = "container:Lode.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -39,6 +53,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8E2F89C60FBBBCD3C942EEAD"
+               BuildableName = "LodeTests.xctest"
+               BlueprintName = "LodeTests"
+               ReferencedContainer = "container:Lode.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

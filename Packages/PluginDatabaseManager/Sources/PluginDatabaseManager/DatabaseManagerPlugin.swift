@@ -36,9 +36,13 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
 
     public static let railTabID = "com.coffic.lumi.plugin.database-manager.sidebar"
 
-    private let viewModel = DatabaseViewModel()
+    private let viewModel: DatabaseViewModel
 
-    public init() {}
+    /// - Parameter loadSavedConfigs: UI 测试隔离时传 `false`，跳过真实
+    ///   UserDefaults/Keychain 读取（宿主进程里会触发钥匙串授权弹窗并挂起启动）。
+    public init(loadSavedConfigs: Bool = true) {
+        viewModel = DatabaseViewModel(loadSavedConfigs: loadSavedConfigs)
+    }
 
     public func onRegister(kernel: KernelCoreContainer) throws {
         if let docs = kernel.resolveProvider((any DocsViewProviding).self) {

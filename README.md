@@ -25,14 +25,14 @@ Lode was extracted from [Lumi](https://github.com/CofficLab/Lumi) and keeps Lumi
 
 | Path | Description |
 |------|-------------|
-| `LodeApp/` | SwiftUI app entry point, Info.plist, and entitlements |
-| `Packages/FactoryDatabaseManager/` | Composition root: KernelFactory, ProviderFactory, ViewFactory, and the dedicated plugin catalog |
+| `LodeApp/` | SwiftUI app entry point and host manifest: the composition root interpreted by the shared LumiFactory assembler |
+| `LodeTests/` | Host-manifest integration tests and the launch assembly budget gate |
 | `Packages/PluginDatabaseManager/` | Database plugin: connections, queries, object tree, editor, and agent tools |
 | `Packages/PluginCodeEditorHost/` | Editor host plugin used by the SQL editor |
 | `Packages/Kit*` / `Packages/Provider*` / `Packages/Plugin*` | Minimal dependency closure carried over from Lumi |
 | `project.yml` | XcodeGen project description |
 
-Shared capabilities (LumiKernel, LumiProviders, LumiUI, and others) are consumed as remote Swift packages and are not copied into this repository.
+Shared capabilities (LumiFactory, LumiKernel, LumiProviders, LumiUI, and others) are consumed as remote Swift packages and are not copied into this repository. Like its sibling apps, Lode keeps no Factory package of its own: `LodeApp/LodeHostManifest.swift` declares the host differences (identity, plugin catalog, storage/theme configuration, app-domain providers and wiring) and the shared LumiFactory engine interprets them.
 
 ## Build
 
@@ -57,7 +57,8 @@ Builds must target a single architecture: `generic/platform=macOS` compiles both
 
 ```sh
 swift test --package-path Packages/PluginDatabaseManager
-swift test --package-path Packages/FactoryDatabaseManager
+xcodebuild test -project Lode.xcodeproj -scheme Lode -only-testing:LodeTests \
+  -destination 'platform=macOS,arch=arm64' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
 ```
 
 ### Integration tests (real engines)
@@ -102,7 +103,9 @@ stall watchdog that logs any main-queue block longer than 250 ms.
 scripts/perf/measure-launch.sh /path/to/Lode.app 5
 
 # Regenerate the assembly baseline deliberately, then commit the new value:
-LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline
+LODE_PERF_MEASURE=1 xcodebuild test -project Lode.xcodeproj -scheme Lode \
+  -only-testing:LodeTests/LaunchBudgetGateTests/testMeasureAssemblyBaseline \
+  -destination 'platform=macOS,arch=arm64' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
 ```
 
 ## MCP server

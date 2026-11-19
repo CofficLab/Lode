@@ -10,27 +10,26 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "PluginRootView",
-            targets: ["PluginRootView"]
+            name: "LodePluginRootView",
+            targets: ["LodePluginRootView"]
         ),
     ],
     dependencies: [
         .package(url: "https://github.com/lumi-softworks/LumiKernel.git", from: "1.1.1"),
         .package(url: "https://github.com/lumi-softworks/LumiUI.git", from: "1.17.1"),
         .package(url: "https://github.com/lumi-softworks/LumiLocalization.git", from: "1.0.2"),
-        .package(path: "../ProviderChatSection"),
         .package(path: "../ProviderPanelBottom"),
         .package(url: "https://github.com/lumi-softworks/LumiLogging.git", from: "1.0.2"),
-        .package(url: "https://github.com/lumi-softworks/LumiProviders.git", from: "1.23.0")
+        .package(url: "https://github.com/lumi-softworks/LumiProviders.git", from: "1.26.0")
     ],
     targets: [
         .target(
-            name: "PluginRootView",
+            name: "LodePluginRootView",
             dependencies: [
                 .product(name: "KernelCore", package: "LumiKernel"),
                 .product(name: "LumiUI", package: "LumiUI"),
                 .product(name: "LumiLocalizationKit", package: "LumiLocalization"),
-                .product(name: "ProviderChatSection", package: "ProviderChatSection"),
+                .product(name: "ProviderChatSection", package: "LumiProviders"),
                 .product(name: "ProviderPanelBottom", package: "ProviderPanelBottom"),
                 .product(name: "ProviderRailView", package: "LumiProviders"),
                 .product(name: "ProviderRootView", package: "LumiProviders"),
@@ -43,9 +42,9 @@ let package = Package(
         .testTarget(
             name: "PluginRootViewTests",
             dependencies: [
-                "PluginRootView",
+                "LodePluginRootView",
                 .product(name: "KernelCore", package: "LumiKernel"),
-                .product(name: "ProviderChatSection", package: "ProviderChatSection"),
+                .product(name: "ProviderChatSection", package: "LumiProviders"),
                 .product(name: "ProviderPanelBottom", package: "ProviderPanelBottom"),
                 .product(name: "ProviderRailView", package: "LumiProviders"),
                 .product(name: "ProviderRootView", package: "LumiProviders"),

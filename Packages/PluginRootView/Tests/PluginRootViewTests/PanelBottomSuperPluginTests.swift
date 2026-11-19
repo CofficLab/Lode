@@ -3,7 +3,7 @@ import ProviderPanelBottom
 import ProviderRootView
 import SwiftUI
 import Testing
-@testable import PluginRootView
+@testable import LodePluginRootView
 
 /// PanelBottomPlugin 宿主生命周期测试。
 ///

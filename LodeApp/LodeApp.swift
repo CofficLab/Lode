@@ -1,125 +1,84 @@
 import AppKit
-import FactoryDatabaseManager
+import Combine
+import DatabaseManagerPlugin
 import KernelCore
+import LumiFactory
 import SwiftUI
 
-@MainActor
-private final class LodeFileOpenAgent: NSObject, NSApplicationDelegate {
-    private static var kernel: KernelCoreContainer?
-    private static var pendingURLs: [URL] = []
-
-    static func configure(kernel: KernelCoreContainer) {
-        Self.kernel = kernel
-        let queuedURLs = Self.pendingURLs
-        Self.pendingURLs = []
-        queuedURLs.forEach { _ = FactoryDatabaseManager.openExternalFile($0, kernel: kernel) }
-    }
-
-    func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls { Self.open(url) }
-    }
-
-    func application(_ application: NSApplication, openFile filename: String) -> Bool {
-        Self.open(URL(fileURLWithPath: filename))
-        return true
-    }
-
-    private static func open(_ url: URL) {
-        guard let kernel else {
-            pendingURLs.append(url)
-            return
-        }
-        _ = FactoryDatabaseManager.openExternalFile(url, kernel: kernel)
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first(where: \.canBecomeKey)?.makeKeyAndOrderFront(nil)
-    }
-}
-
+/// 应用入口：装配流水线、窗口壳、设置深链与外部文件打开排队全部由
+/// LumiFactory 解释 `LodeHostManifest` 执行；本文件只负责把启动器接到
+/// SwiftUI 入口，并追加数据库专属的应用命令。
 @main
 struct LodeApp: App {
-    @NSApplicationDelegateAdaptor private var appDelegate: LodeFileOpenAgent
-
-    private let updates = UpdateController()
-    private let kernel: KernelCoreContainer?
-    private let mainView: AnyView
-    private let settingsView: AnyView
+    // delegate adaptor 必须挂在 @main 根 App 上：SwiftUI 只为根 App 安装
+    // NSApplicationDelegateAdaptor，放在嵌套结构上不会生效。
+    @NSApplicationDelegateAdaptor private var appDelegate: HostAppDelegate
 
     init() {
+        // 禁用窗口状态恢复必须在根 App.init 写入（恢复发生在 delegate 回调之前）。
+        HostAppDelegate.prepareForLaunch()
         #if DEBUG
+        // XCTest 注入宿主时，App 自身启动早于任何测试 setUp：提前隔离数据根，
+        // 避免启动装配读真实 UserDefaults/Keychain（授权弹窗会挂起启动与测试连接）。
+        if ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil,
+           ProcessInfo.processInfo.environment["LODE_UI_TEST_DATA_ROOT"] == nil {
+            let root = FileManager.default.temporaryDirectory
+                .appendingPathComponent("LodeXCTestHost-\(UUID().uuidString)", isDirectory: true)
+            setenv("LODE_UI_TEST_DATA_ROOT", root.path, 1)
+        }
         MainThreadStallMonitor.shared.start()
         #endif
-        var assembled: KernelCoreContainer?
-        LaunchPerformance.shared.measure(.assembly) {
-            assembled = try? FactoryDatabaseManager.makeKernel()
-        }
-        kernel = assembled
-        guard let kernel = assembled else {
-            mainView = AnyView(Text("Failed to assemble Lode"))
-            settingsView = AnyView(Text("Failed to assemble settings"))
-            return
-        }
-        LodeFileOpenAgent.configure(kernel: kernel)
-        var firstWindow: AnyView?
-        LaunchPerformance.shared.measure(.firstWindow) {
-            firstWindow = try? FactoryDatabaseManager.makeMainView(kernel: kernel)
-        }
-        mainView = firstWindow.map { AnyView(MainSceneHostView(content: $0, kernel: kernel)) }
-            ?? AnyView(Text("Failed to assemble Lode"))
-        settingsView = (try? FactoryDatabaseManager.makeSettingsView(kernel: kernel))
-            ?? AnyView(Text("Failed to assemble settings"))
+        LodeAssembly.startLaunchMetrics()
+        appDelegate.bootstrapper = LodeAssembly.bootstrapper
     }
 
     var body: some Scene {
-        WindowGroup("Lode", id: "lode.main") {
-            mainView
-        }
-        .defaultSize(width: 1100, height: 760)
-        .commands {
-            CommandGroup(after: .appInfo) {
-                Button(String(localized: "Settings…")) {
-                    NotificationCenter.default.post(
-                        name: SettingViewNavigation.openSettingsNotification,
-                        object: nil
-                    )
-                }
-                .keyboardShortcut(",", modifiers: .command)
-                Button(String(localized: "Check for Updates…")) {
-                    updates.checkForUpdates()
-                }
+        // 单例主窗口（与 GitOK / Wakey 一致）：共享壳启动时会显式开窗，
+        // WindowGroup 拓扑下 openWindow(id:) 会再建一个实例，造成双主窗口。
+        HostMacScenes(bootstrapper: LodeAssembly.bootstrapper).body
+            .commands {
+                DatabaseGridEditCommands()
+                DatabaseSQLFileCommands()
+                DatabaseQueryCommands()
             }
-            DatabaseGridEditCommands()
-            DatabaseSQLFileCommands()
-            DatabaseQueryCommands()
-        }
-
-        Window("Settings", id: "lode.settings") {
-            settingsView
-        }
-        .defaultSize(width: 960, height: 600)
     }
 }
 
-/// 主窗口宿主视图：监听「打开设置」通知（工具栏按钮 / 菜单 / 插件深链共用），
-/// 按需选中指定设置入口后打开设置窗口。
+/// 宿主级装配单例：App.init 可能被 SwiftUI 多次求值，启动器必须经单例创建，
+/// 保证视图持有的与注入 AppDelegate 的是同一个实例。
 @MainActor
-private struct MainSceneHostView: View {
-    let content: AnyView
-    let kernel: KernelCoreContainer?
+enum LodeAssembly {
+    static let updates = UpdateController()
+    static let bootstrapper = KernelBootstrapper(
+        manifest: LodeHostManifest.make {
+            LodeAssembly.updates.checkForUpdates()
+        }
+    )
 
-    @Environment(\.openWindow) private var openWindow
+    private static var assemblyToken: String?
+    private static var stateSubscription: AnyCancellable?
 
-    var body: some View {
-        content
-            .onReceive(
-                NotificationCenter.default.publisher(for: SettingViewNavigation.openSettingsNotification)
-            ) { notification in
-                if let kernel,
-                   let settings = kernel.resolveProvider((any SettingViewProviding).self),
-                   let entryID = notification.userInfo?[SettingViewNavigation.entryIDUserInfoKey] as? String,
-                   settings.entries.contains(where: { $0.id == entryID }) {
-                    settings.selectEntry(id: entryID)
+    /// 装配耗时测量：init 处开表，内核就绪（或失败）时收表。
+    /// 首窗构建耗时由清单的 `makeMainView` 钩子测量。
+    static func startLaunchMetrics() {
+        assemblyToken = LaunchPerformance.shared.begin(.assembly)
+        stateSubscription = bootstrapper.$state.sink { state in
+            MainActor.assumeIsolated {
+                switch state {
+                case .ready:
+                    if let token = assemblyToken {
+                        LaunchPerformance.shared.end(token)
+                        assemblyToken = nil
+                    }
+                case .failed:
+                    if let token = assemblyToken {
+                        LaunchPerformance.shared.cancel(token)
+                        assemblyToken = nil
+                    }
+                default:
+                    break
                 }
-                openWindow(id: "lode.settings")
             }
+        }
     }
 }

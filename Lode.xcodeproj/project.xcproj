@@ -13,19 +13,97 @@
   "packages": [
     {
       "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiFactory.git",
+      "version": {
+        "up-to-next-major-version": "1.5.0",
+      },
+    }, {
+      "kind": "remote",
       "repository": "https://github.com/lumi-softworks/LumiKernel.git",
       "version": {
         "up-to-next-major-version": "1.1.1",
       },
     }, {
-      "kind": "local",
-      "path": "Packages/FactoryDatabaseManager",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviders.git",
+      "version": {
+        "up-to-next-major-version": "1.26.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiKitLLM.git",
+      "version": {
+        "up-to-next-major-version": "1.0.1",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiLogging.git",
+      "version": {
+        "up-to-next-major-version": "1.0.2",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginRootView.git",
+      "version": {
+        "up-to-next-major-version": "1.3.2",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderToolManager.git",
+      "version": {
+        "up-to-next-major-version": "1.0.3",
+      },
     }, {
       "kind": "remote",
       "repository": "https://github.com/sparkle-project/Sparkle",
       "version": {
         "up-to-next-major-version": "2.10.1",
       },
+    }, {
+      "kind": "local",
+      "path": "Packages/PluginCodeEditorHost",
+    }, {
+      "kind": "local",
+      "path": "Packages/PluginDatabaseManager",
+    }, {
+      "kind": "local",
+      "path": "Packages/PluginRootView",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderAgentLoop",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderConversationInputBlock",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderExternalFile",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderLLMContext",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderLLMManager",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderLegacyData",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderLifecycleHooks",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderMessage",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderMessageRendering",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderMessageStreaming",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderPromptSuggestionExecutor",
+    }, {
+      "kind": "local",
+      "path": "Packages/ProviderWebServer",
     },
   ],
   "files": [
@@ -34,21 +112,45 @@
       "path": "LodeApp",
       "children": [
         { "path": "LodeApp.swift", "target-membership": [ "Lode/compile-sources" ] },
+        { "path": "LodeHostManifest.swift", "target-membership": [ "Lode/compile-sources" ] },
+        { "path": "LodeProviderAssembly.swift", "target-membership": [ "Lode/compile-sources" ] },
         { "path": "UpdateController.swift", "target-membership": [ "Lode/compile-sources" ] },
         { "path": "Localizable.xcstrings", "target-membership": [ "Lode/resources" ] },
         { "path": "Assets.xcassets", "target-membership": [ "Lode/resources" ] },
       ],
     }, {
+      "kind": "folder",
+      "path": "LodeTests",
+      "target-membership": [ "LodeTests" ],
+    }, {
+      "path": "scripts/perf/launch-baseline.json",
+      "target-membership": [ "LodeTests/resources" ],
+    }, {
       "kind": "group",
       "path": "Packages",
       "children": [
-        { "path": "<PROJECT>/Packages/FactoryDatabaseManager" },
+        { "path": "<PROJECT>/Packages/PluginCodeEditorHost" },
+        { "path": "<PROJECT>/Packages/PluginDatabaseManager" },
+        { "path": "<PROJECT>/Packages/PluginRootView" },
+        { "path": "<PROJECT>/Packages/ProviderAgentLoop" },
+        { "path": "<PROJECT>/Packages/ProviderConversationInputBlock" },
+        { "path": "<PROJECT>/Packages/ProviderExternalFile" },
+        { "path": "<PROJECT>/Packages/ProviderLLMContext" },
+        { "path": "<PROJECT>/Packages/ProviderLLMManager" },
+        { "path": "<PROJECT>/Packages/ProviderLegacyData" },
+        { "path": "<PROJECT>/Packages/ProviderLifecycleHooks" },
+        { "path": "<PROJECT>/Packages/ProviderMessage" },
+        { "path": "<PROJECT>/Packages/ProviderMessageRendering" },
+        { "path": "<PROJECT>/Packages/ProviderMessageStreaming" },
+        { "path": "<PROJECT>/Packages/ProviderPromptSuggestionExecutor" },
+        { "path": "<PROJECT>/Packages/ProviderWebServer" },
       ],
     }, {
       "kind": "group",
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/Lode.app", "id": "743268E9FFC949699070457B", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/LodeTests.xctest", "id": "8E2F89C60FBBBCD3C942EEAE", "type": "wrapper.cfbundle", "index": false },
       ],
     },
   ],
@@ -67,7 +169,12 @@
       ],
       "package-product-members": [
         {
-          "product-name": "FactoryDatabaseManager",
+          "package": "LumiFactory",
+          "product-name": "LumiFactory",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiPluginRootView",
+          "product-name": "WorkbenchRootView",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "LumiKernel",
@@ -76,6 +183,119 @@
         }, {
           "package": "Sparkle",
           "product-name": "Sparkle",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "PluginDatabaseManager",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "PluginCodeEditorHost",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "LodePluginRootView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiKitLLM",
+          "product-name": "KitLLM",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderAgentLoop",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderChatSection",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderConversation",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderConversationInputBlock",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderExternalFile",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderLLMContext",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderLLMManager",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderLegacyData",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderLifecycleHooks",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderMessage",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderMessageRendering",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderMessageStreaming",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderPromptSuggestionExecutor",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderWebServer",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviderToolManager",
+          "product-name": "ProviderToolManager",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderAgentRules",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderCommand",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderConversationInput",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderDeveloperMode",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderIdleTime",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderNetwork",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderProject",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderPromptSuggestion",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderRailView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderRootView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderSkill",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderStorage",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderTheme",
           "build-phase": { "build-phase": "frameworks" },
         },
       ],
@@ -105,6 +325,78 @@
         "SDKROOT": "macosx",
         "SWIFT_EMIT_LOC_STRINGS": "YES",
         "SWIFT_VERSION": "6.0",
+      },
+    }, {
+      "name": "LodeTests",
+      "id": "8E2F89C60FBBBCD3C942EEAD",
+      "product": "Products/LodeTests.xctest",
+      "product-type": "bundle.unit-test",
+      "test-host-target": "Lode",
+      "dependencies": [
+        "Lode",
+      ],
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+        "resources",
+      ],
+      "package-product-members": [
+        {
+          "package": "LumiFactory",
+          "product-name": "LumiFactory",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiPluginRootView",
+          "product-name": "WorkbenchRootView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiKernel",
+          "product-name": "KernelCore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiLogging",
+          "product-name": "LumiLoggingKit",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderChatSection",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderConversation",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "product-name": "ProviderExternalFile",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviderToolManager",
+          "product-name": "ProviderToolManager",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderRailView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderRootView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderToolbar",
+          "build-phase": { "build-phase": "frameworks" },
+        },
+      ],
+      "build-settings": {
+        "BUNDLE_LOADER": "$(TEST_HOST)",
+        "CODE_SIGN_STYLE": "Automatic",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "MACOSX_DEPLOYMENT_TARGET": "14.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.coffic.lode.tests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "macosx",
+        "SWIFT_VERSION": "6.0",
+        "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Lode.app/Contents/MacOS/Lode",
+        "TEST_TARGET_NAME": "Lode",
       },
     },
   ],

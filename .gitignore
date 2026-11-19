@@ -13,7 +13,6 @@ build/
 SourcePackages/
 Packages/*/Package.resolved
 !Packages/PluginDatabaseManager/Package.resolved
-!Packages/FactoryDatabaseManager/Package.resolved
 !Lode.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # Generated project (xcodegen)

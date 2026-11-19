@@ -10,8 +10,9 @@
 #
 # The assembly baseline for the CI budget gate lives in
 # scripts/perf/launch-baseline.json and is regenerated with:
-#   LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager \
-#       --filter measureAssemblyBaseline
+#   LODE_PERF_MEASURE=1 xcodebuild test -project Lode.xcodeproj -scheme Lode \
+#       -only-testing:LodeTests/LaunchBudgetGateTests/testMeasureAssemblyBaseline \
+#       -destination 'platform=macOS,arch=arm64' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
 set -euo pipefail
 
 APP_PATH="${1:?usage: measure-launch.sh /path/to/Lode.app [iterations]}"

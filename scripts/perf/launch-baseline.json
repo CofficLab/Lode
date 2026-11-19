@@ -3,5 +3,5 @@
   "measuredAt": "2026-11-17",
   "samples": 7,
   "platform": "macOS arm64",
-  "note": "Median of 7 kernel-assembly samples measured on a quiet machine via LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline. The gate allows 2x this value locally when idle; a busy-spin CPU probe detects scheduler contention (probe median > 5ms) and relaxes the local tolerance to 5x so concurrent builds do not trip the gate. Shared CI runners (GITHUB_ACTIONS=true) always use the flat 5x tolerance (observed ~3.2x slower there). Regenerate deliberately on a quiet machine and commit the new value with justification when the measurement environment changes."
+  "note": "Median of 7 kernel-assembly samples measured on a quiet machine via LODE_PERF_MEASURE=1 xcodebuild test -project Lode.xcodeproj -scheme Lode -only-testing:LodeTests/LaunchBudgetGateTests/testMeasureAssemblyBaseline. The gate allows 2x this value locally when idle; a busy-spin CPU probe detects scheduler contention (probe median > 5ms) and relaxes the local tolerance to 5x so concurrent builds do not trip the gate. Shared CI runners (GITHUB_ACTIONS=true) always use the flat 5x tolerance (observed ~3.2x slower there). Regenerate deliberately on a quiet machine and commit the new value with justification when the measurement environment changes."
 }

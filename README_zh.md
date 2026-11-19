@@ -25,14 +25,14 @@ Lode 从 [Lumi](https://github.com/CofficLab/Lumi) 中剥离而来，保留 Lumi
 
 | 路径 | 说明 |
 |------|------|
-| `LodeApp/` | SwiftUI 应用入口、Info.plist、entitlements |
-| `Packages/FactoryDatabaseManager/` | 组合根：KernelFactory、ProviderFactory、ViewFactory 与专用插件目录 |
+| `LodeApp/` | SwiftUI 应用入口与宿主清单：由共享 LumiFactory 装配引擎解释执行的组合根 |
+| `LodeTests/` | 宿主清单集成测试与启动装配预算门 |
 | `Packages/PluginDatabaseManager/` | 数据库插件：连接、查询、对象树、编辑器、Agent 工具 |
 | `Packages/PluginCodeEditorHost/` | 编辑器宿主插件（SQL 编辑器依赖） |
 | `Packages/Kit*` / `Packages/Provider*` / `Packages/Plugin*` | 从 Lumi 剥离的最小依赖闭包 |
 | `project.yml` | XcodeGen 工程描述 |
 
-共享能力（LumiKernel、LumiProviders、LumiUI 等）通过 Swift Package 远端依赖引入，不在本仓库复制。
+共享能力（LumiFactory、LumiKernel、LumiProviders、LumiUI 等）通过 Swift Package 远端依赖引入，不在本仓库复制。与兄弟 App 一致，Lode 不保留自己的 Factory 包：`LodeApp/LodeHostManifest.swift` 声明宿主差异（品牌身份、插件目录、存储/主题配置、App 域 Provider 与接线），由共享 LumiFactory 引擎统一解释执行。
 
 ## 构建
 
@@ -57,7 +57,8 @@ xcodebuild -project Lode.xcodeproj -scheme Lode -configuration Debug \
 
 ```sh
 swift test --package-path Packages/PluginDatabaseManager
-swift test --package-path Packages/FactoryDatabaseManager
+xcodebuild test -project Lode.xcodeproj -scheme Lode -only-testing:LodeTests \
+  -destination 'platform=macOS,arch=arm64' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
 ```
 
 ### 集成测试（真实引擎）
@@ -94,7 +95,9 @@ Debug 构建另运行主线程卡顿看门狗，主队列阻塞超过 250ms 即�
 scripts/perf/measure-launch.sh /path/to/Lode.app 5
 
 # 有意识地重测装配基线，然后提交新值：
-LODE_PERF_MEASURE=1 swift test --package-path Packages/FactoryDatabaseManager --filter measureAssemblyBaseline
+LODE_PERF_MEASURE=1 xcodebuild test -project Lode.xcodeproj -scheme Lode \
+  -only-testing:LodeTests/LaunchBudgetGateTests/testMeasureAssemblyBaseline \
+  -destination 'platform=macOS,arch=arm64' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
 ```
 
 ## MCP server
