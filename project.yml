@@ -38,7 +38,7 @@ packages:
     from: 1.0.0
   LumiPluginConversationList:
     url: https://github.com/lumi-softworks/LumiPluginConversationList.git
-    from: 1.0.0
+    from: 1.0.1
   LumiPluginConversationNew:
     url: https://github.com/lumi-softworks/LumiPluginConversationNew.git
     from: 1.0.0

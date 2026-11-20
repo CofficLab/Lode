@@ -186,8 +186,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lumi-softworks/LumiPluginConversationList.git",
       "state" : {
-        "revision" : "9dc3104e019affeaaf999b0fcf1b5e2d3881de68",
-        "version" : "1.0.0"
+        "revision" : "50c2023db39d79b6a5d6fd870b4ce5bbfabd8868",
+        "version" : "1.0.1"
       }
     },
     {
