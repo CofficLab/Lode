@@ -17,7 +17,7 @@ packages:
     from: 1.26.0
   LumiKitLLM:
     url: https://github.com/lumi-softworks/LumiKitLLM.git
-    from: 1.0.1
+    from: 1.1.0
   LumiLogging:
     url: https://github.com/lumi-softworks/LumiLogging.git
     from: 1.0.2
@@ -34,83 +34,117 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     version: 2.10.1
   LumiChat:
-    path: ../../Lumi-Softworks/LumiChat
-  PluginConversationList:
-    path: ../Lumi/Packages/PluginConversationList
-  PluginConversationNew:
-    path: ../Lumi/Packages/PluginConversationNew
-  PluginLLMProviderAiRouter:
-    path: ../Lumi/Packages/PluginLLMProviderAiRouter
-  PluginLLMProviderAliyun:
-    path: ../Lumi/Packages/PluginLLMProviderAliyun
-  PluginLLMProviderAnthropic:
-    path: ../Lumi/Packages/PluginLLMProviderAnthropic
-  PluginLLMProviderDeepSeek:
-    path: ../Lumi/Packages/PluginLLMProviderDeepSeek
-  PluginLLMProviderFeifeimiao:
-    path: ../Lumi/Packages/PluginLLMProviderFeifeimiao
-  PluginLLMProviderFlyMux:
-    path: ../Lumi/Packages/PluginLLMProviderFlyMux
-  PluginLLMProviderHappyCode:
-    path: ../Lumi/Packages/PluginLLMProviderHappyCode
-  PluginLLMProviderHyperAPI:
-    path: ../Lumi/Packages/PluginLLMProviderHyperAPI
-  PluginLLMProviderKimiCode:
-    path: ../Lumi/Packages/PluginLLMProviderKimiCode
-  PluginLLMProviderLPgpt:
-    path: ../Lumi/Packages/PluginLLMProviderLPgpt
-  PluginLLMProviderMegaLLM:
-    path: ../Lumi/Packages/PluginLLMProviderMegaLLM
-  PluginLLMProviderMiniMax:
-    path: ../Lumi/Packages/PluginLLMProviderMiniMax
-  PluginLLMProviderOpenCode:
-    path: ../Lumi/Packages/PluginLLMProviderOpenCode
-  PluginLLMProviderCommandCode:
-    path: ../Lumi/Packages/PluginLLMProviderCommandCode
-  PluginLLMProviderOpenRouter:
-    path: ../Lumi/Packages/PluginLLMProviderOpenRouter
-  PluginLLMProviderStepFun:
-    path: ../Lumi/Packages/PluginLLMProviderStepFun
-  PluginLLMProviderSublyx:
-    path: ../Lumi/Packages/PluginLLMProviderSublyx
-  PluginLLMProviderTencent:
-    path: ../Lumi/Packages/PluginLLMProviderTencent
-  PluginLLMProviderXiaomi:
-    path: ../Lumi/Packages/PluginLLMProviderXiaomi
-  PluginLLMProviderXybbz:
-    path: ../Lumi/Packages/PluginLLMProviderXybbz
-  PluginLLMProviderZhipu:
-    path: ../Lumi/Packages/PluginLLMProviderZhipu
-  PluginLLMProviderMLX:
-    path: ../Lumi/Packages/PluginLLMProviderMLX
+    url: https://github.com/lumi-softworks/LumiChat.git
+    from: 1.0.0
+  LumiPluginConversationList:
+    url: https://github.com/lumi-softworks/LumiPluginConversationList.git
+    from: 1.0.0
+  LumiPluginConversationNew:
+    url: https://github.com/lumi-softworks/LumiPluginConversationNew.git
+    from: 1.0.0
+  LumiPluginLLMProviderAiRouter:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderAiRouter.git
+    from: 1.0.0
+  LumiPluginLLMProviderAliyun:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderAliyun.git
+    from: 1.0.0
+  LumiPluginLLMProviderAnthropic:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderAnthropic.git
+    from: 1.0.0
+  LumiPluginLLMProviderDeepSeek:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderDeepSeek.git
+    from: 1.0.0
+  LumiPluginLLMProviderFeifeimiao:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderFeifeimiao.git
+    from: 1.0.0
+  LumiPluginLLMProviderFlyMux:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderFlyMux.git
+    from: 1.0.0
+  LumiPluginLLMProviderHappyCode:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderHappyCode.git
+    from: 1.0.0
+  LumiPluginLLMProviderHyperAPI:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderHyperAPI.git
+    from: 1.0.0
+  LumiPluginLLMProviderKimiCode:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderKimiCode.git
+    from: 1.0.0
+  LumiPluginLLMProviderLPgpt:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderLPgpt.git
+    from: 1.0.0
+  LumiPluginLLMProviderMegaLLM:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderMegaLLM.git
+    from: 1.0.0
+  LumiPluginLLMProviderMiniMax:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderMiniMax.git
+    from: 1.0.0
+  LumiPluginLLMProviderOpenCode:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderOpenCode.git
+    from: 1.0.0
+  LumiPluginLLMProviderCommandCode:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderCommandCode.git
+    from: 1.0.0
+  LumiPluginLLMProviderOpenRouter:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderOpenRouter.git
+    from: 1.0.0
+  LumiPluginLLMProviderStepFun:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderStepFun.git
+    from: 1.0.0
+  LumiPluginLLMProviderSublyx:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderSublyx.git
+    from: 1.0.0
+  LumiPluginLLMProviderTencent:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderTencent.git
+    from: 1.0.0
+  LumiPluginLLMProviderXiaomi:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderXiaomi.git
+    from: 1.0.0
+  LumiPluginLLMProviderXybbz:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderXybbz.git
+    from: 1.0.0
+  LumiPluginLLMProviderZhipu:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderZhipu.git
+    from: 1.0.0
+  LumiPluginLLMProviderMLX:
+    url: https://github.com/lumi-softworks/LumiPluginLLMProviderMLX.git
+    from: 1.0.0
   PluginCodeEditorHost:
     path: Packages/PluginCodeEditorHost
   PluginDatabaseManager:
     path: Packages/PluginDatabaseManager
   PluginRootView:
     path: Packages/PluginRootView
-  ProviderAgentLoop:
-    path: ../Lumi/Packages/ProviderAgentLoop
-  ProviderConversationInputBlock:
-    path: ../Lumi/Packages/ProviderConversationInputBlock
+  LumiProviderAgentLoop:
+    url: https://github.com/lumi-softworks/LumiProviderAgentLoop.git
+    from: 1.0.0
+  LumiProviderConversationInputBlock:
+    url: https://github.com/lumi-softworks/LumiProviderConversationInputBlock.git
+    from: 1.0.0
   ProviderExternalFile:
     path: Packages/ProviderExternalFile
-  ProviderLLMContext:
-    path: ../Lumi/Packages/ProviderLLMContext
-  ProviderLLMManager:
-    path: ../Lumi/Packages/ProviderLLMManager
+  LumiProviderLLMContext:
+    url: https://github.com/lumi-softworks/LumiProviderLLMContext.git
+    from: 1.0.0
+  LumiProviderLLMManager:
+    url: https://github.com/lumi-softworks/LumiProviderLLMManager.git
+    from: 1.0.0
   ProviderLegacyData:
     path: Packages/ProviderLegacyData
-  ProviderLifecycleHooks:
-    path: ../Lumi/Packages/ProviderLifecycleHooks
-  ProviderMessage:
-    path: ../Lumi/Packages/ProviderMessage
-  ProviderMessageRendering:
-    path: ../Lumi/Packages/ProviderMessageRendering
-  ProviderMessageStreaming:
-    path: ../Lumi/Packages/ProviderMessageStreaming
-  ProviderPromptSuggestionExecutor:
-    path: ../Lumi/Packages/ProviderPromptSuggestionExecutor
+  LumiProviderLifecycleHooks:
+    url: https://github.com/lumi-softworks/LumiProviderLifecycleHooks.git
+    from: 1.0.0
+  LumiProviderMessage:
+    url: https://github.com/lumi-softworks/LumiProviderMessage.git
+    from: 1.0.0
+  LumiProviderMessageRendering:
+    url: https://github.com/lumi-softworks/LumiProviderMessageRendering.git
+    from: 1.0.0
+  LumiProviderMessageStreaming:
+    url: https://github.com/lumi-softworks/LumiProviderMessageStreaming.git
+    from: 1.0.0
+  LumiProviderPromptSuggestionExecutor:
+    url: https://github.com/lumi-softworks/LumiProviderPromptSuggestionExecutor.git
+    from: 1.0.0
   ProviderWebServer:
     path: Packages/ProviderWebServer
 
@@ -145,9 +179,9 @@ targets:
         product: KitLLM
       - package: LumiChat
         product: PluginConversationInput
-      - package: PluginConversationList
+      - package: LumiPluginConversationList
         product: PluginConversationList
-      - package: PluginConversationNew
+      - package: LumiPluginConversationNew
         product: PluginConversationNew
       - package: LumiChat
         product: PluginConversationState
@@ -163,75 +197,75 @@ targets:
         product: PluginLLMProviderSettings
       - package: LumiChat
         product: PluginLLMProviderOpenAI
-      - package: PluginLLMProviderAiRouter
+      - package: LumiPluginLLMProviderAiRouter
         product: PluginLLMProviderAiRouter
-      - package: PluginLLMProviderAliyun
+      - package: LumiPluginLLMProviderAliyun
         product: PluginLLMProviderAliyun
-      - package: PluginLLMProviderAnthropic
+      - package: LumiPluginLLMProviderAnthropic
         product: PluginLLMProviderAnthropic
-      - package: PluginLLMProviderDeepSeek
+      - package: LumiPluginLLMProviderDeepSeek
         product: PluginLLMProviderDeepSeek
-      - package: PluginLLMProviderFeifeimiao
+      - package: LumiPluginLLMProviderFeifeimiao
         product: PluginLLMProviderFeifeimiao
-      - package: PluginLLMProviderFlyMux
+      - package: LumiPluginLLMProviderFlyMux
         product: PluginLLMProviderFlyMux
-      - package: PluginLLMProviderHappyCode
+      - package: LumiPluginLLMProviderHappyCode
         product: PluginLLMProviderHappyCode
-      - package: PluginLLMProviderHyperAPI
+      - package: LumiPluginLLMProviderHyperAPI
         product: PluginLLMProviderHyperAPI
-      - package: PluginLLMProviderKimiCode
+      - package: LumiPluginLLMProviderKimiCode
         product: PluginLLMProviderKimiCode
-      - package: PluginLLMProviderLPgpt
+      - package: LumiPluginLLMProviderLPgpt
         product: PluginLLMProviderLPgpt
-      - package: PluginLLMProviderMegaLLM
+      - package: LumiPluginLLMProviderMegaLLM
         product: PluginLLMProviderMegaLLM
-      - package: PluginLLMProviderMiniMax
+      - package: LumiPluginLLMProviderMiniMax
         product: PluginLLMProviderMiniMax
-      - package: PluginLLMProviderOpenCode
+      - package: LumiPluginLLMProviderOpenCode
         product: PluginLLMProviderOpenCode
-      - package: PluginLLMProviderCommandCode
+      - package: LumiPluginLLMProviderCommandCode
         product: PluginLLMProviderCommandCode
-      - package: PluginLLMProviderOpenRouter
+      - package: LumiPluginLLMProviderOpenRouter
         product: PluginLLMProviderOpenRouter
-      - package: PluginLLMProviderStepFun
+      - package: LumiPluginLLMProviderStepFun
         product: PluginLLMProviderStepFun
-      - package: PluginLLMProviderSublyx
+      - package: LumiPluginLLMProviderSublyx
         product: PluginLLMProviderSublyx
-      - package: PluginLLMProviderTencent
+      - package: LumiPluginLLMProviderTencent
         product: PluginLLMProviderTencent
-      - package: PluginLLMProviderXiaomi
+      - package: LumiPluginLLMProviderXiaomi
         product: PluginLLMProviderXiaomi
-      - package: PluginLLMProviderXybbz
+      - package: LumiPluginLLMProviderXybbz
         product: PluginLLMProviderXybbz
-      - package: PluginLLMProviderZhipu
+      - package: LumiPluginLLMProviderZhipu
         product: PluginLLMProviderZhipu
-      - package: PluginLLMProviderMLX
+      - package: LumiPluginLLMProviderMLX
         product: PluginLLMProviderMLX
-      - package: ProviderAgentLoop
+      - package: LumiProviderAgentLoop
         product: ProviderAgentLoop
       - package: LumiProviders
         product: ProviderChatSection
       - package: LumiProviders
         product: ProviderConversation
-      - package: ProviderConversationInputBlock
+      - package: LumiProviderConversationInputBlock
         product: ProviderConversationInputBlock
       - package: ProviderExternalFile
         product: ProviderExternalFile
-      - package: ProviderLLMContext
+      - package: LumiProviderLLMContext
         product: ProviderLLMContext
-      - package: ProviderLLMManager
+      - package: LumiProviderLLMManager
         product: ProviderLLMManager
       - package: ProviderLegacyData
         product: ProviderLegacyData
-      - package: ProviderLifecycleHooks
+      - package: LumiProviderLifecycleHooks
         product: ProviderLifecycleHooks
-      - package: ProviderMessage
+      - package: LumiProviderMessage
         product: ProviderMessage
-      - package: ProviderMessageRendering
+      - package: LumiProviderMessageRendering
         product: ProviderMessageRendering
-      - package: ProviderMessageStreaming
+      - package: LumiProviderMessageStreaming
         product: ProviderMessageStreaming
-      - package: ProviderPromptSuggestionExecutor
+      - package: LumiProviderPromptSuggestionExecutor
         product: ProviderPromptSuggestionExecutor
       - package: ProviderWebServer
         product: ProviderWebServer

@@ -1,5 +1,5 @@
 {
-  "originHash" : "6195cfdebe8c389327e3207cc5a6bf0963a3ca8920b9abae51996684c83ee565",
+  "originHash" : "804f1f406c0a2c740490addff1d2446fbeb348ba130aae6caa234312acb19be8",
   "pins" : [
     {
       "identity" : "fseventswrapper",
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lumi-softworks/LumiKitLLM.git",
       "state" : {
-        "revision" : "32b68d88408b627f075e36d04aca9d5629af3494",
-        "version" : "1.0.1"
+        "revision" : "3b6139bc0ce1a6ea08c8b2eac0f85a66af42a43f",
+        "version" : "1.1.0"
       }
     },
     {
@@ -98,6 +98,24 @@
       "state" : {
         "revision" : "ed01ea8d6e95c627be241a01924c75999b6d8256",
         "version" : "1.0.2"
+      }
+    },
+    {
+      "identity" : "lumiproviderlifecyclehooks",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lumi-softworks/LumiProviderLifecycleHooks.git",
+      "state" : {
+        "revision" : "f1c4fdc46a8879e0ae51f4c688cd9eb96dd7fdef",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "lumiprovidermessage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lumi-softworks/LumiProviderMessage.git",
+      "state" : {
+        "revision" : "84dccecf6e1dffdda2438ae9f4062c4c8ff25114",
+        "version" : "1.0.0"
       }
     },
     {

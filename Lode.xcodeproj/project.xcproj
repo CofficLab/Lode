@@ -33,7 +33,7 @@
       "kind": "remote",
       "repository": "https://github.com/lumi-softworks/LumiKitLLM.git",
       "version": {
-        "up-to-next-major-version": "1.0.1",
+        "up-to-next-major-version": "1.1.0",
       },
     }, {
       "kind": "remote",
@@ -66,80 +66,209 @@
         "up-to-next-major-version": "2.10.1",
       },
     }, {
-      "kind": "local",
-      "path": "../../Lumi-Softworks/LumiChat",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiChat.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginConversationList",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginConversationList.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginConversationNew",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginConversationNew.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderAiRouter",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderAiRouter.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderAliyun",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderAliyun.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderAnthropic",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderAnthropic.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderDeepSeek",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderDeepSeek.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderFeifeimiao",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderFeifeimiao.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderFlyMux",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderFlyMux.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderHappyCode",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderHappyCode.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderHyperAPI",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderHyperAPI.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderKimiCode",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderKimiCode.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderLPgpt",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderLPgpt.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderMegaLLM",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderMegaLLM.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderMiniMax",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderMiniMax.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderOpenCode",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderOpenCode.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderCommandCode",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderCommandCode.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderOpenRouter",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderOpenRouter.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderStepFun",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderStepFun.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderSublyx",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderSublyx.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderTencent",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderTencent.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderXiaomi",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderXiaomi.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderXybbz",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderXybbz.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderZhipu",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderZhipu.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/PluginLLMProviderMLX",
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginLLMProviderMLX.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderAgentLoop.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderConversationInputBlock.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderLLMContext.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderLLMManager.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderLifecycleHooks.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderMessage.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderMessageRendering.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderMessageStreaming.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiProviderPromptSuggestionExecutor.git",
+      "version": {
+        "up-to-next-major-version": "1.0.0",
+      },
     }, {
       "kind": "local",
       "path": "Packages/PluginCodeEditorHost",
@@ -151,37 +280,10 @@
       "path": "Packages/PluginRootView",
     }, {
       "kind": "local",
-      "path": "../Lumi/Packages/ProviderAgentLoop",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderConversationInputBlock",
-    }, {
-      "kind": "local",
       "path": "Packages/ProviderExternalFile",
     }, {
       "kind": "local",
-      "path": "../Lumi/Packages/ProviderLLMContext",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderLLMManager",
-    }, {
-      "kind": "local",
       "path": "Packages/ProviderLegacyData",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderLifecycleHooks",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderMessage",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderMessageRendering",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderMessageStreaming",
-    }, {
-      "kind": "local",
-      "path": "../Lumi/Packages/ProviderPromptSuggestionExecutor",
     }, {
       "kind": "local",
       "path": "Packages/ProviderWebServer",
@@ -206,45 +308,11 @@
       "kind": "group",
       "path": "Packages",
       "children": [
-        { "path": "<PROJECT>/../../Lumi-Softworks/LumiChat" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginConversationList" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginConversationNew" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAiRouter" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAliyun" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAnthropic" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderDeepSeek" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderFeifeimiao" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderFlyMux" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderHappyCode" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderHyperAPI" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderKimiCode" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderLPgpt" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderMegaLLM" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderMiniMax" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderOpenCode" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderCommandCode" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderOpenRouter" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderStepFun" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderSublyx" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderTencent" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderXiaomi" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderXybbz" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderZhipu" },
-        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderMLX" },
         { "path": "<PROJECT>/Packages/PluginCodeEditorHost" },
         { "path": "<PROJECT>/Packages/PluginDatabaseManager" },
         { "path": "<PROJECT>/Packages/PluginRootView" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderAgentLoop" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderConversationInputBlock" },
         { "path": "<PROJECT>/Packages/ProviderExternalFile" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderLLMContext" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderLLMManager" },
         { "path": "<PROJECT>/Packages/ProviderLegacyData" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderLifecycleHooks" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderMessage" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderMessageRendering" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderMessageStreaming" },
-        { "path": "<PROJECT>/../Lumi/Packages/ProviderPromptSuggestionExecutor" },
         { "path": "<PROJECT>/Packages/ProviderWebServer" },
       ],
     }, {
@@ -280,36 +348,45 @@
           "product-name": "PluginDatabaseManager",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderAgentLoop",
           "product-name": "ProviderAgentLoop",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderConversationInputBlock",
           "product-name": "ProviderConversationInputBlock",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "product-name": "ProviderExternalFile",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderLLMContext",
           "product-name": "ProviderLLMContext",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderLLMManager",
           "product-name": "ProviderLLMManager",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "product-name": "ProviderLegacyData",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderLifecycleHooks",
           "product-name": "ProviderLifecycleHooks",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderMessage",
           "product-name": "ProviderMessage",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderMessageRendering",
           "product-name": "ProviderMessageRendering",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderMessageStreaming",
           "product-name": "ProviderMessageStreaming",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiProviderPromptSuggestionExecutor",
           "product-name": "ProviderPromptSuggestionExecutor",
           "build-phase": { "build-phase": "frameworks" },
         }, {
@@ -432,99 +509,99 @@
           "product-name": "ProviderTheme",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginConversationList",
+          "package": "LumiPluginConversationList",
           "product-name": "PluginConversationList",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginConversationNew",
+          "package": "LumiPluginConversationNew",
           "product-name": "PluginConversationNew",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderAiRouter",
+          "package": "LumiPluginLLMProviderAiRouter",
           "product-name": "PluginLLMProviderAiRouter",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderAliyun",
+          "package": "LumiPluginLLMProviderAliyun",
           "product-name": "PluginLLMProviderAliyun",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderAnthropic",
+          "package": "LumiPluginLLMProviderAnthropic",
           "product-name": "PluginLLMProviderAnthropic",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderCommandCode",
+          "package": "LumiPluginLLMProviderCommandCode",
           "product-name": "PluginLLMProviderCommandCode",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderDeepSeek",
+          "package": "LumiPluginLLMProviderDeepSeek",
           "product-name": "PluginLLMProviderDeepSeek",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderFeifeimiao",
+          "package": "LumiPluginLLMProviderFeifeimiao",
           "product-name": "PluginLLMProviderFeifeimiao",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderFlyMux",
+          "package": "LumiPluginLLMProviderFlyMux",
           "product-name": "PluginLLMProviderFlyMux",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderHappyCode",
+          "package": "LumiPluginLLMProviderHappyCode",
           "product-name": "PluginLLMProviderHappyCode",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderHyperAPI",
+          "package": "LumiPluginLLMProviderHyperAPI",
           "product-name": "PluginLLMProviderHyperAPI",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderKimiCode",
+          "package": "LumiPluginLLMProviderKimiCode",
           "product-name": "PluginLLMProviderKimiCode",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderLPgpt",
+          "package": "LumiPluginLLMProviderLPgpt",
           "product-name": "PluginLLMProviderLPgpt",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderMLX",
+          "package": "LumiPluginLLMProviderMLX",
           "product-name": "PluginLLMProviderMLX",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderMegaLLM",
+          "package": "LumiPluginLLMProviderMegaLLM",
           "product-name": "PluginLLMProviderMegaLLM",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderMiniMax",
+          "package": "LumiPluginLLMProviderMiniMax",
           "product-name": "PluginLLMProviderMiniMax",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderOpenCode",
+          "package": "LumiPluginLLMProviderOpenCode",
           "product-name": "PluginLLMProviderOpenCode",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderOpenRouter",
+          "package": "LumiPluginLLMProviderOpenRouter",
           "product-name": "PluginLLMProviderOpenRouter",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderStepFun",
+          "package": "LumiPluginLLMProviderStepFun",
           "product-name": "PluginLLMProviderStepFun",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderSublyx",
+          "package": "LumiPluginLLMProviderSublyx",
           "product-name": "PluginLLMProviderSublyx",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderTencent",
+          "package": "LumiPluginLLMProviderTencent",
           "product-name": "PluginLLMProviderTencent",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderXiaomi",
+          "package": "LumiPluginLLMProviderXiaomi",
           "product-name": "PluginLLMProviderXiaomi",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderXybbz",
+          "package": "LumiPluginLLMProviderXybbz",
           "product-name": "PluginLLMProviderXybbz",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "PluginLLMProviderZhipu",
+          "package": "LumiPluginLLMProviderZhipu",
           "product-name": "PluginLLMProviderZhipu",
           "build-phase": { "build-phase": "frameworks" },
         }, {
