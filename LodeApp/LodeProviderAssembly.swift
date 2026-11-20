@@ -42,10 +42,16 @@ enum LodeProviderAssembly {
     /// IdleTime 插件的持久化目录名必须与插件自身 ID 一致。
     private static let idleTimePluginID = "com.coffic.lumi.plugin.idle-time"
     private static let toolManagerID = "com.coffic.lumi.plugin.tool-manager"
+    static let apiKeyService = "com.coffic.lode.apikey"
 
     // MARK: - App Providers（插件 boot 之前）
 
-    static func register(kernel: KernelCoreContainer) throws {
+    static func register(kernel: KernelCoreContainer, isolateAPIKeys: Bool) throws {
+        // 必须在供应商插件启动前切换，测试进程也不能落到 Lode 的正式 Keychain。
+        VendorAPIKeyTools.keychainService = isolateAPIKeys
+            ? "\(apiKeyService).xctest.\(ProcessInfo.processInfo.processIdentifier)"
+            : apiKeyService
+
         let storage = try kernel.requireProvider((any StorageProviding).self)
 
         try kernel.registerProvider((any ChatSectionProviding).self, DefaultChatSectionProviding())

@@ -83,7 +83,10 @@ enum LodeHostManifest {
             // 由本地 PluginRootView 提供，不再经 RootViewPlugin 注册。
             makeRootViewProvider: { LumiRootViewProvider() },
             registerProviders: { kernel in
-                try LodeProviderAssembly.register(kernel: kernel)
+                try LodeProviderAssembly.register(
+                    kernel: kernel,
+                    isolateAPIKeys: uiTestDataRoot() != nil
+                )
             },
             wireKernel: { kernel in
                 LodeProviderAssembly.wire(kernel: kernel)

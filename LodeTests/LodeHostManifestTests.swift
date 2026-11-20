@@ -1,5 +1,6 @@
 import DatabaseManagerPlugin
 import KernelCore
+import KitLLM
 import ProviderChatSection
 import ProviderConversation
 import ProviderExternalFile
@@ -26,6 +27,18 @@ final class LodeHostManifestTests: LodeKernelTestCase {
             .appendingPathComponent("lode-manifest-test-\(UUID().uuidString).sqlite")
         XCTAssertTrue(opener.open(sqliteURL))
         try? FileManager.default.removeItem(at: sqliteURL)
+        try? await kernel.stopAsync()
+    }
+
+    func testAPIKeyServiceIsLodeSpecificAndIsolated() async throws {
+        let kernel = try await makeKernel()
+
+        XCTAssertEqual(LodeProviderAssembly.apiKeyService, "com.coffic.lode.apikey")
+        XCTAssertTrue(
+            VendorAPIKeyTools.keychainService.hasPrefix("\(LodeProviderAssembly.apiKeyService).xctest.")
+        )
+        XCTAssertFalse(VendorAPIKeyTools.keychainService.contains("lumi"))
+
         try? await kernel.stopAsync()
     }
 
