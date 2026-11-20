@@ -578,24 +578,7 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             queryRowLimit = settings.defaultQueryRowLimit > 0
                 ? settings.defaultQueryRowLimit
                 : config.type.capabilities.defaultQueryLimit
-            resetEditorPaging()
-            queryResult = nil
-            workspace.clearAllResults()
-            clearRedisBrowserState()
-            resetSchemaContext()
-            sqliteTables = []
-            selectedSQLiteTable = nil
-            openTableObject = nil
-            selectedTableSchema = nil
-            tableSchemaError = nil
-            tableRowCount = nil
-            changeManager = nil
-            pendingConflicts = []
-            showConflictSheet = false
-            cancelPendingWriteConfirmation()
-            schemaChangeManager = nil
-            // 切换连接时清掉旧连接的结构缓存
-            schemaCache.invalidate(configId: config.id)
+            resetConnectionScopedState(invalidating: config.id)
             // 记住这次连接，下次自动重连
             DatabaseConnectionStore.lastSelectedConfigID = config.id
             
@@ -662,12 +645,43 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         } catch {
             guard connectionGeneration == generation else { return }
             DatabaseManagerPluginSupport.debugLog.error("\(self.t)数据库连接失败: \(error.localizedDescription)")
-            // 重连失败时旧连接已不可用，必须落回未连接态，避免界面误判仍在线。
+            // 失败也要让用户点击的目标保持选中，便于直接编辑连接或重试。
+            // 旧连接随 isConnected 落回 false，必须显式关闭，避免隐藏的活动连接。
+            if let connectedConfigId, connectedConfigId != config.id {
+                await manager.disconnect(configId: connectedConfigId)
+                guard connectionGeneration == generation else { return }
+            }
             isConnected = false
             stopHeartbeat()
+            selectedConfig = config
+            connectedConfigId = nil
+            DatabaseAgentAccessPolicy.shared.activeConnectionId = nil
+            resetConnectionScopedState(invalidating: config.id)
             presentError(error)
         }
         isLoading = false
+    }
+
+    /// 清空与连接绑定的界面状态，避免切换或连接失败后仍展示上一条连接的
+    /// 表、结果与 schema 上下文。
+    private func resetConnectionScopedState(invalidating configId: UUID) {
+        resetEditorPaging()
+        queryResult = nil
+        workspace.clearAllResults()
+        clearRedisBrowserState()
+        resetSchemaContext()
+        sqliteTables = []
+        selectedSQLiteTable = nil
+        openTableObject = nil
+        selectedTableSchema = nil
+        tableSchemaError = nil
+        tableRowCount = nil
+        changeManager = nil
+        pendingConflicts = []
+        showConflictSheet = false
+        cancelPendingWriteConfirmation()
+        schemaChangeManager = nil
+        schemaCache.invalidate(configId: configId)
     }
 
     /// 执行连接级 startup SQL（会话引导脚本）。这是用户为该连接显式编写的初始化语句，

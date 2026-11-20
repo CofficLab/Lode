@@ -259,6 +259,26 @@ private actor CountingDriver: DatabaseDriver {
         #expect(staleConnectionClosed)
     }
 
+    @Test("连接失败后保留点击目标为选中并关闭旧连接")
+    func failedConnectKeepsTargetSelectedAndClosesPrevious() async {
+        let (viewModel, _, connectionA) = await makeSUT()
+        let connected = config(database: "db-a")
+        let unreachable = config(database: "db-missing")
+
+        await viewModel.connect(config: connected)
+        #expect(viewModel.selectedConfig?.id == connected.id)
+        #expect(viewModel.isConnected)
+
+        await viewModel.connect(config: unreachable)
+
+        #expect(viewModel.selectedConfig?.id == unreachable.id)
+        #expect(viewModel.isConnected == false)
+        #expect(viewModel.isLoading == false)
+        #expect(viewModel.errorMessage != nil)
+        let previousClosed = await connectionA.isClosed()
+        #expect(previousClosed)
+    }
+
     @Test("旧库的表列表晚到时不得覆盖新选中的库")
     func staleSQLiteTablesDoNotOverwriteNewDatabase() async {
         let manager = DatabaseManagerCore()
