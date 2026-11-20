@@ -36,6 +36,9 @@ struct DatabaseSidebarHeaderBar: View {
     /// nil 时使用通用「切换」图标。
     var toggleMode: DatabaseSidebarMode? = nil
 
+    /// 可选的无障碍标识前缀，供 UI 测试稳定定位标题栏按钮。
+    var accessibilityPrefix: String? = nil
+
     // MARK: - Initialization
 
     init(
@@ -44,7 +47,8 @@ struct DatabaseSidebarHeaderBar: View {
         onLoad: (() -> Void)? = nil,
         onAdd: (() -> Void)? = nil,
         onToggleMode: (() -> Void)? = nil,
-        toggleMode: DatabaseSidebarMode? = nil
+        toggleMode: DatabaseSidebarMode? = nil,
+        accessibilityPrefix: String? = nil
     ) {
         self.title = title
         self.systemImage = systemImage
@@ -52,6 +56,7 @@ struct DatabaseSidebarHeaderBar: View {
         self.onAdd = onAdd
         self.onToggleMode = onToggleMode
         self.toggleMode = toggleMode
+        self.accessibilityPrefix = accessibilityPrefix
     }
 
     // MARK: - Body
@@ -78,6 +83,7 @@ struct DatabaseSidebarHeaderBar: View {
                 }
                 .buttonStyle(.plain)
                 .help(pluginLocalization.string("Reload"))
+                .accessibilityIdentifier(identifier("reload"))
             }
 
             if let onAdd {
@@ -88,6 +94,7 @@ struct DatabaseSidebarHeaderBar: View {
                 }
                 .buttonStyle(.plain)
                 .help(pluginLocalization.string("Add Connection"))
+                .accessibilityIdentifier(identifier("add"))
             }
 
             if let onToggleMode {
@@ -98,12 +105,17 @@ struct DatabaseSidebarHeaderBar: View {
                 }
                 .buttonStyle(.plain)
                 .help(toggleHelpText)
+                .accessibilityIdentifier(identifier("toggle"))
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .background(Color.secondary.opacity(0.06))
+    }
+
+    private func identifier(_ suffix: String) -> String {
+        accessibilityPrefix.map { "\($0).\(suffix)" } ?? "database.header.\(suffix)"
     }
 
     private var toggleIconName: String {

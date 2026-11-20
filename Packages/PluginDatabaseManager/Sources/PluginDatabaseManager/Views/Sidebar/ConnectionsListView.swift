@@ -34,7 +34,8 @@ struct ConnectionsListView: View {
                 systemImage: "cylinder.split.1x2",
                 onAdd: { showAddConfigSheet = true },
                 onToggleMode: onToggleMode,
-                toggleMode: viewModel.sidebarMode
+                toggleMode: viewModel.sidebarMode,
+                accessibilityPrefix: "database.connections"
             )
 
             if viewModel.configs.isEmpty {
@@ -113,6 +114,7 @@ struct ConnectionsListView: View {
                 size: .small,
                 action: { showAddConfigSheet = true }
             )
+            .accessibilityIdentifier("database.connections.empty-add")
             .padding(.top, 4)
             AppButton(
                 pluginLocalization.string("Import Connections"),
@@ -121,6 +123,7 @@ struct ConnectionsListView: View {
                 size: .small,
                 action: { showImportSheet = true }
             )
+            .accessibilityIdentifier("database.connections.empty-import")
         }
     }
 
@@ -208,6 +211,7 @@ struct ConnectionsListView: View {
                 statusIndicator(isSelected: isSelected, isConnected: isConnected)
             }
         }
+        .accessibilityIdentifier("database.connections.row.\(config.name)")
         .contextMenu {
             Button {
                 editingConfig = config

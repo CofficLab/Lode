@@ -15,6 +15,7 @@ struct DatabaseObjectTreeView: View {
     var onToggleMode: () -> Void
 
     @State private var searchText: String = ""
+    @State private var expandedGroups: Set<String> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,7 +24,8 @@ struct DatabaseObjectTreeView: View {
                 systemImage: "list.bullet.indent",
                 onLoad: { Task { await viewModel.refreshSidebarObjects() } },
                 onToggleMode: onToggleMode,
-                toggleMode: viewModel.sidebarMode
+                toggleMode: viewModel.sidebarMode,
+                accessibilityPrefix: "database.objects"
             )
 
             if let config = viewModel.selectedConfig, config.type == .mysql || config.type == .postgresql {
@@ -64,11 +66,13 @@ struct DatabaseObjectTreeView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
-                        OutlineGroup(groupedNodes, id: \.id, children: \.children) { node in
-                            if node.isLeaf {
-                                leafRow(node)
-                            } else {
-                                groupRow(node)
+                        ForEach(groupedNodes) { node in
+                            groupRow(node)
+                            if expandedGroups.contains(node.id) {
+                                ForEach(node.children ?? []) { child in
+                                    leafRow(child)
+                                        .padding(.leading, 14)
+                                }
                             }
                         }
                     }
@@ -220,17 +224,34 @@ struct DatabaseObjectTreeView: View {
 
     @ViewBuilder
     private func groupRow(_ node: TreeNode) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: node.systemImage)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-            Text(node.title)
-                .font(.appMicroEmphasized)
-                .foregroundStyle(theme.textSecondary)
-            Spacer(minLength: 0)
+        let isExpanded = expandedGroups.contains(node.id)
+        Button {
+            if isExpanded {
+                expandedGroups.remove(node.id)
+            } else {
+                expandedGroups.insert(node.id)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .semibold))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .foregroundStyle(.secondary)
+                Image(systemName: node.systemImage)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                Text(node.title)
+                    .font(.appMicroEmphasized)
+                    .foregroundStyle(theme.textSecondary)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 3)
+            .padding(.horizontal, 4)
         }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 4)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("database.objects.group.\(node.kind?.rawValue ?? node.id)")
+        .accessibilityLabel(node.title)
     }
 
     @ViewBuilder
@@ -246,6 +267,7 @@ struct DatabaseObjectTreeView: View {
             Task { await viewModel.openObject(object) }
         }
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("database.objects.row.\(node.title)")
         .contextMenu {
             if let object = node.object {
                 Button {
@@ -267,6 +289,4 @@ private struct TreeNode: Identifiable, Hashable {
     let title: String
     let systemImage: String
     let children: [TreeNode]?
-
-    var isLeaf: Bool { children == nil }
 }

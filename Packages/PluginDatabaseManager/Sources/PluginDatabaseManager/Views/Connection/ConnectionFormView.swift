@@ -68,6 +68,7 @@ struct ConnectionFormView: View {
                 AppCard {
                     VStack(alignment: .leading, spacing: 8) {
                         GlassTextField(title: pluginLocalization.string("Connection Name"), text: $name, placeholder: pluginLocalization.string("My Database"))
+                            .accessibilityIdentifier("database.connection.name")
 
                         HStack {
                             Text(pluginLocalization.string("Database Type"))
@@ -85,6 +86,7 @@ struct ConnectionFormView: View {
 
                         if type == .sqlite {
                             GlassTextField(title: pluginLocalization.string("Database Path"), text: $sqlitePath, placeholder: "/path/to/db.sqlite")
+                                .accessibilityIdentifier("database.connection.sqlite-path")
                         } else {
                             GlassTextField(title: pluginLocalization.string("Host"), text: $host, placeholder: "127.0.0.1")
                             GlassTextField(title: pluginLocalization.string("Port"), text: $portText, placeholder: "\(type.defaultPort ?? 0)")
@@ -113,10 +115,13 @@ struct ConnectionFormView: View {
 
             HStack {
                 AppButton(pluginLocalization.string("Cancel"), style: .ghost, fillsWidth: true, action: { isPresented = false })
+                    .accessibilityIdentifier("database.connection.cancel")
                 AppButton(isTesting ? pluginLocalization.string("Testing…") : pluginLocalization.string("Test Connection"), style: .secondary, fillsWidth: true, action: testConnection)
                     .disabled(!canTestConnection() || isTesting)
+                    .accessibilityIdentifier("database.connection.test")
                 AppButton(saveLabel, style: .primary, fillsWidth: true, action: save)
                     .disabled(!isValid())
+                    .accessibilityIdentifier("database.connection.save")
             }
 
             if let msg = testMessage {

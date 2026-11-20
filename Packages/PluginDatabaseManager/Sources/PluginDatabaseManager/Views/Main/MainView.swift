@@ -352,6 +352,7 @@ public struct MainView: View {
                 Spacer()
                 if viewModel.isConnected {
                     AppButton(pluginLocalization.string("Disconnect"), systemImage: "bolt.horizontal.circle", style: .secondary, size: .small, action: { Task { await viewModel.disconnect() } })
+                        .accessibilityIdentifier("database.query.disconnect")
                 }
                 if viewModel.isLoading {
                     ProgressView()
@@ -364,6 +365,7 @@ public struct MainView: View {
                     AppButton(pluginLocalization.string("Run"), systemImage: "play.fill", style: .primary, size: .small, action: { Task { await viewModel.executeStatementAtCursor() } })
                         .keyboardShortcut(.return, modifiers: .command)
                         .help(pluginLocalization.string("Run statement at cursor"))
+                        .accessibilityIdentifier("database.query.run")
                 }
                 if statementCount > 1 {
                     batchPolicyPicker

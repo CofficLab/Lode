@@ -162,7 +162,11 @@ enum LodeProviderAssembly {
                 id: "com.coffic.lumi.workspace.chat",
                 width: chat.chatSectionWidth,
                 isVisible: chat.isVisible,
-                content: chat.makeChatSectionView()
+                content: AnyView(
+                    chat.makeChatSectionView()
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("lode.chat.pane")
+                )
             )
             trailingPane.bindVisibility(to: chat)
             trailingPane.bindWidth(

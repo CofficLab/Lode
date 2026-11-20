@@ -153,12 +153,12 @@ targets:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
-    sources:
+    sources: &lodeAppSources
       - path: LodeApp
         excludes:
           - "Lode-Info.plist"
           - "App.entitlements"
-    dependencies:
+    dependencies: &lodeAppDependencies
       - package: LumiFactory
         product: LumiFactory
       - package: LumiPluginSettingView
@@ -298,7 +298,7 @@ targets:
       - package: LumiProviders
         product: ProviderTheme
     settings:
-      base:
+      base: &lodeAppBaseSettings
         PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode
         PRODUCT_NAME: Lode
         INFOPLIST_FILE: LodeApp/Lode-Info.plist
@@ -320,6 +320,38 @@ targets:
         ENABLE_PREVIEWS: YES
         COMBINE_HIDPI_IMAGES: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+
+  # Dedicated host for XCUITest runs. It shares the production sources and
+  # dependencies but uses a separate bundle id, so `xcodebuild test` never
+  # terminates a Lode instance the user may already have open.
+  LodeUITestHost:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources: *lodeAppSources
+    dependencies: *lodeAppDependencies
+    settings:
+      base:
+        <<: *lodeAppBaseSettings
+        PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode.uitesthost
+        PRODUCT_NAME: LodeUITestHost
+        INFOPLIST_KEY_CFBundleDisplayName: Lode UI Test Host
+
+  LodeUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: LodeUITests
+    dependencies:
+      - target: LodeUITestHost
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "6.0"
+        TEST_TARGET_NAME: LodeUITestHost
 
   LodeTests:
     type: bundle.unit-test
@@ -361,6 +393,8 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_VERSION: "6.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: Y6HZ9JJYV6
 
 schemes:
   Lode:
@@ -374,6 +408,23 @@ schemes:
       config: Debug
       targets:
         - LodeTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  LodeUITests:
+    build:
+      targets:
+        LodeUITestHost: all
+        LodeUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LodeUITests
     profile:
       config: Release
     analyze:

@@ -119,6 +119,7 @@ struct MainEmptyStateView: View {
         }
         .buttonStyle(.plain)
         .disabled(isConnecting)
+        .accessibilityIdentifier("database.saved-row.\(config.name)")
         .background(isSelected ? theme.appListRowHoverBackground.opacity(0.5) : Color.clear)
     }
 

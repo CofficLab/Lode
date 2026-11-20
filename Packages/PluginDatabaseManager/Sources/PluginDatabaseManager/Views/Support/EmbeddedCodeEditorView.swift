@@ -32,9 +32,11 @@ struct EmbeddedCodeEditorView: View {
         if let provider {
             provider.makeEmbeddedEditorView(text: $text, options: options, cursorLocation: cursorLocation, selectionRange: selectionRange)
                 .accessibilityLabel(pluginLocalization.string("SQL Editor"))
+                .accessibilityIdentifier("database.query.editor")
         } else {
             fallbackEditor
                 .accessibilityLabel(pluginLocalization.string("SQL Editor"))
+                .accessibilityIdentifier("database.query.editor")
         }
     }
 

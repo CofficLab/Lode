@@ -97,7 +97,8 @@ public struct SidebarView: View {
                 title: pluginLocalization.string("Database"),
                 systemImage: "cylinder.split.1x2",
                 onToggleMode: { toggleMode() },
-                toggleMode: viewModel.sidebarMode
+                toggleMode: viewModel.sidebarMode,
+                accessibilityPrefix: "database.empty"
             )
             SidebarEmptyView(
                 systemImage: "cylinder.split.1x2",

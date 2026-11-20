@@ -47,6 +47,7 @@ struct MainEmptyStateHeaderView: View {
                 fillsWidth: false,
                 action: onAddConnection
             )
+            .accessibilityIdentifier("database.empty.add-connection")
         }
     }
 }
