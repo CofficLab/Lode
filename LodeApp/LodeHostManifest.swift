@@ -3,6 +3,8 @@ import KernelCore
 import LumiFactory
 import PluginCodeEditorHost
 import PluginConversationInput
+import PluginConversationList
+import PluginConversationNew
 import PluginConversationState
 import PluginLLMProviderAiRouter
 import PluginLLMProviderAliyun
@@ -151,6 +153,8 @@ enum LodeHostManifest {
             PluginMessageListStandardPlugin(),
             ModelSelectorPlugin(),
             ConversationInputPlugin(),
+            ConversationListPlugin(),
+            ConversationNewPlugin(),
             LLMProviderSettingsPlugin(),
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin(loadSavedConfigs: loadSavedConfigs)),

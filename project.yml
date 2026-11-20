@@ -35,6 +35,10 @@ packages:
     version: 2.10.1
   LumiChat:
     path: ../../Lumi-Softworks/LumiChat
+  PluginConversationList:
+    path: ../Lumi/Packages/PluginConversationList
+  PluginConversationNew:
+    path: ../Lumi/Packages/PluginConversationNew
   PluginLLMProviderAiRouter:
     path: ../Lumi/Packages/PluginLLMProviderAiRouter
   PluginLLMProviderAliyun:
@@ -141,6 +145,10 @@ targets:
         product: KitLLM
       - package: LumiChat
         product: PluginConversationInput
+      - package: PluginConversationList
+        product: PluginConversationList
+      - package: PluginConversationNew
+        product: PluginConversationNew
       - package: LumiChat
         product: PluginConversationState
       - package: LumiChat

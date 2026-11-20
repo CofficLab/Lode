@@ -107,7 +107,7 @@ public final class DatabaseManagerPlugin: SuperPlugin, SuperLog {
             ) { state in
                 if state == .activated {
                     DatabaseSQLProposalRuntime.shared.activate(viewModel: self.viewModel)
-                    toolbar?.setVisibleCategories([.global])
+                    toolbar?.setVisibleCategories([.global, .chat])
                     railView?.setVisibleTabID(Self.railTabID)
                     rootView?.setRailViewVisible(railView?.hasVisibleTabs ?? false)
                     railView?.activateWidthProfile(

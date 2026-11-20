@@ -70,6 +70,12 @@
       "path": "../../Lumi-Softworks/LumiChat",
     }, {
       "kind": "local",
+      "path": "../Lumi/Packages/PluginConversationList",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginConversationNew",
+    }, {
+      "kind": "local",
       "path": "../Lumi/Packages/PluginLLMProviderAiRouter",
     }, {
       "kind": "local",
@@ -201,6 +207,8 @@
       "path": "Packages",
       "children": [
         { "path": "<PROJECT>/../../Lumi-Softworks/LumiChat" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginConversationList" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginConversationNew" },
         { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAiRouter" },
         { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAliyun" },
         { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAnthropic" },
@@ -422,6 +430,14 @@
         }, {
           "package": "LumiProviders",
           "product-name": "ProviderTheme",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginConversationList",
+          "product-name": "PluginConversationList",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginConversationNew",
+          "product-name": "PluginConversationNew",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "PluginLLMProviderAiRouter",

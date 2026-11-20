@@ -110,6 +110,43 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         try? await kernel.stopAsync()
     }
 
+    func testConversationToolbarPluginsFollowChatSelection() async throws {
+        let kernel = try await makeKernel()
+        let conversations = try XCTUnwrap(kernel.resolveProvider((any ConversationManaging).self))
+        let chat = try XCTUnwrap(kernel.resolveProvider((any ChatSectionProviding).self))
+        let toolbar = try XCTUnwrap(kernel.resolveProvider((any ToolbarProviding).self))
+        let newChatItemID = "com.coffic.lumi.plugin.conversation-new.new-chat"
+        let listItemID = "com.coffic.lumi.plugin.conversation-list.conversation-list"
+
+        XCTAssertTrue(kernel.isPluginEnabled(id: "com.coffic.lumi.plugin.conversation-new"))
+        XCTAssertTrue(kernel.isPluginEnabled(id: "com.coffic.lumi.plugin.conversation-list"))
+        XCTAssertTrue(chat.isVisible)
+        XCTAssertTrue(toolbar.visibleToolbarItems.contains { $0.id == listItemID })
+        XCTAssertFalse(toolbar.toolbarItems.contains { $0.id == newChatItemID })
+
+        _ = try conversations.createConversation(
+            title: "Toolbar test",
+            projectPath: nil,
+            providerID: nil,
+            modelName: nil
+        )
+        XCTAssertTrue(toolbar.visibleToolbarItems.contains { $0.id == newChatItemID })
+        XCTAssertEqual(
+            toolbar.visibleToolbarItems.first { $0.id == newChatItemID }?.placement,
+            .trailing
+        )
+        XCTAssertEqual(
+            toolbar.visibleToolbarItems.first { $0.id == listItemID }?.placement,
+            .trailing
+        )
+
+        conversations.deselectConversation()
+        XCTAssertFalse(toolbar.toolbarItems.contains { $0.id == newChatItemID })
+        XCTAssertTrue(toolbar.visibleToolbarItems.contains { $0.id == listItemID })
+
+        try? await kernel.stopAsync()
+    }
+
     /// App 域 Provider 钩子与启动后接线：基线外能力就位，共享设置按钮接管工具栏。
     func testManifestRegistersAppProvidersAndWiring() async throws {
         let kernel = try await makeKernel()
