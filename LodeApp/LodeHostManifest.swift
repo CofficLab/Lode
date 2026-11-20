@@ -4,12 +4,35 @@ import LumiFactory
 import PluginCodeEditorHost
 import PluginConversationInput
 import PluginConversationState
+import PluginLLMProviderAiRouter
+import PluginLLMProviderAliyun
+import PluginLLMProviderAnthropic
+import PluginLLMProviderDeepSeek
+import PluginLLMProviderFeifeimiao
+import PluginLLMProviderFlyMux
+import PluginLLMProviderHappyCode
+import PluginLLMProviderHyperAPI
+import PluginLLMProviderKimiCode
+import PluginLLMProviderLPgpt
+import PluginLLMProviderMegaLLM
+import PluginLLMProviderMiniMax
 import PluginLLMProviderOpenAI
+import PluginLLMProviderOpenCode
+import PluginLLMProviderCommandCode
+import PluginLLMProviderOpenRouter
+import PluginLLMProviderStepFun
+import PluginLLMProviderSublyx
+import PluginLLMProviderTencent
+import PluginLLMProviderXiaomi
+import PluginLLMProviderXybbz
+import PluginLLMProviderZhipu
+import PluginLLMProviderMLX
 import PluginLLMProviderSettings
 import PluginMessageListStandard
 import PluginMessageRenderer
 import PluginMessageSender
 import PluginModelSelector
+import PluginSettingView
 import LodePluginRootView
 import ProviderExternalFile
 import ProviderRootView
@@ -95,10 +118,33 @@ enum LodeHostManifest {
         // UserDefaults/Keychain，启动期同步读密码会触发钥匙串授权弹窗并挂起装配。
         let loadSavedConfigs = uiTestDataRoot() == nil
         return [
+            PluginSettingView(id: "com.coffic.lumi.plugin.setting-view"),
             MessageSenderPlugin(),
             ConversationStatePlugin(),
             MessageRendererPlugin(),
+            AiRouterProviderPlugin(),
+            AliyunProviderPlugin(),
+            AnthropicProviderPlugin(),
+            DeepSeekProviderPlugin(),
+            FeifeimiaoProviderPlugin(),
+            FlyMuxProviderPlugin(),
+            HappyCodeProviderPlugin(),
+            HyperAPIProviderPlugin(),
+            KimiCodeProviderPlugin(),
+            LPgptProviderPlugin(),
+            MegaLLMProviderPlugin(),
+            MiniMaxProviderPlugin(),
             OpenAIProviderPlugin(),
+            OpenCodeProviderPlugin(),
+            CommandCodeProviderPlugin(),
+            OpenRouterProviderPlugin(),
+            StepFunProviderPlugin(),
+            SublyxProviderPlugin(),
+            TencentProviderPlugin(),
+            XiaomiProviderPlugin(),
+            XybbzProviderPlugin(),
+            ZhipuProviderPlugin(),
+            LodeMLXProviderPlugin(),
             PluginMessageListStandardPlugin(),
             ModelSelectorPlugin(),
             ConversationInputPlugin(),
@@ -120,6 +166,20 @@ enum LodeHostManifest {
         return nil
         #endif
     }
+}
+
+/// 复用 MLX 供应商装配，但不把 Lumi 的历史模型目录复制进 Lode。
+@MainActor
+private final class LodeMLXProviderPlugin: SuperPlugin {
+    private let wrapped = MLXProviderPlugin()
+
+    var id: String { wrapped.id }
+    var order: Int { wrapped.order }
+    var dependencies: [String] { wrapped.dependencies }
+    var metadata: PluginMetadata { wrapped.metadata }
+
+    func onBoot(kernel: KernelCoreContainer) throws { try wrapped.onBoot(kernel: kernel) }
+    func onShutdown(kernel: KernelCoreContainer) throws { try wrapped.onShutdown(kernel: kernel) }
 }
 
 /// 包装插件元数据为 `.alwaysOn`，其余生命周期行为原样透传。

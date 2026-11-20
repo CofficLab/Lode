@@ -49,6 +49,12 @@
       },
     }, {
       "kind": "remote",
+      "repository": "https://github.com/lumi-softworks/LumiPluginSettingView.git",
+      "version": {
+        "up-to-next-major-version": "1.0.4",
+      },
+    }, {
+      "kind": "remote",
       "repository": "https://github.com/lumi-softworks/LumiProviderToolManager.git",
       "version": {
         "up-to-next-major-version": "1.0.3",
@@ -62,6 +68,72 @@
     }, {
       "kind": "local",
       "path": "../../Lumi-Softworks/LumiChat",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderAiRouter",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderAliyun",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderAnthropic",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderDeepSeek",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderFeifeimiao",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderFlyMux",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderHappyCode",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderHyperAPI",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderKimiCode",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderLPgpt",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderMegaLLM",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderMiniMax",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderOpenCode",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderCommandCode",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderOpenRouter",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderStepFun",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderSublyx",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderTencent",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderXiaomi",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderXybbz",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderZhipu",
+    }, {
+      "kind": "local",
+      "path": "../Lumi/Packages/PluginLLMProviderMLX",
     }, {
       "kind": "local",
       "path": "Packages/PluginCodeEditorHost",
@@ -121,18 +193,36 @@
         { "path": "Localizable.xcstrings", "target-membership": [ "Lode/resources" ] },
         { "path": "Assets.xcassets", "target-membership": [ "Lode/resources" ] },
       ],
-    }, {
-      "kind": "folder",
-      "path": "LodeTests",
-      "target-membership": [ "LodeTests" ],
-    }, {
-      "path": "scripts/perf/launch-baseline.json",
-      "target-membership": [ "LodeTests/resources" ],
-    }, {
+    },
+    { "kind": "folder", "path": "LodeTests", "target-membership": [ "LodeTests" ] },
+    { "path": "scripts/perf/launch-baseline.json", "target-membership": [ "LodeTests/resources" ] },
+    {
       "kind": "group",
       "path": "Packages",
       "children": [
         { "path": "<PROJECT>/../../Lumi-Softworks/LumiChat" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAiRouter" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAliyun" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderAnthropic" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderDeepSeek" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderFeifeimiao" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderFlyMux" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderHappyCode" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderHyperAPI" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderKimiCode" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderLPgpt" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderMegaLLM" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderMiniMax" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderOpenCode" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderCommandCode" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderOpenRouter" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderStepFun" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderSublyx" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderTencent" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderXiaomi" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderXybbz" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderZhipu" },
+        { "path": "<PROJECT>/../Lumi/Packages/PluginLLMProviderMLX" },
         { "path": "<PROJECT>/Packages/PluginCodeEditorHost" },
         { "path": "<PROJECT>/Packages/PluginDatabaseManager" },
         { "path": "<PROJECT>/Packages/PluginRootView" },
@@ -173,76 +263,16 @@
       ],
       "package-product-members": [
         {
-          "package": "LumiFactory",
-          "product-name": "LumiFactory",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiPluginRootView",
-          "product-name": "WorkbenchRootView",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiKernel",
-          "product-name": "KernelCore",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "Sparkle",
-          "product-name": "Sparkle",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "product-name": "PluginDatabaseManager",
+          "product-name": "LodePluginRootView",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "product-name": "PluginCodeEditorHost",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "product-name": "LodePluginRootView",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiKitLLM",
-          "product-name": "KitLLM",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginConversationInput",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginConversationState",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginMessageListStandard",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginMessageRenderer",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginMessageSender",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginModelSelector",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginLLMProviderSettings",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiChat",
-          "product-name": "PluginLLMProviderOpenAI",
+          "product-name": "PluginDatabaseManager",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "product-name": "ProviderAgentLoop",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiProviders",
-          "product-name": "ProviderChatSection",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiProviders",
-          "product-name": "ProviderConversation",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "product-name": "ProviderConversationInputBlock",
@@ -278,6 +308,58 @@
           "product-name": "ProviderWebServer",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiChat",
+          "product-name": "PluginConversationInput",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginConversationState",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginLLMProviderOpenAI",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginLLMProviderSettings",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginMessageListStandard",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginMessageRenderer",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginMessageSender",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiChat",
+          "product-name": "PluginModelSelector",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiFactory",
+          "product-name": "LumiFactory",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiKernel",
+          "product-name": "KernelCore",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiKitLLM",
+          "product-name": "KitLLM",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiPluginRootView",
+          "product-name": "WorkbenchRootView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiPluginSettingView",
+          "product-name": "PluginSettingView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
           "package": "LumiProviderToolManager",
           "product-name": "ProviderToolManager",
           "build-phase": { "build-phase": "frameworks" },
@@ -287,7 +369,15 @@
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "LumiProviders",
+          "product-name": "ProviderChatSection",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
           "product-name": "ProviderCommand",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviders",
+          "product-name": "ProviderConversation",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "LumiProviders",
@@ -332,6 +422,98 @@
         }, {
           "package": "LumiProviders",
           "product-name": "ProviderTheme",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderAiRouter",
+          "product-name": "PluginLLMProviderAiRouter",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderAliyun",
+          "product-name": "PluginLLMProviderAliyun",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderAnthropic",
+          "product-name": "PluginLLMProviderAnthropic",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderCommandCode",
+          "product-name": "PluginLLMProviderCommandCode",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderDeepSeek",
+          "product-name": "PluginLLMProviderDeepSeek",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderFeifeimiao",
+          "product-name": "PluginLLMProviderFeifeimiao",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderFlyMux",
+          "product-name": "PluginLLMProviderFlyMux",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderHappyCode",
+          "product-name": "PluginLLMProviderHappyCode",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderHyperAPI",
+          "product-name": "PluginLLMProviderHyperAPI",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderKimiCode",
+          "product-name": "PluginLLMProviderKimiCode",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderLPgpt",
+          "product-name": "PluginLLMProviderLPgpt",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderMLX",
+          "product-name": "PluginLLMProviderMLX",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderMegaLLM",
+          "product-name": "PluginLLMProviderMegaLLM",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderMiniMax",
+          "product-name": "PluginLLMProviderMiniMax",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderOpenCode",
+          "product-name": "PluginLLMProviderOpenCode",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderOpenRouter",
+          "product-name": "PluginLLMProviderOpenRouter",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderStepFun",
+          "product-name": "PluginLLMProviderStepFun",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderSublyx",
+          "product-name": "PluginLLMProviderSublyx",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderTencent",
+          "product-name": "PluginLLMProviderTencent",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderXiaomi",
+          "product-name": "PluginLLMProviderXiaomi",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderXybbz",
+          "product-name": "PluginLLMProviderXybbz",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "PluginLLMProviderZhipu",
+          "product-name": "PluginLLMProviderZhipu",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "Sparkle",
+          "product-name": "Sparkle",
           "build-phase": { "build-phase": "frameworks" },
         },
       ],
@@ -378,12 +560,11 @@
       ],
       "package-product-members": [
         {
-          "package": "LumiFactory",
-          "product-name": "LumiFactory",
+          "product-name": "ProviderExternalFile",
           "build-phase": { "build-phase": "frameworks" },
         }, {
-          "package": "LumiPluginRootView",
-          "product-name": "WorkbenchRootView",
+          "package": "LumiFactory",
+          "product-name": "LumiFactory",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "LumiKernel",
@@ -394,19 +575,20 @@
           "product-name": "LumiLoggingKit",
           "build-phase": { "build-phase": "frameworks" },
         }, {
+          "package": "LumiPluginRootView",
+          "product-name": "WorkbenchRootView",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "LumiProviderToolManager",
+          "product-name": "ProviderToolManager",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
           "package": "LumiProviders",
           "product-name": "ProviderChatSection",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "LumiProviders",
           "product-name": "ProviderConversation",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "product-name": "ProviderExternalFile",
-          "build-phase": { "build-phase": "frameworks" },
-        }, {
-          "package": "LumiProviderToolManager",
-          "product-name": "ProviderToolManager",
           "build-phase": { "build-phase": "frameworks" },
         }, {
           "package": "LumiProviders",

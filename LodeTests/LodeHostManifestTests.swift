@@ -29,6 +29,15 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         try? await kernel.stopAsync()
     }
 
+    func testMLXAssemblySkipsLegacyModelImport() throws {
+        let plugin = try XCTUnwrap(
+            LodeHostManifest.makePlugins().first {
+                $0.id == "com.coffic.lumi.plugin.llm-provider.mlx"
+            }
+        )
+        XCTAssertFalse(plugin is any PluginDataMigrating)
+    }
+
     func testSharedChatAssemblyProvidesInputModelSelectorAndSQLProposal() async throws {
         let kernel = try await makeKernel()
 
@@ -36,7 +45,29 @@ final class LodeHostManifestTests: LodeKernelTestCase {
             "com.coffic.lumi.plugin.message-sender",
             "com.coffic.lumi.plugin.conversation-state",
             "CoreMessageRenderer",
+            "com.coffic.lumi.plugin.llm-provider.airouter",
+            "com.coffic.lumi.plugin.llm-provider.aliyun",
+            "com.coffic.lumi.plugin.llm-provider.anthropic",
+            "com.coffic.lumi.plugin.llm-provider.deepseek",
+            "com.coffic.lumi.plugin.llm-provider.feifeimiao",
+            "com.coffic.lumi.plugin.llm-provider.flymux",
+            "com.coffic.lumi.plugin.llm-provider.happycode",
+            "com.coffic.lumi.plugin.llm-provider.hyperapi",
+            "com.coffic.lumi.plugin.llm-provider.kimicode",
+            "com.coffic.lumi.plugin.llm-provider.lpgpt",
+            "com.coffic.lumi.plugin.llm-provider.megallm",
+            "com.coffic.lumi.plugin.llm-provider.minimax",
             "com.coffic.lumi.plugin.llm-provider.openai",
+            "com.coffic.lumi.plugin.llm-provider.opencode",
+            "com.coffic.lumi.plugin.llm-provider.commandcode",
+            "com.coffic.lumi.plugin.llm-provider.openrouter",
+            "com.coffic.lumi.plugin.llm-provider.stepfun",
+            "com.coffic.lumi.plugin.llm-provider.sublyx",
+            "com.coffic.lumi.plugin.llm-provider.tencent",
+            "com.coffic.lumi.plugin.llm-provider.xiaomi",
+            "com.coffic.lumi.plugin.llm-provider.xybbz",
+            "com.coffic.lumi.plugin.llm-provider.zhipu",
+            "com.coffic.lumi.plugin.llm-provider.mlx",
             "com.coffic.lumi.plugin.message-list.standard",
             "com.coffic.lumi.plugin.model-selector",
             "com.coffic.lumi.plugin.conversation-input",
@@ -57,7 +88,8 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         XCTAssertNotNil(rootView.trailingPane?.content)
 
         let llmManager = try XCTUnwrap(kernel.resolveProvider((any LLMManaging).self))
-        XCTAssertTrue(llmManager.allProviders().contains { $0.providerID == "openai" })
+        XCTAssertEqual(llmManager.providerCount, 33)
+        XCTAssertEqual(llmManager.allProviders().filter { $0.providerInfo.isLocal }.count, 7)
 
         let tools = try XCTUnwrap(kernel.resolveProvider((any ToolManagerProviding).self))
         XCTAssertNotNil(tools.tool(named: DatabaseProposeSQLV2Tool.toolName))
@@ -78,6 +110,7 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         // 共享工具栏设置按钮（取代旧 SettingsToolbarPlugin，id 沿用 "settings"）。
         let toolbar = try XCTUnwrap(kernel.resolveProvider((any ToolbarProviding).self))
         XCTAssertTrue(toolbar.toolbarItems.contains { $0.id == "settings" })
+        XCTAssertTrue(kernel.isPluginEnabled(id: "com.coffic.lumi.plugin.setting-view"))
 
         try? await kernel.stopAsync()
     }

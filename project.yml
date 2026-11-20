@@ -24,6 +24,9 @@ packages:
   LumiPluginRootView:
     url: https://github.com/lumi-softworks/LumiPluginRootView.git
     from: 1.3.2
+  LumiPluginSettingView:
+    url: https://github.com/lumi-softworks/LumiPluginSettingView.git
+    from: 1.0.4
   LumiProviderToolManager:
     url: https://github.com/lumi-softworks/LumiProviderToolManager.git
     from: 1.0.3
@@ -32,6 +35,50 @@ packages:
     version: 2.10.1
   LumiChat:
     path: ../../Lumi-Softworks/LumiChat
+  PluginLLMProviderAiRouter:
+    path: ../Lumi/Packages/PluginLLMProviderAiRouter
+  PluginLLMProviderAliyun:
+    path: ../Lumi/Packages/PluginLLMProviderAliyun
+  PluginLLMProviderAnthropic:
+    path: ../Lumi/Packages/PluginLLMProviderAnthropic
+  PluginLLMProviderDeepSeek:
+    path: ../Lumi/Packages/PluginLLMProviderDeepSeek
+  PluginLLMProviderFeifeimiao:
+    path: ../Lumi/Packages/PluginLLMProviderFeifeimiao
+  PluginLLMProviderFlyMux:
+    path: ../Lumi/Packages/PluginLLMProviderFlyMux
+  PluginLLMProviderHappyCode:
+    path: ../Lumi/Packages/PluginLLMProviderHappyCode
+  PluginLLMProviderHyperAPI:
+    path: ../Lumi/Packages/PluginLLMProviderHyperAPI
+  PluginLLMProviderKimiCode:
+    path: ../Lumi/Packages/PluginLLMProviderKimiCode
+  PluginLLMProviderLPgpt:
+    path: ../Lumi/Packages/PluginLLMProviderLPgpt
+  PluginLLMProviderMegaLLM:
+    path: ../Lumi/Packages/PluginLLMProviderMegaLLM
+  PluginLLMProviderMiniMax:
+    path: ../Lumi/Packages/PluginLLMProviderMiniMax
+  PluginLLMProviderOpenCode:
+    path: ../Lumi/Packages/PluginLLMProviderOpenCode
+  PluginLLMProviderCommandCode:
+    path: ../Lumi/Packages/PluginLLMProviderCommandCode
+  PluginLLMProviderOpenRouter:
+    path: ../Lumi/Packages/PluginLLMProviderOpenRouter
+  PluginLLMProviderStepFun:
+    path: ../Lumi/Packages/PluginLLMProviderStepFun
+  PluginLLMProviderSublyx:
+    path: ../Lumi/Packages/PluginLLMProviderSublyx
+  PluginLLMProviderTencent:
+    path: ../Lumi/Packages/PluginLLMProviderTencent
+  PluginLLMProviderXiaomi:
+    path: ../Lumi/Packages/PluginLLMProviderXiaomi
+  PluginLLMProviderXybbz:
+    path: ../Lumi/Packages/PluginLLMProviderXybbz
+  PluginLLMProviderZhipu:
+    path: ../Lumi/Packages/PluginLLMProviderZhipu
+  PluginLLMProviderMLX:
+    path: ../Lumi/Packages/PluginLLMProviderMLX
   PluginCodeEditorHost:
     path: Packages/PluginCodeEditorHost
   PluginDatabaseManager:
@@ -76,6 +123,8 @@ targets:
     dependencies:
       - package: LumiFactory
         product: LumiFactory
+      - package: LumiPluginSettingView
+        product: PluginSettingView
       - package: LumiPluginRootView
         product: WorkbenchRootView
       - package: LumiKernel
@@ -106,6 +155,50 @@ targets:
         product: PluginLLMProviderSettings
       - package: LumiChat
         product: PluginLLMProviderOpenAI
+      - package: PluginLLMProviderAiRouter
+        product: PluginLLMProviderAiRouter
+      - package: PluginLLMProviderAliyun
+        product: PluginLLMProviderAliyun
+      - package: PluginLLMProviderAnthropic
+        product: PluginLLMProviderAnthropic
+      - package: PluginLLMProviderDeepSeek
+        product: PluginLLMProviderDeepSeek
+      - package: PluginLLMProviderFeifeimiao
+        product: PluginLLMProviderFeifeimiao
+      - package: PluginLLMProviderFlyMux
+        product: PluginLLMProviderFlyMux
+      - package: PluginLLMProviderHappyCode
+        product: PluginLLMProviderHappyCode
+      - package: PluginLLMProviderHyperAPI
+        product: PluginLLMProviderHyperAPI
+      - package: PluginLLMProviderKimiCode
+        product: PluginLLMProviderKimiCode
+      - package: PluginLLMProviderLPgpt
+        product: PluginLLMProviderLPgpt
+      - package: PluginLLMProviderMegaLLM
+        product: PluginLLMProviderMegaLLM
+      - package: PluginLLMProviderMiniMax
+        product: PluginLLMProviderMiniMax
+      - package: PluginLLMProviderOpenCode
+        product: PluginLLMProviderOpenCode
+      - package: PluginLLMProviderCommandCode
+        product: PluginLLMProviderCommandCode
+      - package: PluginLLMProviderOpenRouter
+        product: PluginLLMProviderOpenRouter
+      - package: PluginLLMProviderStepFun
+        product: PluginLLMProviderStepFun
+      - package: PluginLLMProviderSublyx
+        product: PluginLLMProviderSublyx
+      - package: PluginLLMProviderTencent
+        product: PluginLLMProviderTencent
+      - package: PluginLLMProviderXiaomi
+        product: PluginLLMProviderXiaomi
+      - package: PluginLLMProviderXybbz
+        product: PluginLLMProviderXybbz
+      - package: PluginLLMProviderZhipu
+        product: PluginLLMProviderZhipu
+      - package: PluginLLMProviderMLX
+        product: PluginLLMProviderMLX
       - package: ProviderAgentLoop
         product: ProviderAgentLoop
       - package: LumiProviders
