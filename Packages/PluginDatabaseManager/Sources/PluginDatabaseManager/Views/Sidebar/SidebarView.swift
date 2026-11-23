@@ -100,10 +100,11 @@ public struct SidebarView: View {
                 toggleMode: viewModel.sidebarMode,
                 accessibilityPrefix: "database.empty"
             )
-            SidebarEmptyView(
-                systemImage: "cylinder.split.1x2",
+            AppEmptyState(
+                icon: "cylinder.split.1x2",
                 title: pluginLocalization.string("No database connected"),
-                description: pluginLocalization.string("Switch to Connections above to add or pick a database.")
+                description: pluginLocalization.string("Switch to Connections above to add or pick a database."),
+                size: .compact
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

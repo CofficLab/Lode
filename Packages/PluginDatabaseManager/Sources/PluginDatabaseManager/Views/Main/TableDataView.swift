@@ -67,27 +67,20 @@ struct TableDataView: View {
     /// 查找条：查找词 + 范围（当前页/全量）+ 匹配导航 + 关闭。
     private var gridFindBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
-            TextField(pluginLocalization.string("Find in Grid"), text: $viewModel.gridFindText)
-                .textFieldStyle(.plain)
-                .font(.appBody)
-                .foregroundStyle(theme.textPrimary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .frame(width: 220)
-                .background(theme.surface)
-                .clipShape(.rect(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(theme.appSubtleBorder, lineWidth: 1))
-                .onSubmit { Task { await viewModel.runGridFind() } }
+            AppSearchBar(
+                text: $viewModel.gridFindText,
+                localizedPlaceholder: pluginLocalization.string("Find in Grid"),
+                onSubmit: { Task { await viewModel.runGridFind() } }
+            )
+            .frame(width: 220)
 
-            Picker(pluginLocalization.string("Find Scope"), selection: gridFindScopeBinding) {
-                Text(pluginLocalization.string("Current Page")).tag(GridFindScope.currentPage)
-                Text(pluginLocalization.string("All Rows")).tag(GridFindScope.allRows)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            AppSegmentedControl(
+                [
+                    pluginLocalization.string("Current Page"),
+                    pluginLocalization.string("All Rows"),
+                ],
+                selection: gridFindScopeIndexBinding
+            )
             .frame(width: 190)
 
             if viewModel.gridFindScope == .currentPage {
@@ -125,11 +118,12 @@ struct TableDataView: View {
         return "\(viewModel.gridFindMatchIndex + 1) / \(total)"
     }
 
-    private var gridFindScopeBinding: Binding<GridFindScope> {
+    private var gridFindScopeIndexBinding: Binding<Int> {
         Binding(
-            get: { viewModel.gridFindScope },
-            set: { newValue in
-                viewModel.gridFindScope = newValue
+            get: { GridFindScope.allCases.firstIndex(of: viewModel.gridFindScope) ?? 0 },
+            set: { index in
+                guard GridFindScope.allCases.indices.contains(index) else { return }
+                viewModel.gridFindScope = GridFindScope.allCases[index]
                 Task { await viewModel.runGridFind() }
             }
         )

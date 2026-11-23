@@ -1,5 +1,5 @@
 {
-  "originHash" : "804f1f406c0a2c740490addff1d2446fbeb348ba130aae6caa234312acb19be8",
+  "originHash" : "9027d622761cde804d68dc5d9ceee2df3a85233cad1e71d540bc5bdfbf6a5518",
   "pins" : [
     {
       "identity" : "fseventswrapper",
@@ -150,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lumi-softworks/LumiUI.git",
       "state" : {
-        "revision" : "6071aeccea31a48039bdecfffbdc34a98e4e4b20",
-        "version" : "1.17.1"
+        "revision" : "6e187bcc2d36c5f98f2c498e79e49562ed351191",
+        "version" : "1.19.2"
       }
     },
     {

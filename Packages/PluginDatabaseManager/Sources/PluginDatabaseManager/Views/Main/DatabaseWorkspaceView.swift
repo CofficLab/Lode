@@ -37,68 +37,40 @@ public struct DatabaseWorkspaceView: View {
             HStack(spacing: 2) {
                 if viewModel.isConnected, viewModel.selectedConfig?.type != .redis,
                    viewModel.selectedConfig?.type.capabilities.supportsSchemaEditing == true {
-                    Button {
+                    AppIconButton(systemImage: "tablecells.badge.ellipsis", size: .compact) {
                         viewModel.presentCreateTable()
-                    } label: {
-                        Image(systemName: "tablecells.badge.ellipsis")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityLabel(pluginLocalization.string("New Table"))
                     .help(pluginLocalization.string("New Table"))
                 }
                 if viewModel.isConnected, viewModel.selectedConfig?.type != .redis {
-                    Button {
+                    AppIconButton(systemImage: "square.and.arrow.down", size: .compact) {
                         viewModel.presentImportData()
-                    } label: {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityLabel(pluginLocalization.string("Import Data"))
                     .help(pluginLocalization.string("Import Data"))
                 }
                 if viewModel.isConnected, viewModel.selectedConfig?.type != .redis,
                    viewModel.queryResult != nil || viewModel.openTableObject != nil {
-                    Button {
+                    AppIconButton(systemImage: "square.and.arrow.up", size: .compact) {
                         viewModel.presentExport()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityLabel(pluginLocalization.string("Export Data"))
                     .help(pluginLocalization.string("Export Data"))
                 }
                 if viewModel.isConnected, viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
-                    Button {
+                    AppIconButton(systemImage: "rectangle.3.group", size: .compact) {
                         viewModel.isERDiagramPresented = true
-                    } label: {
-                        Image(systemName: "rectangle.3.group")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityLabel(pluginLocalization.string("ER Diagram"))
                     .help(pluginLocalization.string("ER Diagram"))
                 }
-                Button {
-                    viewModel.toggleInspector()
-                } label: {
-                    Image(systemName: viewModel.inspectorVisible ? "sidebar.trailing.collapse" : "sidebar.trailing")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .padding(8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                AppIconButton(
+                    systemImage: viewModel.inspectorVisible ? "sidebar.trailing.collapse" : "sidebar.trailing",
+                    isActive: viewModel.inspectorVisible,
+                    action: { viewModel.toggleInspector() }
+                )
+                .accessibilityLabel(pluginLocalization.string("Toggle Inspector"))
                 .help(pluginLocalization.string("Toggle Inspector"))
             }
             .padding(.top, 6)

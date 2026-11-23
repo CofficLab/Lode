@@ -102,10 +102,11 @@ struct ConnectionsListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 8) {
-            SidebarEmptyView(
-                systemImage: "cylinder.split.1x2",
+            AppEmptyState(
+                icon: "cylinder.split.1x2",
                 title: pluginLocalization.string("No saved connections"),
-                description: pluginLocalization.string("Click + to add a new connection.")
+                description: pluginLocalization.string("Click + to add a new connection."),
+                size: .compact
             )
             AppButton(
                 pluginLocalization.string("Add Connection"),

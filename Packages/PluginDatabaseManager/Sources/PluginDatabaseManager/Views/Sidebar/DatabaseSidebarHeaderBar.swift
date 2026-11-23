@@ -76,36 +76,24 @@ struct DatabaseSidebarHeaderBar: View {
             Spacer(minLength: 0)
 
             if let onLoad {
-                Button(action: onLoad) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(pluginLocalization.string("Reload"))
-                .accessibilityIdentifier(identifier("reload"))
+                AppIconButton(systemImage: "arrow.clockwise", size: .compact, action: onLoad)
+                    .accessibilityLabel(pluginLocalization.string("Reload"))
+                    .help(pluginLocalization.string("Reload"))
+                    .accessibilityIdentifier(identifier("reload"))
             }
 
             if let onAdd {
-                Button(action: onAdd) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(pluginLocalization.string("Add Connection"))
-                .accessibilityIdentifier(identifier("add"))
+                AppIconButton(systemImage: "plus", size: .compact, action: onAdd)
+                    .accessibilityLabel(pluginLocalization.string("Add Connection"))
+                    .help(pluginLocalization.string("Add Connection"))
+                    .accessibilityIdentifier(identifier("add"))
             }
 
             if let onToggleMode {
-                Button(action: onToggleMode) {
-                    Image(systemName: toggleIconName)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(toggleHelpText)
-                .accessibilityIdentifier(identifier("toggle"))
+                AppIconButton(systemImage: toggleIconName, size: .compact, action: onToggleMode)
+                    .accessibilityLabel(toggleHelpText)
+                    .help(toggleHelpText)
+                    .accessibilityIdentifier(identifier("toggle"))
             }
         }
         .padding(.horizontal, 10)

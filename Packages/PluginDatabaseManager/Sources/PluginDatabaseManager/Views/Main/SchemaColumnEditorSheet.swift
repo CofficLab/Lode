@@ -4,6 +4,7 @@ import SwiftUI
 struct AddSchemaColumnSheet: View {
     @Binding var isPresented: Bool
     let onAdd: (NewTableColumnDraft) throws -> Void
+    @LumiUI.LumiTheme private var theme: any LumiUITheme
 
     @State private var name = ""
     @State private var dataType = "TEXT"
@@ -22,7 +23,7 @@ struct AddSchemaColumnSheet: View {
             }
             .formStyle(.grouped)
             if let errorMessage {
-                Text(errorMessage).font(.appCaption).foregroundStyle(.red)
+                Text(errorMessage).font(.appCaption).foregroundStyle(theme.error)
             }
             HStack {
                 Spacer()
@@ -51,6 +52,7 @@ struct RenameSchemaColumnSheet: View {
     let column: TableColumn
     let onRename: (String) throws -> Void
     @Environment(\.dismiss) private var dismiss
+    @LumiUI.LumiTheme private var theme: any LumiUITheme
     @State private var name: String
     @State private var errorMessage: String?
 
@@ -65,7 +67,7 @@ struct RenameSchemaColumnSheet: View {
             Text(pluginLocalization.string("Rename Column")).font(.title3.weight(.semibold))
             TextField(pluginLocalization.string("Name"), text: $name)
             if let errorMessage {
-                Text(errorMessage).font(.appCaption).foregroundStyle(.red)
+                Text(errorMessage).font(.appCaption).foregroundStyle(theme.error)
             }
             HStack {
                 Spacer()
@@ -89,6 +91,7 @@ struct AddSchemaIndexSheet: View {
     @Binding var isPresented: Bool
     let availableColumns: [String]
     let onAdd: (NewTableIndexDraft) throws -> Void
+    @LumiUI.LumiTheme private var theme: any LumiUITheme
 
     @State private var name = ""
     @State private var selectedColumns: Set<String> = []
@@ -115,7 +118,7 @@ struct AddSchemaIndexSheet: View {
                 }
             }
             .frame(maxHeight: 180)
-            if let errorMessage { Text(errorMessage).font(.appCaption).foregroundStyle(.red) }
+            if let errorMessage { Text(errorMessage).font(.appCaption).foregroundStyle(theme.error) }
             HStack {
                 Spacer()
                 AppButton(pluginLocalization.string("Cancel"), style: .secondary, size: .small) { isPresented = false }
