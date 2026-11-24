@@ -96,6 +96,29 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         XCTAssertTrue(chat.items.contains { $0.id == "com.coffic.lumi.plugin.conversation-input" })
         XCTAssertTrue(chat.barItems.contains { $0.id == "com.coffic.lumi.plugin.model-selector.action-bar-button" })
 
+        // 聊天窗头部 / 工具栏 / 操作栏的内容全部来自插件；这些条目缺失时
+        // ChatSection 会渲染出一段空的 chrome 条。
+        XCTAssertTrue(chat.isContextActive)
+        let barItemIDs = Set(chat.barItems.map(\.id))
+        for id in [
+            "com.coffic.lumi.plugin.conversation-title.header",
+            "com.coffic.lumi.plugin.conversation-token-usage.header",
+            "com.coffic.lumi.plugin.conversation-elapsed-time.header",
+            "com.coffic.lumi.plugin.conversation-agent-turn-count.toolbar-button",
+            "com.coffic.lumi.plugin.conversation-speed.toolbar-button",
+            "com.coffic.lumi.plugin.conversation-cache-hit-rate.toolbar-button",
+            "com.coffic.lumi.plugin.conversation-mode.toolbar-button",
+            "com.coffic.lumi.plugin.verbosity.toolbar-button",
+            "com.coffic.lumi.plugin.conversation-language.toolbar-button",
+            "com.coffic.lumi.plugin.conversation-export.toolbar",
+            "com.coffic.lumi.plugin.tool-activity.toolbar",
+            "com.coffic.lumi.plugin.llm-context.context-toolbar-button",
+            "com.coffic.lumi.plugin.chat-file-attachment.button",
+            "com.coffic.lumi.plugin.chat-screenshot.button",
+        ] {
+            XCTAssertTrue(barItemIDs.contains(id), "Missing chat bar item: \(id)")
+        }
+
         let rootView = try XCTUnwrap(kernel.resolveProvider((any RootViewProviding).self))
         XCTAssertEqual(rootView.trailingPane?.id, "com.coffic.lumi.workspace.chat")
         XCTAssertNotNil(rootView.trailingPane?.content)
