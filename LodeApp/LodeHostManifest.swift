@@ -1,6 +1,7 @@
 import DatabaseManagerPlugin
 import KernelCore
 import LumiFactory
+import PluginAbout
 import PluginCodeEditorHost
 import PluginConversationInput
 import PluginConversationList
@@ -156,6 +157,14 @@ enum LodeHostManifest {
             ConversationListPlugin(),
             ConversationNewPlugin(),
             LLMProviderSettingsPlugin(),
+            AboutPlugin(
+                id: "com.coffic.lode.plugin.about",
+                configuration: AboutConfiguration(
+                    officialWebsiteURLString: "https://coffic.cn/lode",
+                    privacyPolicyURLString: "https://coffic.cn/privacy",
+                    termsOfServiceURLString: "https://coffic.cn/terms"
+                )
+            ),
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin(loadSavedConfigs: loadSavedConfigs)),
         ]
