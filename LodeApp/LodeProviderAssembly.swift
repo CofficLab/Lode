@@ -106,7 +106,9 @@ enum LodeProviderAssembly {
         try kernel.registerProvider((any ConversationInputBlockProviding).self, DefaultConversationInputBlockProvider())
         try kernel.registerProvider((any MessageRenderingProviding).self, DefaultMessageRenderingProviding())
         try kernel.registerProvider((any ToolCallRenderingProviding).self, DefaultToolCallRenderingProviding())
-        try kernel.registerProvider((any PromptSuggestionProviding).self, DefaultPromptSuggestionProvider())
+        let promptSuggestions = DefaultPromptSuggestionProvider()
+        try kernel.registerProvider((any PromptSuggestionProviding).self, promptSuggestions)
+        LodeChatSuggestions.register(on: promptSuggestions)
         try kernel.registerProvider(
             (any PromptSuggestionExecuting).self,
             DefaultPromptSuggestionExecutor(kernel: kernel)

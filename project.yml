@@ -114,6 +114,8 @@ packages:
     path: Packages/PluginDatabaseManager
   PluginRootView:
     path: Packages/PluginRootView
+  PluginChatEmptyState:
+    path: Packages/PluginChatEmptyState
   LumiProviderAgentLoop:
     url: https://github.com/lumi-softworks/LumiProviderAgentLoop.git
     from: 1.0.0
@@ -175,6 +177,8 @@ targets:
         product: PluginCodeEditorHost
       - package: PluginRootView
         product: LodePluginRootView
+      - package: PluginChatEmptyState
+        product: PluginChatEmptyState
       - package: LumiKitLLM
         product: KitLLM
       - package: LumiChat

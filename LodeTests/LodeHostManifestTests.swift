@@ -123,6 +123,12 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         XCTAssertEqual(rootView.trailingPane?.id, "com.coffic.lumi.workspace.chat")
         XCTAssertNotNil(rootView.trailingPane?.content)
 
+        // 未选中会话时，正文由空态插件接管 message-list 槽位。
+        XCTAssertTrue(kernel.isPluginEnabled(id: "com.coffic.lode.plugin.chat-empty-state"))
+        let emptyStateItem = chat.items.first { $0.id == "com.coffic.lode.plugin.chat-empty-state" }
+        XCTAssertEqual(emptyStateItem?.exclusiveGroup, "message-list")
+        XCTAssertTrue(emptyStateItem?.isActive() == true)
+
         let llmManager = try XCTUnwrap(kernel.resolveProvider((any LLMManaging).self))
         XCTAssertEqual(llmManager.providerCount, 33)
         XCTAssertEqual(llmManager.allProviders().filter { $0.providerInfo.isLocal }.count, 7)

@@ -52,6 +52,7 @@ import PluginSettingView
 import PluginSkill
 import PluginToolActivity
 import LodePluginRootView
+import PluginChatEmptyState
 import ProviderExternalFile
 import ProviderRootView
 import SwiftUI
@@ -167,6 +168,7 @@ enum LodeHostManifest {
             ZhipuProviderPlugin(),
             LodeMLXProviderPlugin(),
             PluginMessageListStandardPlugin(),
+            ChatEmptyStatePlugin(),
             ModelSelectorPlugin(),
             ConversationInputPlugin(),
             ConversationListPlugin(),
