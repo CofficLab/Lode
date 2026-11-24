@@ -106,7 +106,9 @@ enum LodeProviderAssembly {
         try kernel.registerProvider((any ConversationInputBlockProviding).self, DefaultConversationInputBlockProvider())
         try kernel.registerProvider((any MessageRenderingProviding).self, DefaultMessageRenderingProviding())
         try kernel.registerProvider((any ToolCallRenderingProviding).self, DefaultToolCallRenderingProviding())
-        try kernel.registerProvider((any PromptSuggestionProviding).self, DefaultPromptSuggestionProvider())
+        let promptSuggestions = DefaultPromptSuggestionProvider()
+        try kernel.registerProvider((any PromptSuggestionProviding).self, promptSuggestions)
+        LodeChatSuggestions.register(on: promptSuggestions)
         try kernel.registerProvider(
             (any PromptSuggestionExecuting).self,
             DefaultPromptSuggestionExecutor(kernel: kernel)
@@ -178,6 +180,11 @@ enum LodeProviderAssembly {
             if let conversations = kernel.resolveProvider((any ConversationManaging).self) {
                 chat.bindConversationSelection(conversations)
             }
+
+            // Lode 没有「工作台切换到聊天」这类入口插件，聊天尾栏常驻显示，
+            // 因此在这里直接激活上下文，否则头部与工具栏不参与布局。
+            chat.setContextActive(true)
+            chat.setActiveContext(.defaultChat)
         }
     }
 }

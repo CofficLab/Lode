@@ -2,10 +2,24 @@ import DatabaseManagerPlugin
 import KernelCore
 import LumiFactory
 import PluginCodeEditorHost
+import PluginChatFileAttachment
+import PluginChatScreenshot
+import PluginConversationBehavior
+import PluginConversationCacheHitRate
+import PluginConversationElapsedTime
+import PluginConversationExport
+import PluginConversationFork
 import PluginConversationInput
 import PluginConversationList
+import PluginConversationMode
 import PluginConversationNew
+import PluginConversationSpeed
 import PluginConversationState
+import PluginConversationStats
+import PluginConversationTitle
+import PluginConversationTokenUsage
+import PluginConversationVerbosity
+import PluginLLMContext
 import PluginLLMProviderAiRouter
 import PluginLLMProviderAliyun
 import PluginLLMProviderAnthropic
@@ -35,7 +49,10 @@ import PluginMessageRenderer
 import PluginMessageSender
 import PluginModelSelector
 import PluginSettingView
+import PluginSkill
+import PluginToolActivity
 import LodePluginRootView
+import PluginChatEmptyState
 import ProviderExternalFile
 import ProviderRootView
 import SwiftUI
@@ -151,10 +168,30 @@ enum LodeHostManifest {
             ZhipuProviderPlugin(),
             LodeMLXProviderPlugin(),
             PluginMessageListStandardPlugin(),
+            ChatEmptyStatePlugin(),
             ModelSelectorPlugin(),
             ConversationInputPlugin(),
             ConversationListPlugin(),
             ConversationNewPlugin(),
+            // 聊天窗顶栏 / 工具栏 / 操作栏的内容全部由插件贡献；
+            // 少了这些插件时 ChatSection 会渲染出空的 chrome 条。
+            LLMContextPlugin(),
+            ToolActivityPlugin(),
+            ConversationTitlePlugin(),
+            ConversationAgentTurnCountPlugin(),
+            ConversationTokenUsagePlugin(),
+            ConversationSpeedPlugin(),
+            ConversationElapsedTimePlugin(),
+            ConversationCacheHitRatePlugin(),
+            ConversationModePlugin(),
+            ConversationVerbosityPlugin(),
+            ConversationLanguagePlugin(),
+            ConversationReasoningPlugin(),
+            ChatFileAttachmentPlugin(),
+            ChatScreenshotPlugin(),
+            ConversationExportPlugin(),
+            ConversationForkPlugin(),
+            SkillPlugin(),
             LLMProviderSettingsPlugin(),
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin(loadSavedConfigs: loadSavedConfigs)),

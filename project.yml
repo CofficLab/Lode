@@ -35,7 +35,7 @@ packages:
     version: 2.10.1
   LumiChat:
     url: https://github.com/lumi-softworks/LumiChat.git
-    from: 1.0.0
+    from: 1.1.0
   LumiPluginConversationList:
     url: https://github.com/lumi-softworks/LumiPluginConversationList.git
     from: 1.0.1
@@ -114,6 +114,8 @@ packages:
     path: Packages/PluginDatabaseManager
   PluginRootView:
     path: Packages/PluginRootView
+  PluginChatEmptyState:
+    path: Packages/PluginChatEmptyState
   LumiProviderAgentLoop:
     url: https://github.com/lumi-softworks/LumiProviderAgentLoop.git
     from: 1.0.0
@@ -175,6 +177,8 @@ targets:
         product: PluginCodeEditorHost
       - package: PluginRootView
         product: LodePluginRootView
+      - package: PluginChatEmptyState
+        product: PluginChatEmptyState
       - package: LumiKitLLM
         product: KitLLM
       - package: LumiChat
@@ -197,6 +201,38 @@ targets:
         product: PluginLLMProviderSettings
       - package: LumiChat
         product: PluginLLMProviderOpenAI
+      - package: LumiChat
+        product: PluginConversationTitle
+      - package: LumiChat
+        product: PluginConversationStats
+      - package: LumiChat
+        product: PluginConversationTokenUsage
+      - package: LumiChat
+        product: PluginConversationSpeed
+      - package: LumiChat
+        product: PluginConversationElapsedTime
+      - package: LumiChat
+        product: PluginConversationCacheHitRate
+      - package: LumiChat
+        product: PluginConversationMode
+      - package: LumiChat
+        product: PluginConversationVerbosity
+      - package: LumiChat
+        product: PluginConversationBehavior
+      - package: LumiChat
+        product: PluginChatFileAttachment
+      - package: LumiChat
+        product: PluginChatScreenshot
+      - package: LumiChat
+        product: PluginConversationExport
+      - package: LumiChat
+        product: PluginConversationFork
+      - package: LumiChat
+        product: PluginToolActivity
+      - package: LumiChat
+        product: PluginLLMContext
+      - package: LumiChat
+        product: PluginSkill
       - package: LumiPluginLLMProviderAiRouter
         product: PluginLLMProviderAiRouter
       - package: LumiPluginLLMProviderAliyun
