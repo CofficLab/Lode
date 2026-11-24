@@ -27,6 +27,9 @@ packages:
   LumiPluginAbout:
     url: https://github.com/lumi-softworks/LumiPluginAbout.git
     from: 2.0.0
+  LumiPluginSettingGeneral:
+    url: https://github.com/lumi-softworks/LumiPluginSettingGeneral.git
+    from: 1.0.0
   LumiPluginSettingView:
     url: https://github.com/lumi-softworks/LumiPluginSettingView.git
     from: 1.0.4
@@ -168,6 +171,8 @@ targets:
         product: PluginSettingView
       - package: LumiPluginAbout
         product: PluginAbout
+      - package: LumiPluginSettingGeneral
+        product: PluginSettingGeneral
       - package: LumiPluginRootView
         product: WorkbenchRootView
       - package: LumiKernel
