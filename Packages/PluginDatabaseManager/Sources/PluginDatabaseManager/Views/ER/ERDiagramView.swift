@@ -192,7 +192,7 @@ struct ERCanvas: View {
                 context.stroke(path, with: .color(edge), lineWidth: 1.5)
                 if !relation.name.isEmpty {
                     context.draw(
-                        Text(relation.name).font(.appMicro).foregroundColor(edge),
+                        Text(relation.name).font(.system(size: 9)).foregroundColor(edge),
                         at: CGPoint(x: midX, y: (start.y + end.y) / 2 - 6),
                         anchor: .center
                     )
@@ -210,7 +210,7 @@ struct ERCanvas: View {
                 let headerRect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: ERLayout.headerHeight)
                 context.fill(Path(roundedRect: headerRect, cornerRadius: 6), with: .color(headerFill))
                 context.draw(
-                    Text(node.name).font(.appCaptionEmphasized).foregroundColor(textPrimary),
+                    Text(node.name).font(.system(size: 12, weight: .semibold)).foregroundColor(textPrimary),
                     at: CGPoint(x: rect.minX + 10, y: rect.minY + 15),
                     anchor: .leading
                 )
@@ -220,7 +220,7 @@ struct ERCanvas: View {
                     let color = (column.isPrimaryKey || column.isForeignKey) ? accent : textSecondary
                     context.draw(
                         Text("\(marker)\(column.name) : \(column.dataType)")
-                            .font(.appMonoMicro)
+                            .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(color),
                         at: CGPoint(x: rect.minX + 10, y: cursorY),
                         anchor: .leading

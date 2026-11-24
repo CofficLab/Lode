@@ -140,7 +140,13 @@ struct TableFilterPanel: View {
     }
 
     private func operandField(_ binding: Binding<String>, placeholder: String) -> some View {
-        AppInputField(localizedPlaceholder: placeholder, text: binding, size: .compact)
+        TextField(placeholder, text: binding)
+            .textFieldStyle(.plain)
+            .font(.appMicro)
+            .foregroundColor(theme.textPrimary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(theme.appSubtleBorder.opacity(0.5), in: .rect(cornerRadius: 6))
     }
 
     // MARK: - Raw WHERE

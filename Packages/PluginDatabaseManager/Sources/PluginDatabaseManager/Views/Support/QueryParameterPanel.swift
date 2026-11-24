@@ -53,14 +53,16 @@ struct QueryParameterPanel: View {
             .pickerStyle(.menu)
             .frame(width: 110)
 
-            AppInputField(
-                localizedPlaceholder: pluginLocalization.string("Value"),
-                text: textBinding(name),
-                size: .compact
-            )
-            .disabled(isNull)
-            .opacity(isNull ? 0.4 : 1)
-            .frame(maxWidth: .infinity)
+            TextField(pluginLocalization.string("Value"), text: textBinding(name))
+                .textFieldStyle(.plain)
+                .font(.appMicro)
+                .foregroundColor(theme.textPrimary)
+                .disabled(isNull)
+                .opacity(isNull ? 0.4 : 1)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(theme.appSubtleBorder.opacity(0.5), in: .rect(cornerRadius: 6))
+                .frame(maxWidth: .infinity)
 
             Toggle(pluginLocalization.string("NULL"), isOn: nullBinding(name))
                 .toggleStyle(.checkbox)

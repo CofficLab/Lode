@@ -115,10 +115,10 @@ public struct DatabaseInspectorView: View {
                 if let error = viewModel.tableSchemaError {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .font(.appCaption)
-                        .foregroundStyle(theme.error)
+                        .foregroundStyle(.red)
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(theme.error.opacity(0.08))
+                        .background(Color.red.opacity(0.08))
                     AppDivider()
                 }
                 sectionPicker(for: schema)

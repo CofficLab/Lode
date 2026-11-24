@@ -33,20 +33,34 @@ struct DatabaseObjectTreeView: View {
             }
 
             HStack(spacing: 6) {
-                AppSearchBar(
-                    text: $searchText,
-                    localizedPlaceholder: pluginLocalization.string("Filter objects")
-                )
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                TextField(pluginLocalization.string("Filter objects"), text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.appCaption)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(theme.appSubtleBorder, in: .rect(cornerRadius: 6))
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
 
             if groupedNodes.isEmpty {
-                AppEmptyState(
-                    icon: "tablecells",
+                SidebarEmptyView(
+                    systemImage: "tablecells",
                     title: pluginLocalization.string("No objects"),
-                    description: pluginLocalization.string("Click Reload to refresh the object list."),
-                    size: .compact
+                    description: pluginLocalization.string("Click Reload to refresh the object list.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

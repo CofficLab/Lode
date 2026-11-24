@@ -4,7 +4,6 @@ import SwiftUI
 struct SchemaChangePreviewSheet: View {
     @ObservedObject var viewModel: DatabaseViewModel
     @Binding var isPresented: Bool
-    @LumiUI.LumiTheme private var theme: any LumiUITheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -24,10 +23,10 @@ struct SchemaChangePreviewSheet: View {
             if viewModel.schemaChangeManager?.hasDestructiveChanges == true {
                 Label(pluginLocalization.string("This change drops data and cannot be undone by Lumi."), systemImage: "exclamationmark.triangle.fill")
                     .font(.appCaption)
-                    .foregroundStyle(theme.error)
+                    .foregroundStyle(.red)
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(theme.error.opacity(0.08))
+                    .background(Color.red.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
 

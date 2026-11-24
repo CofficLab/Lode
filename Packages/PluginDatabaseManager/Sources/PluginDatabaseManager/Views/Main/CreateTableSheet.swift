@@ -96,17 +96,13 @@ struct CreateTableSheet: View {
     private func columnRow(_ index: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                AppInputField(
-                    localizedPlaceholder: pluginLocalization.string("Name"),
-                    text: $draft.columns[index].name,
-                    size: .compact
-                )
-                AppInputField(
-                    localizedPlaceholder: pluginLocalization.string("Data Type"),
-                    text: $draft.columns[index].dataType,
-                    size: .compact
-                )
-                .frame(width: 140)
+                TextField(pluginLocalization.string("Name"), text: $draft.columns[index].name)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.appBody)
+                TextField(pluginLocalization.string("Data Type"), text: $draft.columns[index].dataType)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.appBody)
+                    .frame(width: 140)
                 AppIconButton(systemImage: "trash", label: pluginLocalization.string("Remove Column"), size: .compact) {
                     draft.columns.remove(at: index)
                 }
@@ -115,14 +111,12 @@ struct CreateTableSheet: View {
                 Toggle(pluginLocalization.string("Allow NULL"), isOn: $draft.columns[index].isNullable)
                     .toggleStyle(.checkbox)
                     .font(.appCaption)
-                AppInputField(
-                    localizedPlaceholder: pluginLocalization.string("Default SQL Expression"),
-                    text: Binding(
-                        get: { draft.columns[index].defaultValue ?? "" },
-                        set: { draft.columns[index].defaultValue = $0.isEmpty ? nil : $0 }
-                    ),
-                    size: .compact
-                )
+                TextField(pluginLocalization.string("Default SQL Expression"), text: Binding(
+                    get: { draft.columns[index].defaultValue ?? "" },
+                    set: { draft.columns[index].defaultValue = $0.isEmpty ? nil : $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .font(.appCaption)
             }
         }
     }
@@ -294,7 +288,6 @@ private struct AddForeignKeySheet: View {
     @Binding var isPresented: Bool
     let availableColumns: [String]
     let onAdd: (NewTableForeignKeyDraft) throws -> Void
-    @LumiUI.LumiTheme private var theme: any LumiUITheme
 
     @State private var selectedColumns: Set<String> = []
     @State private var referencedTable = ""
@@ -338,7 +331,7 @@ private struct AddForeignKeySheet: View {
                 }
             }
             .frame(maxHeight: 160)
-            if let errorMessage { Text(errorMessage).font(.appCaption).foregroundStyle(theme.error) }
+            if let errorMessage { Text(errorMessage).font(.appCaption).foregroundStyle(.red) }
             HStack {
                 Spacer()
                 AppButton(pluginLocalization.string("Cancel"), style: .secondary, size: .small) { isPresented = false }

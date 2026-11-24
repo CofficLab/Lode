@@ -76,10 +76,27 @@ struct QueryHistoryView: View {
     }
 
     private var searchField: some View {
-        AppSearchBar(
-            text: $viewModel.historySearchText,
-            localizedPlaceholder: pluginLocalization.string("Search history")
-        )
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            TextField(pluginLocalization.string("Search history"), text: $viewModel.historySearchText)
+                .textFieldStyle(.plain)
+                .font(.appCaption)
+            if !viewModel.historySearchText.isEmpty {
+                Button {
+                    viewModel.historySearchText = ""
+                    Task { await viewModel.loadRecentHistory() }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(6)
+        .background(theme.appSubtleBorder, in: .rect(cornerRadius: 6))
         .onChange(of: viewModel.historySearchText) { new in
             Task { await viewModel.searchHistory(new) }
         }

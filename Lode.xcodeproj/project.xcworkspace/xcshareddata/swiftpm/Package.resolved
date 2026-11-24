@@ -1,5 +1,5 @@
 {
-  "originHash" : "2838c5fd5198f14ffca5f68497483a7a43be0a88e232f55e7d5897c929bf13b8",
+  "originHash" : "965ec5fab3bd91b0a651adc177c9baa432697cb9ea164eaaae22dd1b45d80e6b",
   "pins" : [
     {
       "identity" : "beautiful-mermaid-swift",
@@ -555,8 +555,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lumi-softworks/LumiUI.git",
       "state" : {
-        "revision" : "6e187bcc2d36c5f98f2c498e79e49562ed351191",
-        "version" : "1.19.2"
+        "revision" : "c5f9d55551151154290a67b65b1d69f95ea3c1cc",
+        "version" : "1.18.1"
       }
     },
     {

@@ -1,7 +1,6 @@
 import DatabaseManagerPlugin
 import KernelCore
 import LumiFactory
-import PluginAbout
 import PluginCodeEditorHost
 import PluginConversationInput
 import PluginConversationList
@@ -35,7 +34,6 @@ import PluginMessageListStandard
 import PluginMessageRenderer
 import PluginMessageSender
 import PluginModelSelector
-import PluginSettingGeneral
 import PluginSettingView
 import LodePluginRootView
 import ProviderExternalFile
@@ -125,38 +123,6 @@ enum LodeHostManifest {
         // UserDefaults/Keychain，启动期同步读密码会触发钥匙串授权弹窗并挂起装配。
         let loadSavedConfigs = uiTestDataRoot() == nil
         return [
-            SettingGeneralPlugin(
-                configuration: SettingGeneralConfiguration(
-                    pluginID: "com.coffic.lode.plugin.setting-general",
-                    loggerSubsystem: "com.coffic.lode.plugin.setting-general",
-                    applicationName: "Lode",
-                    description: "Registers the General settings entry with app info, website and updates.",
-                    openSettingsNotificationName: "lode.openSettings",
-                    uninstallBranding: UninstallBranding(
-                        applicationName: "Lode",
-                        willUninstallNotificationName: "com.coffic.lode.uninstall.will-uninstall",
-                        confirmationPhrase: "删除 Lode 数据",
-                        applicationDataDisplayName: "Lode 数据",
-                        applicationDisplayName: "Lode 应用",
-                        whitelistDescriptionName: "Lode",
-                        bundleIdentifierPrefix: "com.coffic.lode",
-                        legacyBundleIdentifier: "com.coffic.Lode",
-                        appGroupIdentifiers: [],
-                        debugAppGroupIdentifiers: [],
-                        legacyApplicationSupportDirectories: ["Lode"],
-                        keychainServices: [
-                            "com.coffic.lode.apikey",
-                            "com.coffic.lumi.plugin.database-manager",
-                        ],
-                        debugKeychainServices: []
-                    ),
-                    showsUpdateChannelSection: true,
-                    showsCLIInstallSection: false,
-                    websiteURLString: "https://coffic.cn/lode",
-                    privacyPolicyURLString: "https://coffic.cn/privacy",
-                    termsOfServiceURLString: "https://coffic.cn/terms"
-                )
-            ),
             PluginSettingView(id: "com.coffic.lumi.plugin.setting-view"),
             MessageSenderPlugin(),
             ConversationStatePlugin(),
@@ -190,14 +156,6 @@ enum LodeHostManifest {
             ConversationListPlugin(),
             ConversationNewPlugin(),
             LLMProviderSettingsPlugin(),
-            AboutPlugin(
-                id: "com.coffic.lode.plugin.about",
-                configuration: AboutConfiguration(
-                    officialWebsiteURLString: "https://coffic.cn/lode",
-                    privacyPolicyURLString: "https://coffic.cn/privacy",
-                    termsOfServiceURLString: "https://coffic.cn/terms"
-                )
-            ),
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin(loadSavedConfigs: loadSavedConfigs)),
         ]
