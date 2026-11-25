@@ -67,19 +67,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 右侧 Inspector 是否可见（结构详情 / ER 图 / EXPLAIN 等将放在这里）。
     @Published public var inspectorVisible: Bool = false
 
-    /// 工作区右上角浮动操作组（``DatabaseWorkspaceView`` 的 topTrailing overlay）在
-    /// inspector 收起时会落在内容工具栏同一横带，内容工具栏需按按钮数预留右侧宽度避免重叠。
-    /// 每个按钮槽位约 35pt（12pt 图标 + 16pt 内边距 + 2pt 间距），另加 8pt 间隔。
+    /// 工作区右上角唯一的「更多」菜单按钮（``DatabaseWorkspaceView`` 的 topTrailing overlay）
+    /// 在 inspector 收起时会落在内容工具栏同一横带，内容工具栏需按一个按钮槽位预留右侧宽度
+    /// 避免重叠：``AppIconMenuButton`` 宽约 26pt，另加 8pt 间隔。
     public var workspaceOverlayTrailingInset: CGFloat {
-        guard !inspectorVisible, isConnected, let type = selectedConfig?.type else { return 0 }
-        var count = 1  // inspector 开关常显
-        if type != .redis {
-            count += 1  // 导入常显（非 Redis）
-            if type.capabilities.supportsSchemaEditing { count += 1 }
-            if queryResult != nil || openTableObject != nil { count += 1 }
-        }
-        if type.capabilities.supportsForeignKeys { count += 1 }
-        return CGFloat(count) * 35 + 8
+        guard !inspectorVisible, isConnected else { return 0 }
+        return 26 + 8
     }
 
     /// 只读 ER 图：当前库/schema 的表关系图（节点+边+布局）。

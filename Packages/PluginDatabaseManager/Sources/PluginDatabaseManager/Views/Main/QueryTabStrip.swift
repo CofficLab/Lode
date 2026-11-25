@@ -4,7 +4,8 @@ import LumiUI
 /// 查询编辑器顶部的多标签条。
 ///
 /// 沿用内容区工具条风格（Material 背景 + 语义色）：每个标签显示标题、脏标记
-/// （未保存改动）或运行进度，选中态高亮；右侧提供新建与「重开最近关闭」。
+/// （未保存改动）或运行进度，选中态高亮。新建与「重开最近关闭」收在工作区右上角的
+/// 「更多」菜单（``DatabaseWorkspaceView``），标签条只保留标签本身。
 /// 双击或右键菜单可重命名；关闭脏标签由 ``DatabaseViewModel/pendingCloseTabID``
 /// 触发确认弹窗（在 ``MainView`` 挂载）。
 struct QueryTabStrip: View {
@@ -38,27 +39,8 @@ struct QueryTabStrip: View {
                 .padding(.vertical, 4)
             }
             Spacer(minLength: 4)
-            HStack(spacing: 2) {
-                if !workspace.recentlyClosed.isEmpty {
-                    AppIconButton(
-                        systemImage: "arrow.uturn.backward",
-                        label: pluginLocalization.string("Reopen Closed"),
-                        size: .compact,
-                        action: { viewModel.reopenLastClosedTab() }
-                    )
-                    .help(pluginLocalization.string("Reopen last closed tab"))
-                }
-                AppIconButton(
-                    systemImage: "plus",
-                    label: pluginLocalization.string("New Tab"),
-                    size: .compact,
-                    action: { viewModel.newQueryTab() }
-                )
-                .help(pluginLocalization.string("New query tab"))
-                .keyboardShortcut("t", modifiers: .command)
-            }
-            .padding(.trailing, 8 + viewModel.workspaceOverlayTrailingInset)
         }
+        .padding(.trailing, 8 + viewModel.workspaceOverlayTrailingInset)
         .frame(height: 36)
         .background(Material.regularMaterial)
         .sheet(item: $renameRequest) { request in

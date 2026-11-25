@@ -89,40 +89,29 @@ struct DatabaseSidebarHeaderBar: View {
             Spacer(minLength: 0)
 
             if let onLoad {
-                Button(action: onLoad) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(pluginLocalization.string("Reload"))
-                .accessibilityIdentifier(identifier("reload"))
+                AppIconButton(systemImage: "arrow.clockwise", action: onLoad)
+                    .help(pluginLocalization.string("Reload"))
+                    .accessibilityIdentifier(identifier("reload"))
             }
 
             if let onAdd {
-                Button(action: onAdd) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(pluginLocalization.string("Add Connection"))
-                .accessibilityIdentifier(identifier("add"))
+                AppIconButton(systemImage: "plus", action: onAdd)
+                    .help(pluginLocalization.string("Add Connection"))
+                    .accessibilityIdentifier(identifier("add"))
             }
 
             if let onToggleMode {
-                Button(action: onToggleMode) {
-                    Image(systemName: toggleIconName)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(toggleHelpText)
-                .accessibilityIdentifier(identifier("toggle"))
+                AppIconButton(systemImage: toggleIconName, action: onToggleMode)
+                    .help(toggleHelpText)
+                    .accessibilityIdentifier(identifier("toggle"))
             }
 
             if !menuActions.isEmpty {
-                Menu {
+                AppIconMenuButton(
+                    systemImage: "ellipsis",
+                    label: pluginLocalization.string("More"),
+                    accessibilityIdentifier: identifier("more")
+                ) {
                     ForEach(Array(menuActions.enumerated()), id: \.offset) { index, item in
                         Button {
                             item.action()
@@ -132,19 +121,7 @@ struct DatabaseSidebarHeaderBar: View {
                         .disabled(!item.isEnabled)
                         .accessibilityIdentifier(identifier("menu.\(index)"))
                     }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 14, height: 14)
-                        .contentShape(Rectangle())
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help(pluginLocalization.string("More"))
-                .accessibilityLabel(pluginLocalization.string("More"))
-                .accessibilityIdentifier(identifier("more"))
             }
         }
         .padding(.horizontal, 10)
