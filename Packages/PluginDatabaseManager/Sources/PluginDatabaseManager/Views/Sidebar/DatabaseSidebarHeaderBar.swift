@@ -7,7 +7,8 @@ import LumiUI
 /// 右侧按钮区域包含：
 /// - `onLoad`（可选）：数据列表的 Reload 按钮；
 /// - `onAdd`（可选）：连接列表的「添加连接」按钮；
-/// - `onToggleMode`（可选）：数据/连接列表切换按钮（卡片翻转）。
+/// - `onToggleMode`（可选）：数据/连接列表切换按钮（卡片翻转）；
+/// - `menuActions`（可选）：最右侧「更多」按钮弹出的菜单项。
 ///
 /// 样式与 `ConversationListPlugin.ListView` 的 `headerBar` 保持一致：
 /// secondary 图标 + caption 标题 + secondary 0.06 背景，
@@ -36,6 +37,9 @@ struct DatabaseSidebarHeaderBar: View {
     /// nil 时使用通用「切换」图标。
     var toggleMode: DatabaseSidebarMode? = nil
 
+    /// 「更多」按钮的菜单项。为空时不显示该按钮。
+    var menuActions: [DatabaseSidebarMenuAction] = []
+
     /// 可选的无障碍标识前缀，供 UI 测试稳定定位标题栏按钮。
     var accessibilityPrefix: String? = nil
 
@@ -48,6 +52,7 @@ struct DatabaseSidebarHeaderBar: View {
         onAdd: (() -> Void)? = nil,
         onToggleMode: (() -> Void)? = nil,
         toggleMode: DatabaseSidebarMode? = nil,
+        menuActions: [DatabaseSidebarMenuAction] = [],
         accessibilityPrefix: String? = nil
     ) {
         self.title = title
@@ -56,6 +61,7 @@ struct DatabaseSidebarHeaderBar: View {
         self.onAdd = onAdd
         self.onToggleMode = onToggleMode
         self.toggleMode = toggleMode
+        self.menuActions = menuActions
         self.accessibilityPrefix = accessibilityPrefix
     }
 
@@ -107,6 +113,32 @@ struct DatabaseSidebarHeaderBar: View {
                 .help(toggleHelpText)
                 .accessibilityIdentifier(identifier("toggle"))
             }
+
+            if !menuActions.isEmpty {
+                Menu {
+                    ForEach(Array(menuActions.enumerated()), id: \.offset) { index, item in
+                        Button {
+                            item.action()
+                        } label: {
+                            Label(pluginLocalization.string(item.title), systemImage: item.systemImage)
+                        }
+                        .disabled(!item.isEnabled)
+                        .accessibilityIdentifier(identifier("menu.\(index)"))
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 14, height: 14)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(pluginLocalization.string("More"))
+                .accessibilityLabel(pluginLocalization.string("More"))
+                .accessibilityIdentifier(identifier("more"))
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -135,6 +167,14 @@ struct DatabaseSidebarHeaderBar: View {
     }
 }
 
+/// 顶部「更多」菜单中的一项操作。
+struct DatabaseSidebarMenuAction {
+    let title: String
+    let systemImage: String
+    var isEnabled: Bool = true
+    let action: () -> Void
+}
+
 /// 侧边栏内容模式：数据浏览（Tables/Keys）或连接列表。
 ///
 /// 由 ``DatabaseViewModel.sidebarMode`` 持有，两种模式共用同一份
@@ -151,7 +191,18 @@ public enum DatabaseSidebarMode: String, Hashable {
 }
 
 #Preview("Connections") {
-    DatabaseSidebarHeaderBar(title: pluginLocalization.string("Connections"), systemImage: "cylinder.split.1x2", onAdd: {}, onToggleMode: {}, toggleMode: .connections)
-        .frame(width: 260)
+    DatabaseSidebarHeaderBar(
+        title: pluginLocalization.string("Connections"),
+        systemImage: "cylinder.split.1x2",
+        onAdd: {},
+        onToggleMode: {},
+        toggleMode: .connections,
+        menuActions: [
+            DatabaseSidebarMenuAction(title: "Add Connection", systemImage: "plus", action: {}),
+            DatabaseSidebarMenuAction(title: "Import Connections", systemImage: "square.and.arrow.down", action: {}),
+            DatabaseSidebarMenuAction(title: "Disconnect", systemImage: "power", isEnabled: false, action: {}),
+        ]
+    )
+    .frame(width: 260)
 }
 #endif
