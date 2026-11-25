@@ -1655,6 +1655,40 @@
         }
       }
     },
+    "Back to Connections" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Connections"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到连接列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到連線列表"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到連線列表"
+          }
+        },
+        "zh-TW" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到連線列表"
+          }
+        }
+      }
+    },
     "Bad Rows" : {
       "localizations" : {
         "en" : {
@@ -1928,6 +1962,7 @@
       }
     },
     "Body" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6123,6 +6158,7 @@
       }
     },
     "e.g. select" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8886,6 +8922,7 @@
       }
     },
     "Insert" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10899,6 +10936,7 @@
       }
     },
     "New Snippet" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -11956,6 +11994,7 @@
       }
     },
     "No saved queries yet." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -11990,6 +12029,7 @@
       }
     },
     "No snippets yet." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -15604,6 +15644,7 @@
       }
     },
     "Rename" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -15672,6 +15713,7 @@
       }
     },
     "Rename Query" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -16794,6 +16836,7 @@
       }
     },
     "Save Current Query" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -16930,6 +16973,7 @@
       }
     },
     "Save Query" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17032,6 +17076,7 @@
       }
     },
     "Save the current editor text as a named query for this connection." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17100,6 +17145,7 @@
       }
     },
     "Saved Queries" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18090,6 +18136,7 @@
       }
     },
     "Snippets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -20916,6 +20963,7 @@
       }
     },
     "Use ${name} or ${name:default} for placeholders." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

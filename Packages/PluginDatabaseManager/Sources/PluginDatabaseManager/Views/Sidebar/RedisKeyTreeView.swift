@@ -19,7 +19,14 @@ struct RedisKeyTreeView: View {
                 systemImage: "key",
                 onLoad: { Task { await viewModel.loadRedisKeys() } },
                 onToggleMode: onToggleMode,
-                toggleMode: viewModel.sidebarMode
+                toggleMode: viewModel.sidebarMode,
+                menuActions: [
+                    DatabaseSidebarMenuAction(
+                        title: "Back to Connections",
+                        systemImage: "rectangle.portrait.on.rectangle.portrait",
+                        action: onToggleMode
+                    ),
+                ]
             )
 
             searchBar
