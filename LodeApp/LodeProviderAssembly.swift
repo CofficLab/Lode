@@ -1,6 +1,7 @@
 import KernelCore
 import KitLLM
 import LodePluginRootView
+import DatabaseManagerPlugin
 import ProviderAgentLoop
 import ProviderAgentRules
 import ProviderChatSection
@@ -9,6 +10,7 @@ import ProviderConversation
 import ProviderConversationInput
 import ProviderConversationInputBlock
 import ProviderDeveloperMode
+import ProviderDocsView
 import ProviderExternalFile
 import ProviderIdleTime
 import ProviderLegacyData
@@ -133,12 +135,6 @@ enum LodeProviderAssembly {
         try kernel.registerProvider((any SkillProviding).self, DefaultSkillProvider())
         try kernel.registerProvider((any AgentRuleProviding).self, DefaultAgentRuleProvider())
         try kernel.registerProvider((any DeveloperModeProviding).self, DefaultDeveloperModeProviding())
-
-        // 基线主题 Provider 的默认存储目录与 Lode 历史路径不同：
-        // 指回插件数据目录（<数据根>/ThemeManager/），重新载入用户已保存的主题选择。
-        if let theme = kernel.resolveProvider((any ThemeProviding).self) as? DefaultThemeProviding {
-            theme.setStorageDirectory(storage.pluginDataDirectory(for: "ThemeManager"))
-        }
     }
 
     // MARK: - Post-start Wiring（共享接线之后）
@@ -185,6 +181,16 @@ enum LodeProviderAssembly {
             // 因此在这里直接激活上下文，否则头部与工具栏不参与布局。
             chat.setContextActive(true)
             chat.setActiveContext(.defaultChat)
+        }
+
+        // 注册「关于插件」落地页：展示 Lode 的 Kernel + Plugin 架构、宿主集成点与已挂载插件目录。
+        if let docs = kernel.resolveProvider((any DocsViewProviding).self) {
+            let pluginList = kernel.allPlugins.map { (id: $0.id, name: $0.metadata.name) }
+            docs.addAbout(
+                DocsEntry(id: "com.coffic.lode.about-plugins", name: String(localized: "About Plugins")) {
+                    AboutPluginsView(plugins: pluginList)
+                }
+            )
         }
     }
 }

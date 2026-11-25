@@ -24,6 +24,12 @@ packages:
   LumiPluginRootView:
     url: https://github.com/lumi-softworks/LumiPluginRootView.git
     from: 1.3.2
+  LumiPluginAbout:
+    url: https://github.com/lumi-softworks/LumiPluginAbout.git
+    from: 3.0.4
+  LumiPluginSettingGeneral:
+    url: https://github.com/lumi-softworks/LumiPluginSettingGeneral.git
+    from: 1.4.0
   LumiPluginSettingView:
     url: https://github.com/lumi-softworks/LumiPluginSettingView.git
     from: 1.0.4
@@ -149,6 +155,12 @@ packages:
     from: 1.0.0
   ProviderWebServer:
     path: Packages/ProviderWebServer
+  LumiPluginThemeManager:
+    url: https://github.com/lumi-softworks/LumiPluginThemeManager.git
+    from: 1.0.0
+  LumiPluginThemePack:
+    url: https://github.com/lumi-softworks/LumiPluginThemePack.git
+    from: 1.0.0
 
 targets:
   Lode:
@@ -165,6 +177,10 @@ targets:
         product: LumiFactory
       - package: LumiPluginSettingView
         product: PluginSettingView
+      - package: LumiPluginAbout
+        product: PluginAbout
+      - package: LumiPluginSettingGeneral
+        product: PluginSettingGeneral
       - package: LumiPluginRootView
         product: WorkbenchRootView
       - package: LumiKernel
@@ -333,6 +349,12 @@ targets:
         product: ProviderStorage
       - package: LumiProviders
         product: ProviderTheme
+      - package: LumiProviders
+        product: ProviderUninstall
+      - package: LumiPluginThemeManager
+        product: PluginThemeManager
+      - package: LumiPluginThemePack
+        product: PluginThemePack
     settings:
       base: &lodeAppBaseSettings
         PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode
@@ -356,6 +378,7 @@ targets:
         ENABLE_PREVIEWS: YES
         COMBINE_HIDPI_IMAGES: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        ENABLE_EXPLICIT_MODULES: NO
 
   # Dedicated host for XCUITest runs. It shares the production sources and
   # dependencies but uses a separate bundle id, so `xcodebuild test` never
@@ -421,6 +444,10 @@ targets:
         product: ProviderRootView
       - package: LumiProviders
         product: ProviderToolbar
+      - package: LumiPluginAbout
+        product: PluginAbout
+      - package: LumiPluginSettingGeneral
+        product: PluginSettingGeneral
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coffic.lode.tests

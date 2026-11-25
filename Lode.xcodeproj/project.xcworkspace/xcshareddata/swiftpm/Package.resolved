@@ -1,5 +1,5 @@
 {
-  "originHash" : "965ec5fab3bd91b0a651adc177c9baa432697cb9ea164eaaae22dd1b45d80e6b",
+  "originHash" : "f777808a8493e5db0913035e79b46e59fd67572e648c40f4fcccc368d46aa98c",
   "pins" : [
     {
       "identity" : "beautiful-mermaid-swift",
@@ -179,6 +179,15 @@
       "state" : {
         "revision" : "d4c680231703c4eeb3303c6f8e5a929c8bd3d969",
         "version" : "1.0.3"
+      }
+    },
+    {
+      "identity" : "lumipluginabout",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lumi-softworks/LumiPluginAbout.git",
+      "state" : {
+        "revision" : "5a00db37dd38e1b4aad6b23cd32028acb14bfb68",
+        "version" : "3.1.0"
       }
     },
     {
@@ -407,12 +416,39 @@
       }
     },
     {
+      "identity" : "lumipluginsettinggeneral",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lumi-softworks/LumiPluginSettingGeneral.git",
+      "state" : {
+        "revision" : "4a0f1987a988ac6b8d244416ebb8fc0839e1b65a",
+        "version" : "1.4.0"
+      }
+    },
+    {
       "identity" : "lumipluginsettingview",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lumi-softworks/LumiPluginSettingView.git",
       "state" : {
         "revision" : "32c903d27c7bb91622d229e331e77b950f234c53",
         "version" : "1.0.4"
+      }
+    },
+    {
+      "identity" : "lumipluginthememanager",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lumi-softworks/LumiPluginThemeManager.git",
+      "state" : {
+        "revision" : "0f9fb8b1817c73f001e857cae6f1aa5667a76c3b",
+        "version" : "1.0.3"
+      }
+    },
+    {
+      "identity" : "lumipluginthemepack",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lumi-softworks/LumiPluginThemePack.git",
+      "state" : {
+        "revision" : "3d5a8b3bc2aaa6e5499fa5dc3e0bc7c981a8f64a",
+        "version" : "1.2.3"
       }
     },
     {

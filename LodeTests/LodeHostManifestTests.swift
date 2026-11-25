@@ -1,6 +1,8 @@
 import DatabaseManagerPlugin
 import KernelCore
 import KitLLM
+import PluginAbout
+import PluginSettingGeneral
 import ProviderChatSection
 import ProviderConversation
 import ProviderExternalFile
@@ -192,5 +194,26 @@ final class LodeHostManifestTests: LodeKernelTestCase {
         XCTAssertTrue(kernel.isPluginEnabled(id: "com.coffic.lumi.plugin.setting-view"))
 
         try? await kernel.stopAsync()
+    }
+
+    /// 设置入口的品牌接线：共享包必须拿到 Lode 身份，且不重复注册 ⌘,。
+    func testSettingsEntriesUseLodeBrandConfiguration() throws {
+        let plugins = LodeHostManifest.makePlugins()
+
+        let general = try XCTUnwrap(plugins.compactMap { $0 as? SettingGeneralPlugin }.first)
+        XCTAssertEqual(general.id, "com.coffic.lode.plugin.setting-general")
+        XCTAssertEqual(general.configuration.applicationName, "Lode")
+        XCTAssertEqual(
+            general.configuration.uninstallBranding.bundleIdentifierPrefix,
+            "com.coffic.lode"
+        )
+        XCTAssertEqual(general.configuration.openSettingsNotificationName, "lumi.openSettings")
+        XCTAssertFalse(general.configuration.registersOpenSettingsCommand)
+        XCTAssertFalse(general.configuration.showsUpdateChannelSection)
+        XCTAssertFalse(general.configuration.showsDiagnosticsSection)
+
+        let about = try XCTUnwrap(plugins.compactMap { $0 as? AboutPlugin }.first)
+        XCTAssertEqual(about.id, "com.coffic.lode.plugin.about")
+        XCTAssertEqual(about.configuration.officialWebsiteURLString, "https://coffic.cn/lode")
     }
 }

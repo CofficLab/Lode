@@ -1,6 +1,7 @@
 import DatabaseManagerPlugin
 import KernelCore
 import LumiFactory
+import PluginAbout
 import PluginCodeEditorHost
 import PluginChatFileAttachment
 import PluginChatScreenshot
@@ -48,13 +49,17 @@ import PluginMessageListStandard
 import PluginMessageRenderer
 import PluginMessageSender
 import PluginModelSelector
+import PluginSettingGeneral
 import PluginSettingView
 import PluginSkill
+import PluginThemeManager
+import PluginThemePack
 import PluginToolActivity
 import LodePluginRootView
 import PluginChatEmptyState
 import ProviderExternalFile
 import ProviderRootView
+import ProviderUninstall
 import SwiftUI
 
 /// Lode 的宿主清单：与共享装配引擎（LumiFactory）之间的全部差异。
@@ -140,7 +145,47 @@ enum LodeHostManifest {
         // UserDefaults/Keychain，启动期同步读密码会触发钥匙串授权弹窗并挂起装配。
         let loadSavedConfigs = uiTestDataRoot() == nil
         return [
+            // 设置-通用：共享远程包不为 Lode 预设品牌，配置在此内联。
+            // 宿主壳已提供 ⌘, 与 lumi.openSettings 通知，插件不再重复注册菜单；
+            // Lode 用 Sparkle 单一更新源、未提供 AppUpdateChannelProviding，
+            // 也不注册诊断导出能力，对应区块一并关闭，避免渲染出禁用按钮。
+            SettingGeneralPlugin(
+                configuration: SettingGeneralConfiguration(
+                    pluginID: "com.coffic.lode.plugin.setting-general",
+                    loggerSubsystem: "com.coffic.lode.plugin.setting-general",
+                    applicationName: "Lode",
+                    description: "Registers the General settings entry with app info, manuals and uninstall.",
+                    openSettingsNotificationName: "lumi.openSettings",
+                    uninstallBranding: UninstallBranding(
+                        applicationName: "Lode",
+                        willUninstallNotificationName: "com.coffic.lode.uninstall.will-uninstall",
+                        confirmationPhrase: "删除 Lode 数据",
+                        applicationDataDisplayName: "Lode 数据",
+                        applicationDisplayName: "Lode 应用",
+                        whitelistDescriptionName: "Lode",
+                        bundleIdentifierPrefix: "com.coffic.lode",
+                        legacyBundleIdentifier: "com.coffic.Lode",
+                        appGroupIdentifiers: [],
+                        debugAppGroupIdentifiers: [],
+                        legacyApplicationSupportDirectories: ["Lode"],
+                        keychainServices: [
+                            "com.coffic.lode.apikey",
+                            "com.coffic.lumi.plugin.database-manager",
+                        ],
+                        debugKeychainServices: []
+                    ),
+                    showsUpdateChannelSection: false,
+                    showsCLIInstallSection: false,
+                    alwaysShowManualsSection: false,
+                    showsDiagnosticsSection: false,
+                    registersOpenSettingsCommand: false
+                )
+            ),
             PluginSettingView(id: "com.coffic.lumi.plugin.setting-view"),
+            // 主题管理：ThemeManagerPlugin 负责 ThemeProviding 的创建与持久化，
+            // ThemePackPlugin 注册内置主题并贡献「外观」设置入口与主题菜单。
+            ThemeManagerPlugin(id: "com.coffic.lumi.plugin.theme-manager"),
+            ThemePackPlugin(id: "com.coffic.lumi.plugin.theme-pack"),
             MessageSenderPlugin(),
             ConversationStatePlugin(),
             MessageRendererPlugin(),
@@ -193,6 +238,15 @@ enum LodeHostManifest {
             ConversationForkPlugin(),
             SkillPlugin(),
             LLMProviderSettingsPlugin(),
+            // 关于：共享远程包 LumiPluginAbout，注入 Lode 品牌配置。
+            AboutPlugin(
+                id: "com.coffic.lode.plugin.about",
+                configuration: AboutConfiguration(
+                    officialWebsiteURLString: "https://coffic.cn/lode",
+                    privacyPolicyURLString: "https://coffic.cn/privacy",
+                    termsOfServiceURLString: "https://coffic.cn/terms"
+                )
+            ),
             DedicatedAlwaysOnPlugin(CodeEditorHostPlugin()),
             DedicatedAlwaysOnPlugin(DatabaseManagerPlugin(loadSavedConfigs: loadSavedConfigs)),
         ]
