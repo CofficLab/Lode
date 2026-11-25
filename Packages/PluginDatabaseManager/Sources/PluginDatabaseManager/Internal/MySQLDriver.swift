@@ -43,6 +43,13 @@ public actor MySQLConnection: DatabaseConnection {
     private let cancelContext: CancelContext
     private var connectionID: Int?
 
+    // mysql-nio 1.9.x 的预处理命令在连接被关闭时不会发送 COM_STMT_CLOSE，
+    // 命令析构会触发 "Statement not closed" 断言。关闭前必须等在途操作结束。
+    private var inFlightOperations = 0
+    private var isClosing = false
+    private var drainWaiters: [CheckedContinuation<Void, Never>] = []
+    private var closeWaiters: [CheckedContinuation<Void, Never>] = []
+
     private struct CancelContext: Sendable {
         let host: String
         let port: Int
@@ -125,8 +132,34 @@ public actor MySQLConnection: DatabaseConnection {
         return error
     }
 
+    /// 登记一次在途操作并返回当前连接。关闭流程开始后拒绝新操作，
+    /// 使 ``close()`` 能在真正断开前安全排空仍在执行的语句。
+    private func beginOperation() throws -> MySQLNIO.MySQLConnection {
+        guard !isClosing, let conn else {
+            throw DatabaseError.connectionFailed(isClosing ? "Connection is closing" : "Not connected")
+        }
+        inFlightOperations += 1
+        return conn
+    }
+
+    private func endOperation() {
+        inFlightOperations -= 1
+        guard inFlightOperations == 0 else { return }
+        let waiters = drainWaiters
+        drainWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume()
+        }
+    }
+
+    private func waitForInFlightOperations() async {
+        guard inFlightOperations > 0 else { return }
+        await withCheckedContinuation { drainWaiters.append($0) }
+    }
+
     public func execute(_ sql: String, params: [DatabaseValue]?) async throws -> Int {
-        guard let conn else { throw DatabaseError.connectionFailed("Not connected") }
+        let conn = try beginOperation()
+        defer { endOperation() }
         let metadataStore = MySQLQueryMetadataStore()
         do {
             _ = try await conn.query(
@@ -153,19 +186,17 @@ public actor MySQLConnection: DatabaseConnection {
     }
 
     public func query(_ sql: String, params: [DatabaseValue]?) async throws -> QueryResult {
-        guard let conn else { throw DatabaseError.connectionFailed("Not connected") }
+        let conn = try beginOperation()
+        defer { endOperation() }
+        let binds = toMySQLData(params ?? [])
         do {
-            let rows = try await conn.query(sql, toMySQLData(params ?? [])).get()
+            // 无绑定参数时走文本协议：不占用服务端 prepared statement，
+            // 连接中断也不会留下未关闭的 statement（查询写入/元数据读取都属此类）。
+            let rows = binds.isEmpty
+                ? try await conn.simpleQuery(sql).get()
+                : try await conn.query(sql, binds).get()
             return try await Self.queryResult(from: rows, sql: sql, params: params, connection: self)
         } catch {
-            if Self.isUnsupportedPreparedStatement(error), (params ?? []).isEmpty {
-                do {
-                    let rows = try await conn.simpleQuery(sql).get()
-                    return try await Self.queryResult(from: rows, sql: sql, params: params, connection: self)
-                } catch {
-                    throw Self.mapCancellation(error)
-                }
-            }
             throw Self.mapCancellation(error)
         }
     }
@@ -208,20 +239,38 @@ public actor MySQLConnection: DatabaseConnection {
     }
 
     public func beginTransaction() async throws -> any DatabaseTransaction {
-        guard let conn else { throw DatabaseError.connectionFailed("Not connected") }
+        let conn = try beginOperation()
+        defer { endOperation() }
         _ = try await conn.simpleQuery("BEGIN").get()
         return MySQLTransaction(connection: self)
     }
 
     public func close() async {
+        if isClosing {
+            // 已有一次关闭在进行：等它真正断开后再返回，避免调用方提前认为已关闭。
+            await withCheckedContinuation { closeWaiters.append($0) }
+            return
+        }
         guard let conn else { return }
+        isClosing = true
+        if inFlightOperations > 0 {
+            // 尽力中止在途语句，让预处理命令走错误返回路径自行关闭 statement。
+            await cancel()
+            await waitForInFlightOperations()
+        }
         try? await conn.close().get()
         self.conn = nil
         try? await group.shutdownGracefully()
+        isClosing = false
+        let waiters = closeWaiters
+        closeWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume()
+        }
     }
 
     public func isAlive() async -> Bool {
-        guard let conn else { return false }
+        guard !isClosing, let conn else { return false }
         return !conn.isClosed
     }
 
@@ -328,11 +377,18 @@ public actor MySQLConnection: DatabaseConnection {
 
         let tableName = "databasekit_column_probe_\(UUID().uuidString.replacingOccurrences(of: "-", with: "_"))"
         let tableIdentifier = quoteIdentifier(tableName)
-        let createSQL = "CREATE TEMPORARY TABLE \(tableIdentifier) AS \(sql) LIMIT 0"
+        // 源查询可能自带 LIMIT/OFFSET（表浏览分页），直接追加 LIMIT 0 会得到
+        // "... OFFSET 0 LIMIT 0"。包成派生表再取空结果；换行用于截断源 SQL 末尾的行注释。
+        let createSQL = "CREATE TEMPORARY TABLE \(tableIdentifier) AS SELECT * FROM (\n\(sql)\n) AS \(quoteIdentifier("lode_column_probe")) LIMIT 0"
+        let binds = toMySQLData(params)
 
         do {
-            _ = try await conn.query(createSQL, toMySQLData(params)).get()
-            let rows = try await conn.query("SHOW COLUMNS FROM \(tableIdentifier)").get()
+            if binds.isEmpty {
+                _ = try await conn.simpleQuery(createSQL).get()
+            } else {
+                _ = try await conn.query(createSQL, binds).get()
+            }
+            let rows = try await conn.simpleQuery("SHOW COLUMNS FROM \(tableIdentifier)").get()
             try await dropTemporaryTable(tableIdentifier)
             return rows.compactMap { row in
                 row.column("Field")?.string ?? row.column("field")?.string
@@ -345,7 +401,7 @@ public actor MySQLConnection: DatabaseConnection {
 
     private func dropTemporaryTable(_ tableIdentifier: String) async throws {
         guard let conn else { return }
-        _ = try await conn.query("DROP TEMPORARY TABLE IF EXISTS \(tableIdentifier)").get()
+        _ = try await conn.simpleQuery("DROP TEMPORARY TABLE IF EXISTS \(tableIdentifier)").get()
     }
 
     private func quoteIdentifier(_ identifier: String) -> String {

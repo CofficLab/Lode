@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "About Plugins" : {
+
+    },
     "Check for Updates…" : {
       "extractionState" : "stale",
       "localizations" : {
