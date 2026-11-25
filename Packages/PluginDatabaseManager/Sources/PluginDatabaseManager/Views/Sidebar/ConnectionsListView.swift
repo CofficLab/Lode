@@ -54,6 +54,7 @@ struct ConnectionsListView: View {
                         action: { Task { await viewModel.disconnect() } }
                     ),
                 ],
+                usesAccentTint: true,
                 accessibilityPrefix: "database.connections"
             )
 
