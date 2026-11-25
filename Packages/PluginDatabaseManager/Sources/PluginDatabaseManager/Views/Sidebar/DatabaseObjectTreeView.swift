@@ -178,9 +178,10 @@ struct DatabaseObjectTreeView: View {
         viewModel.selectedConfig?.name ?? pluginLocalization.string("Database")
     }
 
-    /// 当前选中对象名，用于高亮行。
+    /// 当前选中对象名，用于高亮行。MySQL/PG 表浏览只写入 `openTableObject`，
+    /// 旧 SQLite 路径才写 `selectedSQLiteTable`，两者都要覆盖。
     private var selectedObjectName: String? {
-        viewModel.selectedSQLiteTable
+        viewModel.openTableObject?.name ?? viewModel.selectedSQLiteTable
     }
 
     /// 按对象分类分组成树节点，应用搜索过滤；空分类隐藏。
