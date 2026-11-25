@@ -1,3 +1,4 @@
+import AppKit
 import LumiUI
 import SwiftUI
 
@@ -82,14 +83,19 @@ public struct DatabaseWorkspaceView: View {
         viewModel.isConnected && viewModel.openTableObject == nil && viewModel.selectedRedisKey == nil
     }
 
-    /// 工作区右上角的唯一浮动按钮：「新建标签 / 重开标签 / 建表 / 导入 / 导出 / ER 图 /
-    /// Inspector 开关」全部收进这个菜单，不再以一排图标压在内容工具条上。
+    /// 工作区右上角的唯一浮动按钮：「表浏览操作 / 新建标签 / 重开标签 / 建表 / 导入 / 导出 /
+    /// ER 图 / Inspector 开关」全部收进这个菜单，不再以一排图标压在内容工具条上。
     private var moreMenu: some View {
         AppIconMenuButton(
             systemImage: "ellipsis",
             label: pluginLocalization.string("More"),
             accessibilityIdentifier: "database.workspace.more"
         ) {
+            if viewModel.isConnected, viewModel.openTableObject != nil {
+                tableActions
+                Divider()
+            }
+
             Button {
                 viewModel.newQueryTab()
             } label: {
@@ -143,6 +149,74 @@ public struct DatabaseWorkspaceView: View {
                 Label(pluginLocalization.string("Toggle Inspector"), systemImage: "sidebar.trailing")
             }
         }
+    }
+
+    // MARK: - 表浏览操作
+
+    /// 表数据浏览的行/页操作与显示选项，收进同一个「更多」菜单。
+    @ViewBuilder
+    private var tableActions: some View {
+        if viewModel.changeManager?.isEditable == true {
+            Button {
+                viewModel.addRow()
+            } label: {
+                Label(pluginLocalization.string("Add Row"), systemImage: "plus")
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+            Button {
+                pasteRowsFromPasteboard()
+            } label: {
+                Label(pluginLocalization.string("Paste Rows"), systemImage: "doc.on.clipboard")
+            }
+            .help(pluginLocalization.string("Paste CSV or JSON rows as new rows"))
+        }
+        Button {
+            Task { await viewModel.loadTablePage() }
+        } label: {
+            Label(pluginLocalization.string("Refresh"), systemImage: "arrow.clockwise")
+        }
+        Toggle(isOn: $viewModel.showFilterPanel) {
+            Label(pluginLocalization.string("Filter"), systemImage: "line.3.horizontal.decrease.circle")
+        }
+        Button {
+            viewModel.inspectorVisible = true
+        } label: {
+            Label(pluginLocalization.string("Structure"), systemImage: "list.bullet.rectangle")
+        }
+        Button {
+            viewModel.switchToQueryEditor()
+        } label: {
+            Label(pluginLocalization.string("SQL"), systemImage: "curlybraces")
+        }
+
+        Divider()
+
+        Toggle(isOn: $viewModel.useNullSymbol) {
+            Text(pluginLocalization.string("Show NULL as ⟨NULL⟩"))
+        }
+        if viewModel.tableRowCountIsApproximate {
+            Button(pluginLocalization.string("Exact Count")) {
+                Task { await viewModel.refreshExactRowCount() }
+            }
+        }
+        if viewModel.gridHasRowKey {
+            Toggle(isOn: keysetBinding) {
+                Text(pluginLocalization.string("Keyset Pagination"))
+            }
+            .help(pluginLocalization.string("Fast deep paging by primary key"))
+        }
+    }
+
+    private var keysetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.useKeysetPagination },
+            set: { enabled in Task { await viewModel.setUseKeysetPagination(enabled) } }
+        )
+    }
+
+    private func pasteRowsFromPasteboard() {
+        guard let text = NSPasteboard.general.string(forType: .string) else { return }
+        viewModel.gridPasteRows(from: text)
     }
 
     // MARK: - 写确认文案

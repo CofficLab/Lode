@@ -231,82 +231,9 @@ struct TableDataView: View {
             if viewModel.isLoading {
                 ProgressView().scaleEffect(0.6)
             }
-            if viewModel.changeManager?.isEditable == true {
-                AppButton(
-                    pluginLocalization.string("Add Row"),
-                    systemImage: "plus",
-                    style: .secondary,
-                    size: .small,
-                    action: { viewModel.addRow() }
-                )
-                .keyboardShortcut("n", modifiers: [.command, .shift])
-                AppButton(
-                    pluginLocalization.string("Paste Rows"),
-                    systemImage: "doc.on.clipboard",
-                    style: .secondary,
-                    size: .small,
-                    action: { pasteRowsFromPasteboard() }
-                )
-                .help(pluginLocalization.string("Paste CSV or JSON rows as new rows"))
-            }
-            AppButton(
-                pluginLocalization.string("Refresh"),
-                systemImage: "arrow.clockwise",
-                style: .secondary,
-                size: .small,
-                action: { Task { await viewModel.loadTablePage() } }
-            )
-            AppButton(
-                pluginLocalization.string("Filter"),
-                systemImage: "line.3.horizontal.decrease.circle",
-                style: viewModel.tableFilter.isActive ? .primary : .secondary,
-                size: .small,
-                action: { viewModel.showFilterPanel.toggle() }
-            )
-            AppButton(
-                pluginLocalization.string("Structure"),
-                systemImage: "list.bullet.rectangle",
-                style: .secondary,
-                size: .small,
-                action: { viewModel.inspectorVisible = true }
-            )
-            AppButton(
-                pluginLocalization.string("SQL"),
-                systemImage: "curlybraces",
-                style: .ghost,
-                size: .small,
-                action: { viewModel.switchToQueryEditor() }
-            )
-            Menu {
-                Toggle(isOn: $viewModel.useNullSymbol) {
-                    Text(pluginLocalization.string("Show NULL as ⟨NULL⟩"))
-                }
-                if viewModel.tableRowCountIsApproximate {
-                    Divider()
-                    Button(pluginLocalization.string("Exact Count")) {
-                        Task { await viewModel.refreshExactRowCount() }
-                    }
-                }
-                if viewModel.gridHasRowKey {
-                    Divider()
-                    Toggle(isOn: keysetBinding) {
-                        Text(pluginLocalization.string("Keyset Pagination"))
-                    }
-                    .help(pluginLocalization.string("Fast deep paging by primary key"))
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(theme.textSecondary)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help(pluginLocalization.string("Display Options"))
         }
         .padding(.leading, 12)
+        // 右上角的浮动「更多」按钮由 ``DatabaseWorkspaceView`` 叠加，这里预留其宽度避免压住标题。
         .padding(.trailing, 12 + viewModel.workspaceOverlayTrailingInset)
         .frame(height: 48)
         .appSurface(style: .toolbar, cornerRadius: 0)
@@ -364,13 +291,6 @@ struct TableDataView: View {
         Binding(
             get: { viewModel.tablePageSize },
             set: { newSize in Task { await viewModel.setPageSize(newSize) } }
-        )
-    }
-
-    private var keysetBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.useKeysetPagination },
-            set: { enabled in Task { await viewModel.setUseKeysetPagination(enabled) } }
         )
     }
 
