@@ -7,7 +7,8 @@ import LumiUI
 /// 行点击即 ``viewModel.connect(config:)``；连接成功后由调用方触发翻牌回到数据浏览。
 ///
 /// 风格参考 `ConnectionPopoverView`，但作为侧边栏列表使用：
-/// - 顶部 ``DatabaseSidebarHeaderBar``（标题 Connections + 加号 + 切换）；
+/// - 顶部 ``DatabaseSidebarHeaderBar``（标题 Connections + 加号 + 切换 + 更多菜单）；
+///   「更多」菜单承载 Add Connection / Import Connections / Disconnect；
 /// - 列表项展示图标、连接名、类型/host 副标题；当前连接显示绿色圆点；
 /// - 右键上下文菜单提供「Edit / Delete」入口，Delete 需二次确认。
 struct ConnectionsListView: View {
@@ -35,6 +36,25 @@ struct ConnectionsListView: View {
                 onAdd: { showAddConfigSheet = true },
                 onToggleMode: onToggleMode,
                 toggleMode: viewModel.sidebarMode,
+                menuActions: [
+                    DatabaseSidebarMenuAction(
+                        title: "Add Connection",
+                        systemImage: "plus",
+                        action: { showAddConfigSheet = true }
+                    ),
+                    DatabaseSidebarMenuAction(
+                        title: "Import Connections",
+                        systemImage: "square.and.arrow.down",
+                        action: { showImportSheet = true }
+                    ),
+                    DatabaseSidebarMenuAction(
+                        title: "Disconnect",
+                        systemImage: "power",
+                        isEnabled: viewModel.isConnected,
+                        action: { Task { await viewModel.disconnect() } }
+                    ),
+                ],
+                usesAccentTint: true,
                 accessibilityPrefix: "database.connections"
             )
 
@@ -57,8 +77,6 @@ struct ConnectionsListView: View {
                     .padding(.vertical, 4)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-                footer
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -283,37 +301,6 @@ struct ConnectionsListView: View {
         case .postgresql:
             return "PostgreSQL · \(config.host ?? "127.0.0.1"):\(config.port ?? 5432)/\(config.database)"
         }
-    }
-
-    // MARK: - Footer
-
-    private var footer: some View {
-        HStack(spacing: 8) {
-            AppButton(
-                pluginLocalization.string("Add Connection"),
-                systemImage: "plus",
-                style: .ghost,
-                fillsWidth: true,
-                action: { showAddConfigSheet = true }
-            )
-            AppIconButton(
-                systemImage: "square.and.arrow.down",
-                label: pluginLocalization.string("Import Connections"),
-                size: .compact
-            ) {
-                showImportSheet = true
-            }
-            if viewModel.isConnected {
-                AppButton(
-                    pluginLocalization.string("Disconnect"),
-                    systemImage: "power",
-                    style: .secondary,
-                    action: { Task { await viewModel.disconnect() } }
-                )
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
     }
 }
 

@@ -334,109 +334,68 @@ public struct MainView: View {
     private var toolbar: some View {
         let statementCount = SQLStatementParser.split(viewModel.queryText).count
         return AppToolbarContainer(height: 48) {
-            HStack {
-                AppIconButton(
-                    systemImage: "folder",
-                    label: pluginLocalization.string("Open SQL File…"),
-                    size: .compact,
-                    action: { viewModel.presentOpenSQLPanel() }
-                )
-                .help(pluginLocalization.string("Open SQL file"))
-                AppIconButton(
-                    systemImage: "square.and.arrow.down",
-                    label: pluginLocalization.string("Save"),
-                    size: .compact,
-                    action: { viewModel.saveActiveSQLFile() }
-                )
-                .help(pluginLocalization.string("Save SQL file"))
-                Spacer()
-                if viewModel.isConnected {
-                    AppButton(pluginLocalization.string("Disconnect"), systemImage: "bolt.horizontal.circle", style: .secondary, size: .small, action: { Task { await viewModel.disconnect() } })
-                        .accessibilityIdentifier("database.query.disconnect")
-                }
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
                 if viewModel.isLoading {
                     ProgressView()
                         .scaleEffect(0.5)
                     QueryElapsedLabel()
-                    AppButton(pluginLocalization.string("Stop"), systemImage: "stop.fill", style: .secondary, size: .small, action: { Task { await viewModel.cancelRunningQuery() } })
+                    AppIconButton(systemImage: "stop.fill", action: { Task { await viewModel.cancelRunningQuery() } })
                         .keyboardShortcut(.return, modifiers: .command)
                         .keyboardShortcut(".", modifiers: .command)
+                        .help(pluginLocalization.string("Stop"))
+                        .accessibilityLabel(pluginLocalization.string("Stop"))
                 } else {
-                    AppButton(pluginLocalization.string("Run"), systemImage: "play.fill", style: .primary, size: .small, action: { Task { await viewModel.executeStatementAtCursor() } })
+                    AppIconButton(systemImage: "play.fill", action: { Task { await viewModel.executeStatementAtCursor() } })
                         .keyboardShortcut(.return, modifiers: .command)
                         .help(pluginLocalization.string("Run statement at cursor"))
+                        .accessibilityLabel(pluginLocalization.string("Run"))
                         .accessibilityIdentifier("database.query.run")
                 }
-                if statementCount > 1 {
-                    batchPolicyPicker
-                    AppButton(
-                        "\(pluginLocalization.string("Run All")) (\(statementCount))",
-                        systemImage: "play.rectangle.fill",
-                        style: .secondary,
-                        size: .small,
-                        action: { Task { await viewModel.executeAllStatements() } }
-                    )
-                    .keyboardShortcut(.return, modifiers: [.command, .shift])
-                    .disabled(viewModel.isLoading)
-                }
-                AppButton(
-                    pluginLocalization.string("Format"),
-                    systemImage: "text.alignleft",
-                    style: .ghost,
-                    size: .small,
-                    action: { viewModel.formatDocumentOrSelection() }
-                )
-                .keyboardShortcut("f", modifiers: [.command, .shift])
-                .help(pluginLocalization.string("Format SQL (selection or document)"))
-                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis {
-                    AppButton(
-                        pluginLocalization.string("Explain"),
-                        systemImage: "list.bullet.indent",
-                        style: .ghost,
-                        size: .small,
-                        action: { Task { await viewModel.explainCurrentQuery() } }
-                    )
-                    .disabled(viewModel.isLoading)
-                    .help(pluginLocalization.string("Explain the current query"))
-                }
-                AppButton(
-                    pluginLocalization.string("History"),
-                    systemImage: "clock.arrow.circlepath",
-                    style: .ghost,
-                    size: .small,
-                    action: { viewModel.showHistory = true }
-                )
-                .keyboardShortcut("y", modifiers: .command)
+                overflowMenu(statementCount: statementCount)
             }
         }
     }
 
-    // MARK: - Batch policy
+    // MARK: - Overflow menu
 
-    /// ⌘⇧↩ 批量执行策略选择：逐句继续 / 包裹事务失败回滚。
-    private var batchPolicyPicker: some View {
-        Menu {
-            Picker(pluginLocalization.string("Batch policy"), selection: $viewModel.batchPolicy) {
-                Text(pluginLocalization.string("Continue on error"))
-                    .tag(BatchExecutionPolicy.continueOnError)
-                Text(pluginLocalization.string("Wrap in transaction"))
-                    .tag(BatchExecutionPolicy.wrapInTransaction)
+    /// 工具条其余动作收进「更多」菜单，工具条仅保留运行与更多两个入口。
+    private func overflowMenu(statementCount: Int) -> some View {
+        AppIconMenuButton(
+            systemImage: "ellipsis",
+            label: pluginLocalization.string("More"),
+            accessibilityIdentifier: "database.query.more"
+        ) {
+            if statementCount > 1 {
+                Button(
+                    "\(pluginLocalization.string("Run All")) (\(statementCount))",
+                    systemImage: "play.rectangle.fill",
+                    action: { Task { await viewModel.executeAllStatements() } }
+                )
+                .disabled(viewModel.isLoading)
+                Picker(pluginLocalization.string("Batch policy"), selection: $viewModel.batchPolicy) {
+                    Text(pluginLocalization.string("Continue on error"))
+                        .tag(BatchExecutionPolicy.continueOnError)
+                    Text(pluginLocalization.string("Wrap in transaction"))
+                        .tag(BatchExecutionPolicy.wrapInTransaction)
+                }
+                .pickerStyle(.inline)
+                .disabled(viewModel.isLoading)
+                Divider()
             }
-            .pickerStyle(.inline)
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: viewModel.batchPolicy == .wrapInTransaction ? "lock.rectangle" : "list.bullet.rectangle")
-                    .font(.system(size: 11, weight: .semibold))
-                Text(pluginLocalization.string("Batch policy"))
-                    .font(.appMicro)
+            Button(pluginLocalization.string("Format"), systemImage: "text.alignleft", action: { viewModel.formatDocumentOrSelection() })
+            if viewModel.selectedConfig?.type != .redis {
+                Button(pluginLocalization.string("Explain"), systemImage: "list.bullet.indent", action: { Task { await viewModel.explainCurrentQuery() } })
+                    .disabled(viewModel.isLoading)
             }
-            .foregroundStyle(theme.textSecondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            Button(pluginLocalization.string("History"), systemImage: "clock.arrow.circlepath", action: { viewModel.showHistory = true })
+            Divider()
+            Button(pluginLocalization.string("Open SQL File…"), systemImage: "folder", action: { viewModel.presentOpenSQLPanel() })
+            Button(pluginLocalization.string("Save"), systemImage: "square.and.arrow.down", action: { viewModel.saveActiveSQLFile() })
+            Divider()
+            Button(pluginLocalization.string("Disconnect"), systemImage: "bolt.horizontal.circle", action: { Task { await viewModel.disconnect() } })
+                .accessibilityIdentifier("database.query.disconnect")
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .disabled(viewModel.isLoading)
     }
 
     // MARK: - Empty state

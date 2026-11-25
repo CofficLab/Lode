@@ -25,6 +25,13 @@ struct DatabaseObjectTreeView: View {
                 onLoad: { Task { await viewModel.refreshSidebarObjects() } },
                 onToggleMode: onToggleMode,
                 toggleMode: viewModel.sidebarMode,
+                menuActions: [
+                    DatabaseSidebarMenuAction(
+                        title: "Back to Connections",
+                        systemImage: "rectangle.portrait.on.rectangle.portrait",
+                        action: onToggleMode
+                    ),
+                ],
                 accessibilityPrefix: "database.objects"
             )
 
@@ -81,8 +88,6 @@ struct DatabaseObjectTreeView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-
-            SavedQueriesSectionView(viewModel: viewModel)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

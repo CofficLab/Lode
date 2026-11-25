@@ -13,6 +13,7 @@ import LumiUI
 ///   选完连接直接进入数据浏览，避免多一次点击）；
 /// - 自动重连逻辑（``DatabaseViewModel.autoConnectIfNeeded``）首次进入 UI 时触发一次。
 public struct SidebarView: View {
+    @LumiUI.LumiTheme private var theme: any LumiUITheme
     @ObservedObject var viewModel: DatabaseViewModel
 
     public init(viewModel: DatabaseViewModel) {
@@ -23,7 +24,10 @@ public struct SidebarView: View {
         let showingConnections = viewModel.sidebarMode == .connections
         ZStack {
             // 数据浏览面板：Tables（SQLite）或 Keys（Redis）
+            // 工作层上浮到 surface，与连接列表（background）形成明度分层，
+            // 翻牌切换时能直观看出「入口层 → 工作层」。
             dataBrowser
+                .background(theme.surface)
                 .opacity(showingConnections ? 0 : 1)
                 .rotation3DEffect(
                     .degrees(showingConnections ? -90 : 0),
@@ -34,11 +38,16 @@ public struct SidebarView: View {
                 .allowsHitTesting(!showingConnections)
                 .accessibilityHidden(showingConnections)
 
-            // 连接管理面板
+            // 连接管理面板（入口层）：background 再叠主题色淡染，
+            // 与数据浏览层的纯 surface 形成色相 + 明度双重区分；
+            // 头部由 `usesAccentTint` 同步着色，保证整层是一块「导航层」。
             ConnectionsListView(
                 viewModel: viewModel,
                 onToggleMode: { toggleMode() }
             )
+            .background {
+                theme.background.overlay(theme.primary.opacity(0.06))
+            }
             .opacity(showingConnections ? 1 : 0)
             .rotation3DEffect(
                 .degrees(showingConnections ? 0 : 90),

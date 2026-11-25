@@ -67,19 +67,12 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
     /// 右侧 Inspector 是否可见（结构详情 / ER 图 / EXPLAIN 等将放在这里）。
     @Published public var inspectorVisible: Bool = false
 
-    /// 工作区右上角浮动操作组（``DatabaseWorkspaceView`` 的 topTrailing overlay）在
-    /// inspector 收起时会落在内容工具栏同一横带，内容工具栏需按按钮数预留右侧宽度避免重叠。
-    /// 每个按钮槽位约 35pt（12pt 图标 + 16pt 内边距 + 2pt 间距），另加 8pt 间隔。
+    /// 工作区右上角唯一的「更多」菜单按钮（``DatabaseWorkspaceView`` 的 topTrailing overlay）
+    /// 在 inspector 收起时会落在内容工具栏同一横带，内容工具栏需按一个按钮槽位预留右侧宽度
+    /// 避免重叠：``AppIconMenuButton`` 宽约 26pt，另加 8pt 间隔。
     public var workspaceOverlayTrailingInset: CGFloat {
-        guard !inspectorVisible, isConnected, let type = selectedConfig?.type else { return 0 }
-        var count = 1  // inspector 开关常显
-        if type != .redis {
-            count += 1  // 导入常显（非 Redis）
-            if type.capabilities.supportsSchemaEditing { count += 1 }
-            if queryResult != nil || openTableObject != nil { count += 1 }
-        }
-        if type.capabilities.supportsForeignKeys { count += 1 }
-        return CGFloat(count) * 35 + 8
+        guard !inspectorVisible, isConnected else { return 0 }
+        return 26 + 8
     }
 
     /// 只读 ER 图：当前库/schema 的表关系图（节点+边+布局）。
@@ -313,13 +306,6 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     private let historyStore: QueryHistoryStore
 
-    /// 收藏查询（按连接名组织，UI 通过此状态渲染）。
-    @Published public private(set) var savedQueries: [SavedQuery] = []
-    /// 代码片段（全局共享，插入编辑器时展开占位符）。
-    @Published public private(set) var snippets: [Snippet] = []
-
-    private let savedQueryStore: SavedQueryStore
-
     /// 全局偏好设置；任何改动经 didSet 持久化到工作区 UserDefaults。
     @Published public var settings: DatabaseSettings = DatabaseSettings() {
         didSet {
@@ -332,14 +318,6 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
 
     /// 新建连接的默认安全模式（来自全局设置）。
     public var defaultSafeMode: ConnectionSafeMode { settings.safeMode }
-
-    /// 当前连接的收藏查询（按创建时间倒序）。
-    public var currentConnectionSavedQueries: [SavedQuery] {
-        let configName = selectedConfig?.name ?? ""
-        return savedQueries
-            .filter { $0.configName == configName }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
 
     public func toggleInspector() {
         inspectorVisible.toggle()
@@ -405,9 +383,6 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
         self.workspaceDefaults = workspaceDefaults
         self.historyStore = historyStore ?? .shared
         self.historyRetentionDays = max(0, workspaceDefaults.integer(forKey: "DatabaseManager.historyRetentionDays"))
-        self.savedQueryStore = SavedQueryStore(defaults: workspaceDefaults)
-        self.savedQueries = savedQueryStore.loadQueries()
-        self.snippets = savedQueryStore.loadSnippets()
         self.settingsStore = DatabaseSettingsStore(defaults: workspaceDefaults)
         self.settings = settingsStore.load()
         DatabaseManagerPluginSupport.debugLog.setDebugEnabled(settings.debugLoggingEnabled)
@@ -1348,92 +1323,6 @@ public class DatabaseViewModel: ObservableObject, SuperLog {
             sqlCompletionProvider.invalidate(configId: config.id)
         }
         await loadRecentHistory()
-    }
-
-    // MARK: - 收藏查询与片段
-
-    /// 把当前编辑器文本收藏为命名查询（归属当前连接）；同名同连接替换。空名/空 SQL 忽略。
-    public func saveCurrentQuery(name: String) {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let sql = queryText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, !sql.isEmpty else { return }
-        let configName = selectedConfig?.name ?? ""
-        let database = activeDatabase ?? selectedConfig?.database ?? ""
-        var list = savedQueries
-        list.removeAll { $0.name == trimmedName && $0.configName == configName }
-        list.append(SavedQuery(name: trimmedName, sql: sql, configName: configName, database: database))
-        savedQueries = list
-        savedQueryStore.saveQueries(list)
-    }
-
-    /// 把收藏查询载入编辑器（替换 queryText）。
-    public func loadSavedQuery(_ query: SavedQuery) {
-        queryText = query.sql
-    }
-
-    /// 重执行收藏查询：载入编辑器并立即在当前连接执行。
-    public func runSavedQuery(_ query: SavedQuery) async {
-        queryText = query.sql
-        await executeQuery()
-    }
-
-    /// 重命名收藏查询；空名忽略。
-    public func renameSavedQuery(id: UUID, name: String) {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, let index = savedQueries.firstIndex(where: { $0.id == id }) else { return }
-        savedQueries[index].name = trimmedName
-        savedQueryStore.saveQueries(savedQueries)
-    }
-
-    /// 删除收藏查询。
-    public func deleteSavedQuery(_ query: SavedQuery) {
-        savedQueries.removeAll { $0.id == query.id }
-        savedQueryStore.saveQueries(savedQueries)
-    }
-
-    /// 新增片段；空名/空正文忽略，同名替换。
-    public func addSnippet(name: String, body: String) {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, !trimmedBody.isEmpty else { return }
-        var list = snippets
-        list.removeAll { $0.name == trimmedName }
-        list.append(Snippet(name: trimmedName, body: trimmedBody))
-        snippets = list
-        savedQueryStore.saveSnippets(list)
-    }
-
-    /// 删除片段。
-    public func deleteSnippet(_ snippet: Snippet) {
-        snippets.removeAll { $0.id == snippet.id }
-        savedQueryStore.saveSnippets(snippets)
-    }
-
-    /// 在编辑器光标处插入片段（有选区则替换选区），展开占位符并选中首个非空默认值。
-    public func insertSnippet(_ snippet: Snippet) {
-        let expansion = SnippetExpander.expansion(snippet.body)
-        let inserted = expansion.text
-        let ns = queryText as NSString
-        let selection = editorSelectionRange
-        let replaceRange: NSRange
-        if selection.location != NSNotFound, selection.length > 0,
-           selection.location + selection.length <= ns.length {
-            replaceRange = selection
-        } else {
-            let rawLocation = editorCursorLocation == NSNotFound ? ns.length : editorCursorLocation
-            let location = max(0, min(rawLocation, ns.length))
-            replaceRange = NSRange(location: location, length: 0)
-        }
-        queryText = ns.replacingCharacters(in: replaceRange, with: inserted)
-        let base = replaceRange.location
-        if let first = expansion.firstSelection {
-            editorCursorLocation = base + first.location
-            editorSelectionRange = NSRange(location: base + first.location, length: first.length)
-        } else {
-            let end = base + inserted.utf16.count
-            editorCursorLocation = end
-            editorSelectionRange = NSRange(location: end, length: 0)
-        }
     }
 
     /// 是否为改变数据库结构的语句（CREATE/ALTER/DROP/TRUNCATE），用于失效结构缓存。

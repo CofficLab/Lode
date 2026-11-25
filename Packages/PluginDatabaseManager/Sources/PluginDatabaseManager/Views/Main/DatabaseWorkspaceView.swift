@@ -34,75 +34,9 @@ public struct DatabaseWorkspaceView: View {
             }
         }
         .overlay(alignment: .topTrailing) {
-            HStack(spacing: 2) {
-                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis,
-                   viewModel.selectedConfig?.type.capabilities.supportsSchemaEditing == true {
-                    Button {
-                        viewModel.presentCreateTable()
-                    } label: {
-                        Image(systemName: "tablecells.badge.ellipsis")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(pluginLocalization.string("New Table"))
-                }
-                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis {
-                    Button {
-                        viewModel.presentImportData()
-                    } label: {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(pluginLocalization.string("Import Data"))
-                }
-                if viewModel.isConnected, viewModel.selectedConfig?.type != .redis,
-                   viewModel.queryResult != nil || viewModel.openTableObject != nil {
-                    Button {
-                        viewModel.presentExport()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(pluginLocalization.string("Export Data"))
-                }
-                if viewModel.isConnected, viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
-                    Button {
-                        viewModel.isERDiagramPresented = true
-                    } label: {
-                        Image(systemName: "rectangle.3.group")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(pluginLocalization.string("ER Diagram"))
-                }
-                Button {
-                    viewModel.toggleInspector()
-                } label: {
-                    Image(systemName: viewModel.inspectorVisible ? "sidebar.trailing.collapse" : "sidebar.trailing")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .padding(8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(pluginLocalization.string("Toggle Inspector"))
-            }
-            .padding(.top, 6)
-            .padding(.trailing, 6)
+            moreMenu
+                .padding(.top, 6)
+                .padding(.trailing, 6)
         }
         .confirmationDialog(
             writeConfirmationTitle,
@@ -138,6 +72,76 @@ public struct DatabaseWorkspaceView: View {
         }
         .sheet(isPresented: $viewModel.isExportPresented) {
             ExportSheet(viewModel: viewModel, isPresented: $viewModel.isExportPresented)
+        }
+    }
+
+    // MARK: - 更多菜单
+
+    /// 与 Query 菜单的门控一致：标签操作只在查询编辑器可见时可用。
+    private var isEditorContextActive: Bool {
+        viewModel.isConnected && viewModel.openTableObject == nil && viewModel.selectedRedisKey == nil
+    }
+
+    /// 工作区右上角的唯一浮动按钮：「新建标签 / 重开标签 / 建表 / 导入 / 导出 / ER 图 /
+    /// Inspector 开关」全部收进这个菜单，不再以一排图标压在内容工具条上。
+    private var moreMenu: some View {
+        AppIconMenuButton(
+            systemImage: "ellipsis",
+            label: pluginLocalization.string("More"),
+            accessibilityIdentifier: "database.workspace.more"
+        ) {
+            Button {
+                viewModel.newQueryTab()
+            } label: {
+                Label(pluginLocalization.string("New Tab"), systemImage: "plus")
+            }
+            .disabled(!isEditorContextActive)
+
+            Button {
+                viewModel.reopenLastClosedTab()
+            } label: {
+                Label(pluginLocalization.string("Reopen Closed Tab"), systemImage: "arrow.uturn.backward")
+            }
+            .disabled(!isEditorContextActive || viewModel.workspace.recentlyClosed.isEmpty)
+
+            if viewModel.isConnected, viewModel.selectedConfig?.type != .redis {
+                Divider()
+
+                if viewModel.selectedConfig?.type.capabilities.supportsSchemaEditing == true {
+                    Button {
+                        viewModel.presentCreateTable()
+                    } label: {
+                        Label(pluginLocalization.string("New Table"), systemImage: "tablecells.badge.ellipsis")
+                    }
+                }
+                Button {
+                    viewModel.presentImportData()
+                } label: {
+                    Label(pluginLocalization.string("Import Data"), systemImage: "square.and.arrow.down")
+                }
+                if viewModel.queryResult != nil || viewModel.openTableObject != nil {
+                    Button {
+                        viewModel.presentExport()
+                    } label: {
+                        Label(pluginLocalization.string("Export Data"), systemImage: "square.and.arrow.up")
+                    }
+                }
+                if viewModel.selectedConfig?.type.capabilities.supportsForeignKeys == true {
+                    Button {
+                        viewModel.isERDiagramPresented = true
+                    } label: {
+                        Label(pluginLocalization.string("ER Diagram"), systemImage: "rectangle.3.group")
+                    }
+                }
+            }
+
+            Divider()
+
+            Button {
+                viewModel.toggleInspector()
+            } label: {
+                Label(pluginLocalization.string("Toggle Inspector"), systemImage: "sidebar.trailing")
+            }
         }
     }
 
