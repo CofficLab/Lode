@@ -58,10 +58,10 @@ struct DatabaseObjectTreeView: View {
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
             .background(theme.appSubtleBorder, in: .rect(cornerRadius: 6))
             .padding(.horizontal, 8)
-            .padding(.bottom, 6)
+            .padding(.bottom, 8)
 
             if groupedNodes.isEmpty {
                 SidebarEmptyView(
@@ -124,7 +124,8 @@ struct DatabaseObjectTreeView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 8)
-        .padding(.bottom, 6)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
     }
 
     /// 单个上下文选择菜单：列出可选项，当前项打勾，点击触发切换。
@@ -164,8 +165,8 @@ struct DatabaseObjectTreeView: View {
                     .font(.system(size: 8))
             }
             .foregroundStyle(theme.textSecondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
             .background(theme.appSubtleBorder, in: .rect(cornerRadius: 6))
         }
         .menuStyle(.borderlessButton)

@@ -76,6 +76,13 @@ struct DatabaseSidebarHeaderBar: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            // 数据/连接列表切换放在标题最左侧，作为返回上一层的主要入口。
+            if let onToggleMode {
+                AppIconButton(systemImage: toggleIconName, action: onToggleMode)
+                    .help(toggleHelpText)
+                    .accessibilityIdentifier(identifier("toggle"))
+            }
+
             Image(systemName: systemImage)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
@@ -98,12 +105,6 @@ struct DatabaseSidebarHeaderBar: View {
                 AppIconButton(systemImage: "plus", action: onAdd)
                     .help(pluginLocalization.string("Add Connection"))
                     .accessibilityIdentifier(identifier("add"))
-            }
-
-            if let onToggleMode {
-                AppIconButton(systemImage: toggleIconName, action: onToggleMode)
-                    .help(toggleHelpText)
-                    .accessibilityIdentifier(identifier("toggle"))
             }
 
             if !menuActions.isEmpty {
