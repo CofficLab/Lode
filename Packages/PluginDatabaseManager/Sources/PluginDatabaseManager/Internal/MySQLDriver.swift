@@ -377,7 +377,9 @@ public actor MySQLConnection: DatabaseConnection {
 
         let tableName = "databasekit_column_probe_\(UUID().uuidString.replacingOccurrences(of: "-", with: "_"))"
         let tableIdentifier = quoteIdentifier(tableName)
-        let createSQL = "CREATE TEMPORARY TABLE \(tableIdentifier) AS \(sql) LIMIT 0"
+        // 源查询可能自带 LIMIT/OFFSET（表浏览分页），直接追加 LIMIT 0 会得到
+        // "... OFFSET 0 LIMIT 0"。包成派生表再取空结果；换行用于截断源 SQL 末尾的行注释。
+        let createSQL = "CREATE TEMPORARY TABLE \(tableIdentifier) AS SELECT * FROM (\n\(sql)\n) AS \(quoteIdentifier("lode_column_probe")) LIMIT 0"
         let binds = toMySQLData(params)
 
         do {

@@ -41,6 +41,14 @@ struct EmptyResultColumnProbeTests {
         #expect(projected.rows.isEmpty)
         #expect(projected.columns == ["name", "id"])
 
+        // 表浏览分页自带 LIMIT/OFFSET：列探针不得再重复追加 LIMIT。
+        let paged = try await connection.query(
+            "SELECT * FROM \(table) WHERE id = -1 LIMIT 100 OFFSET 0",
+            params: nil
+        )
+        #expect(paged.rows.isEmpty)
+        #expect(paged.columns == ["id", "name"])
+
         _ = try await connection.execute("DROP TABLE IF EXISTS \(table)", params: nil)
     }
 
