@@ -41,7 +41,7 @@ packages:
     version: 2.10.1
   LumiChat:
     url: https://github.com/lumi-softworks/LumiChat.git
-    from: 1.4.1
+    from: 1.4.2
   LumiPluginConversationList:
     url: https://github.com/lumi-softworks/LumiPluginConversationList.git
     from: 1.0.1
