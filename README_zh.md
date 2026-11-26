@@ -30,7 +30,6 @@ Lode 从 [Lumi](https://github.com/CofficLab/Lumi) 中剥离而来，保留 Lumi
 | `Packages/PluginDatabaseManager/` | 数据库插件：连接、查询、对象树、编辑器、Agent 工具 |
 | `Packages/PluginCodeEditorHost/` | 编辑器宿主插件（SQL 编辑器依赖） |
 | `Packages/Kit*` / `Packages/Provider*` / `Packages/Plugin*` | 从 Lumi 剥离的最小依赖闭包 |
-| `project.yml` | XcodeGen 工程描述 |
 
 共享能力（LumiFactory、LumiKernel、LumiProviders、LumiUI 等）通过 Swift Package 远端依赖引入，不在本仓库复制。与兄弟 App 一致，Lode 不保留自己的 Factory 包：`LodeApp/LodeHostManifest.swift` 声明宿主差异（品牌身份、插件目录、存储/主题配置、App 域 Provider 与接线），由共享 LumiFactory 引擎统一解释执行。
 
@@ -40,18 +39,14 @@ Lode 从 [Lumi](https://github.com/CofficLab/Lumi) 中剥离而来，保留 Lumi
 
 - macOS 14 或更高版本
 - Xcode 27.0 或更高版本
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）
 
 ```sh
-xcodegen generate
 xcodebuild -project Lode.xcodeproj -scheme Lode -configuration Debug \
   -destination 'platform=macOS,arch=arm64' \
   ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build
 ```
 
 必须单架构构建：`generic/platform=macOS` 会同时编 arm64 与 x86_64，触发 ACP 可执行文件的单架构校验。
-
-`Lode.xcodeproj` 由 `project.yml` 生成，不要直接手改工程文件。
 
 ## 测试
 

@@ -1,0 +1,2783 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		003F1F61FFE9BC6284984679 /* ProviderUninstall in Frameworks */ = {isa = PBXBuildFile; productRef = A7A1AA4631597BCADDDCBDF9 /* ProviderUninstall */; };
+		01E23131E6B753A98A797F29 /* ProviderPromptSuggestionExecutor in Frameworks */ = {isa = PBXBuildFile; productRef = A3B2BF59279F755C3A2CDEC1 /* ProviderPromptSuggestionExecutor */; };
+		041D4E974F080AF395BDF750 /* PluginLLMProviderAiRouter in Frameworks */ = {isa = PBXBuildFile; productRef = C27F7AD5E39DE8278B4D944F /* PluginLLMProviderAiRouter */; };
+		05662F50159C9FE5979F9D5F /* PluginLLMProviderXybbz in Frameworks */ = {isa = PBXBuildFile; productRef = 95C1FE9A395E9C9816FC23B0 /* PluginLLMProviderXybbz */; };
+		0829EFCE1AB01154F7B8F9F5 /* PluginLLMProviderHyperAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 564272D4AF2EE949694BADA2 /* PluginLLMProviderHyperAPI */; };
+		09DDAF9A10E8CB68EF6E3501 /* LodePluginRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 31D0D0471692D7CA0EB9F109 /* LodePluginRootView */; };
+		0CF6A69FB56EDB2240C7A610 /* ProviderExternalFile in Frameworks */ = {isa = PBXBuildFile; productRef = 3C0879D8DB472CF6A761F96A /* ProviderExternalFile */; };
+		0D58579FEBFE38046462BE18 /* WorkbenchRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 45D674A4B0B8E414368B31BC /* WorkbenchRootView */; };
+		0DE1EFF176D17608677551C2 /* PluginConversationState in Frameworks */ = {isa = PBXBuildFile; productRef = A10892594B7E96103B2B57AD /* PluginConversationState */; };
+		1843A957856BD556B2325C6F /* LodeChatSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB64E8D74985247E15AF3A4 /* LodeChatSuggestions.swift */; };
+		1AF402F68FD420B975903EA5 /* PluginConversationVerbosity in Frameworks */ = {isa = PBXBuildFile; productRef = 995ABBBBB6F3F0A00171CFC7 /* PluginConversationVerbosity */; };
+		1B1CE9561D5F0617AAB902AB /* PluginConversationState in Frameworks */ = {isa = PBXBuildFile; productRef = FBA46844747C91E612B928EA /* PluginConversationState */; };
+		1DBB94D0ABEED79510FC164D /* ProviderToolManager in Frameworks */ = {isa = PBXBuildFile; productRef = 73EC5ED4FBB7667FFD1E5D4A /* ProviderToolManager */; };
+		1F817A2EAD6A18AFEC71016F /* ProviderConversation in Frameworks */ = {isa = PBXBuildFile; productRef = 056325B5703892B16DEA6063 /* ProviderConversation */; };
+		209CF693313824E8A0877890 /* PluginLLMProviderOpenCode in Frameworks */ = {isa = PBXBuildFile; productRef = E87BAC4E1029B7965C18CFF6 /* PluginLLMProviderOpenCode */; };
+		2153C93E32972E7021838732 /* ProviderLLMManager in Frameworks */ = {isa = PBXBuildFile; productRef = F4D896F192B45D40E22C7197 /* ProviderLLMManager */; };
+		219BE2EB1DC9BFCBEF22C4F1 /* PluginConversationMode in Frameworks */ = {isa = PBXBuildFile; productRef = D4D26EE6BE38654A93080F6C /* PluginConversationMode */; };
+		24606199CB790442921E7E9D /* PluginLLMProviderOpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = C8993745FE060D977F4A8812 /* PluginLLMProviderOpenAI */; };
+		254FFEBF64DD8E350FF068F1 /* PluginMessageRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = A9A1855D9FD8B11832C70FB5 /* PluginMessageRenderer */; };
+		256E35F4F8415141AEE4B854 /* PluginSkill in Frameworks */ = {isa = PBXBuildFile; productRef = C6843D59A95A68E9DC9B228B /* PluginSkill */; };
+		27C7E14676DDB4E9CBEC37EE /* ProviderConversationInput in Frameworks */ = {isa = PBXBuildFile; productRef = DA1EA86E50E57D15B77E834D /* ProviderConversationInput */; };
+		27E4B553E7CCEC72CB466CD3 /* LodePluginRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 07CEAB99630B496822912C6A /* LodePluginRootView */; };
+		2A9DB17E989322FF61F4EBDB /* PluginAbout in Frameworks */ = {isa = PBXBuildFile; productRef = 3468965338B5AFCC91539A4D /* PluginAbout */; };
+		2B54E8B03C2392C8493700EE /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 03A912FE1D5BBF0AB5F0E441 /* Sparkle */; };
+		2BADECDB6EB03CDC34BCE754 /* PluginMessageSender in Frameworks */ = {isa = PBXBuildFile; productRef = 0BAC6B6F98131E31FC1D09F7 /* PluginMessageSender */; };
+		2C1F373F8F85B013F464D5A7 /* PluginConversationFork in Frameworks */ = {isa = PBXBuildFile; productRef = 598E13FE60C771EBC93A1411 /* PluginConversationFork */; };
+		2D2D3924F784198131250277 /* PluginConversationElapsedTime in Frameworks */ = {isa = PBXBuildFile; productRef = 9A06F541301F9F53C7703061 /* PluginConversationElapsedTime */; };
+		2D6D4CD405BC79B45A30E9CA /* PluginLLMProviderAnthropic in Frameworks */ = {isa = PBXBuildFile; productRef = BD2C9B7862FF9D756031D6BB /* PluginLLMProviderAnthropic */; };
+		2EC14587E619C84A1FDADDD3 /* ProviderWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = B0C084C09693D5813C89E0CE /* ProviderWebServer */; };
+		2F329DC7A50737127B5FBFA8 /* PluginLLMProviderAliyun in Frameworks */ = {isa = PBXBuildFile; productRef = 212885F3E4F8A2E450C160D1 /* PluginLLMProviderAliyun */; };
+		3124CCA7CAF620B84E98A966 /* ProviderNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = F0C3116AFB27B550DF4B6F3A /* ProviderNetwork */; };
+		32A0DCD568C93724C71385F1 /* PluginLLMProviderKimiCode in Frameworks */ = {isa = PBXBuildFile; productRef = F1F8352A776BE68B02A93F59 /* PluginLLMProviderKimiCode */; };
+		3337415C4D1E53B4ECE07A51 /* PluginConversationFork in Frameworks */ = {isa = PBXBuildFile; productRef = EBF087BB8F4B9B56A120A9F2 /* PluginConversationFork */; };
+		340E7EEF28DB7DB9DD427DCA /* ProviderCommand in Frameworks */ = {isa = PBXBuildFile; productRef = 3A8EAC09CA1907A272EDF4D7 /* ProviderCommand */; };
+		34337D66BF2BFD4BACA10940 /* PluginConversationList in Frameworks */ = {isa = PBXBuildFile; productRef = AFFA0FDD8C6EF63A3D731CA5 /* PluginConversationList */; };
+		3507EB103399882FB221C961 /* ProviderExternalFile in Frameworks */ = {isa = PBXBuildFile; productRef = 1D26AF9A007B34686165120C /* ProviderExternalFile */; };
+		36228C7B4A40CDEE5B959033 /* PluginLLMProviderStepFun in Frameworks */ = {isa = PBXBuildFile; productRef = AEB1852197B9D28A79C7B945 /* PluginLLMProviderStepFun */; };
+		3622D136E40C7B7BBB7B4216 /* ProviderRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 24234CF5AE97D56F3EBE131F /* ProviderRootView */; };
+		3682F5ED7DD5B286F8792EB7 /* ProviderConversationInputBlock in Frameworks */ = {isa = PBXBuildFile; productRef = 82CC911607E24BFE3407D751 /* ProviderConversationInputBlock */; };
+		3707342DB1470495B56B9DE5 /* PluginToolActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 3933F70F3CE9C38C691B6E6F /* PluginToolActivity */; };
+		3763451B57646E70CE74A0AD /* PluginLLMProviderTencent in Frameworks */ = {isa = PBXBuildFile; productRef = 414C262E5813BA82CB0CF45C /* PluginLLMProviderTencent */; };
+		38ED584B67B900FBEF39EC10 /* PluginChatFileAttachment in Frameworks */ = {isa = PBXBuildFile; productRef = 61B3B820089248F9CF9DFCBC /* PluginChatFileAttachment */; };
+		39363FB1B2F715BB50396A96 /* PluginConversationTitle in Frameworks */ = {isa = PBXBuildFile; productRef = 1A450DB6C981131C9008164F /* PluginConversationTitle */; };
+		3961830994497221859ACD21 /* KernelCore in Frameworks */ = {isa = PBXBuildFile; productRef = F37681A802FE42AEC1F47A2D /* KernelCore */; };
+		39AEB5D218CFF99D43F029ED /* LodeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00354EB27EE4AC34C94391A1 /* LodeApp.swift */; };
+		39C80E4F30815710FF26B406 /* WorkbenchRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 4C1765D0A890056F9E874771 /* WorkbenchRootView */; };
+		3BF08F83364E5CE0B6A9580E /* ProviderPromptSuggestion in Frameworks */ = {isa = PBXBuildFile; productRef = 30553875528D17BEFD9AA081 /* ProviderPromptSuggestion */; };
+		3D1FBD1B52823F494E95C406 /* ProviderPromptSuggestionExecutor in Frameworks */ = {isa = PBXBuildFile; productRef = 69B6895DFE9063D3CB1E9826 /* ProviderPromptSuggestionExecutor */; };
+		3E26DB6532D9137FBC171A1F /* PluginConversationCacheHitRate in Frameworks */ = {isa = PBXBuildFile; productRef = 78712605136AC95D832E1C5C /* PluginConversationCacheHitRate */; };
+		40C10E875813C3231F70CB56 /* PluginLLMProviderSublyx in Frameworks */ = {isa = PBXBuildFile; productRef = D1E595C490C53DBD761F8268 /* PluginLLMProviderSublyx */; };
+		41D6431B65CD11A2DDA0ABFC /* PluginLLMProviderXiaomi in Frameworks */ = {isa = PBXBuildFile; productRef = 512257562C2573C718C75B1F /* PluginLLMProviderXiaomi */; };
+		42397FC6E215B094302ACF38 /* PluginCodeEditorHost in Frameworks */ = {isa = PBXBuildFile; productRef = 7554B33D07CCD4CAD4D92904 /* PluginCodeEditorHost */; };
+		430A7C0144360A9065E489A2 /* ProviderLLMContext in Frameworks */ = {isa = PBXBuildFile; productRef = F3AD3D9CF7E85A182033D008 /* ProviderLLMContext */; };
+		4315FB3C2998E3E5D5F439DC /* ProviderToolManager in Frameworks */ = {isa = PBXBuildFile; productRef = 4D7AE158BD05CE274961FF10 /* ProviderToolManager */; };
+		451505C69CFE0BA845DED502 /* PluginConversationVerbosity in Frameworks */ = {isa = PBXBuildFile; productRef = 03C44602BFAB8870F55CFDFF /* PluginConversationVerbosity */; };
+		46F091117ABF4E6471E2103D /* LumiFactory in Frameworks */ = {isa = PBXBuildFile; productRef = 7D52BFF1519C4716EB41895B /* LumiFactory */; };
+		4B31084401EC600609C59B4F /* PluginChatEmptyState in Frameworks */ = {isa = PBXBuildFile; productRef = E890C26055C3129C0D61C2B0 /* PluginChatEmptyState */; };
+		4B77B5885CCC602CBDF6793B /* PluginSettingView in Frameworks */ = {isa = PBXBuildFile; productRef = 82EBE519F0597E53C6FF4C59 /* PluginSettingView */; };
+		4BE92519E0A52A06338457EE /* PluginLLMProviderOpenRouter in Frameworks */ = {isa = PBXBuildFile; productRef = 1387E22379C17B35B4D8072C /* PluginLLMProviderOpenRouter */; };
+		4E893E5411029182EE9C11AD /* PluginSkill in Frameworks */ = {isa = PBXBuildFile; productRef = CE3641347FEECD861B3A5796 /* PluginSkill */; };
+		4FCCCC25F53583BE2BB77994 /* ProviderSkill in Frameworks */ = {isa = PBXBuildFile; productRef = 0BB30D62EF07F0ECA40D07AA /* ProviderSkill */; };
+		50D5C1FE53C99858EF7B6F10 /* PluginConversationNew in Frameworks */ = {isa = PBXBuildFile; productRef = 14527FD0E7934F8A1B499622 /* PluginConversationNew */; };
+		50FBE161AF088E9019557FAF /* PluginLLMProviderXybbz in Frameworks */ = {isa = PBXBuildFile; productRef = FC7BF31C6AECAF79C46CE110 /* PluginLLMProviderXybbz */; };
+		5341979C412A50FBF8316D1E /* WorkbenchRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 1CC5BC9294A5BB8AE1D5FAAC /* WorkbenchRootView */; };
+		534B26F642A7777C5E350787 /* PluginLLMProviderZhipu in Frameworks */ = {isa = PBXBuildFile; productRef = 9101C0447587BC624E373B66 /* PluginLLMProviderZhipu */; };
+		53EE2A718D90442128C9766A /* PluginLLMProviderDeepSeek in Frameworks */ = {isa = PBXBuildFile; productRef = FB1DBBB4A497E7E905F456E9 /* PluginLLMProviderDeepSeek */; };
+		55C56EF4558724380E2FFB03 /* ProviderNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = AC787F9FFEF3C7B0AA4C8A00 /* ProviderNetwork */; };
+		560DD736A879BD2B6C19D84B /* ProviderStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1B17382DB58DEE912DF479FC /* ProviderStorage */; };
+		574D83302E38DE2D2CC6F424 /* PluginToolActivity in Frameworks */ = {isa = PBXBuildFile; productRef = B8B48B6CA37DE696832BDDDD /* PluginToolActivity */; };
+		57A54AFCFC4A112C8863B08A /* PluginLLMProviderMiniMax in Frameworks */ = {isa = PBXBuildFile; productRef = 85552075C861E79DDA5C5C4E /* PluginLLMProviderMiniMax */; };
+		57F8F95E058445F83C96E796 /* LumiLoggingKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4EDB5511D686A56250E042C7 /* LumiLoggingKit */; };
+		58AA46A26A5DAF4585E082AF /* PluginLLMContext in Frameworks */ = {isa = PBXBuildFile; productRef = 5E9A58FE43A660FD28A73FA2 /* PluginLLMContext */; };
+		599DF274FF26F847D519E199 /* ProviderTheme in Frameworks */ = {isa = PBXBuildFile; productRef = D27E8482DF9C5130A1EC6886 /* ProviderTheme */; };
+		59A0F30C79D0A4F3EF295086 /* PluginLLMProviderStepFun in Frameworks */ = {isa = PBXBuildFile; productRef = 053B19163C889A3998159374 /* PluginLLMProviderStepFun */; };
+		5A857E94D56843267030B13F /* PluginConversationBehavior in Frameworks */ = {isa = PBXBuildFile; productRef = EFF568BDEED6D885F8EA8BE0 /* PluginConversationBehavior */; };
+		5A8DF57DC2166906B4FD3000 /* KernelCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2361E7046A5D0CC11BDE52D2 /* KernelCore */; };
+		5A9AD2761BCEFEFE48859AEB /* KitLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 147CACFC7E508A6B120AE1BD /* KitLLM */; };
+		5D8064BBC7ADB07077B59B30 /* ProviderUninstall in Frameworks */ = {isa = PBXBuildFile; productRef = 1AFA1109BCD2D6A250EA672C /* ProviderUninstall */; };
+		608E7D734783846BA328ABFE /* PluginChatScreenshot in Frameworks */ = {isa = PBXBuildFile; productRef = A29E92C94EA3896C01B89AB5 /* PluginChatScreenshot */; };
+		61005EE8D0091A35DA3CF24F /* ProviderRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 9A94148A5D1C4213789B2119 /* ProviderRootView */; };
+		63486F24A88D6E6D16ADC0FD /* PluginLLMProviderHappyCode in Frameworks */ = {isa = PBXBuildFile; productRef = DF9073BE646186661F734466 /* PluginLLMProviderHappyCode */; };
+		672E29C9EB39D962B6C962EC /* PluginConversationStats in Frameworks */ = {isa = PBXBuildFile; productRef = 183B86F799C5B828B74F12A0 /* PluginConversationStats */; };
+		67D7B561BF4F71FDC3331D37 /* ProviderConversationInputBlock in Frameworks */ = {isa = PBXBuildFile; productRef = E5CE7E2F65F986EC2ADA821D /* ProviderConversationInputBlock */; };
+		688014B1B9A6AC9F436C4800 /* PluginLLMProviderMegaLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 1D4A06A97F1AD0E46E9C8091 /* PluginLLMProviderMegaLLM */; };
+		68F99C2AFE009668A7B7FA94 /* PluginLLMProviderSettings in Frameworks */ = {isa = PBXBuildFile; productRef = EF3CD41AF5CE64DD0C846E53 /* PluginLLMProviderSettings */; };
+		68FB068B4243CE92D149027B /* LodeSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C432AB881E1158212BACE1 /* LodeSmokeUITests.swift */; };
+		6985038680000B5859F9E305 /* PluginLLMProviderMegaLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 86645F93D03C2711E60F0217 /* PluginLLMProviderMegaLLM */; };
+		6A2BF73AE3E124AB7649DBDE /* ProviderProject in Frameworks */ = {isa = PBXBuildFile; productRef = 7459ACD5C49D8B33D138F1C1 /* ProviderProject */; };
+		6A88D6F6CA68D046A1E53156 /* PluginMessageListStandard in Frameworks */ = {isa = PBXBuildFile; productRef = CA1FC55200D8FCC80E09B405 /* PluginMessageListStandard */; };
+		6BC3C9B8780281DBE508DFA8 /* PluginLLMProviderFeifeimiao in Frameworks */ = {isa = PBXBuildFile; productRef = A9320F67783C2A8B760C2AD0 /* PluginLLMProviderFeifeimiao */; };
+		6D2BD4D8E6E90A11C8C9A4D9 /* ProviderLLMManager in Frameworks */ = {isa = PBXBuildFile; productRef = 6A86FD539C25F127FF9FFA4C /* ProviderLLMManager */; };
+		6DD3CF86552BDF96AE9064CA /* ProviderRailView in Frameworks */ = {isa = PBXBuildFile; productRef = FA54C7BF97EF88F05D2863B3 /* ProviderRailView */; };
+		6E015A3043C29C700AF629D0 /* PluginConversationNew in Frameworks */ = {isa = PBXBuildFile; productRef = 45268EAFBA99B392EB26E2AA /* PluginConversationNew */; };
+		6E7AEB9F443664D801014EB6 /* PluginConversationList in Frameworks */ = {isa = PBXBuildFile; productRef = F06C0280F3018831C88D8DF4 /* PluginConversationList */; };
+		702E20EB2F0F1346073504A0 /* ProviderToolbar in Frameworks */ = {isa = PBXBuildFile; productRef = 4D47F27221EEF2C4F61DC8B3 /* ProviderToolbar */; };
+		704E09B5EC8E3897557ABA7D /* ProviderLegacyData in Frameworks */ = {isa = PBXBuildFile; productRef = 07FFAB2F91BA5494714002F9 /* ProviderLegacyData */; };
+		70A5D2ABAAF278F5EDA1AD74 /* launch-baseline.json in Resources */ = {isa = PBXBuildFile; fileRef = 8FEE96F3E211370912C2A1E8 /* launch-baseline.json */; };
+		70C618D8B88BFEEDEC671A37 /* PluginLLMProviderFlyMux in Frameworks */ = {isa = PBXBuildFile; productRef = A23C603D024C0EEFCD90E291 /* PluginLLMProviderFlyMux */; };
+		785652F473C0C3E3EAF1E5AB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 97F1B86CFA166C990C747669 /* Localizable.xcstrings */; };
+		7A256BCC53759BBFB28DB0F4 /* ProviderMessage in Frameworks */ = {isa = PBXBuildFile; productRef = 392DE92E81BA51223A1ED207 /* ProviderMessage */; };
+		7ABBDFAE1C346DF193298008 /* PluginLLMProviderCommandCode in Frameworks */ = {isa = PBXBuildFile; productRef = 2E7F908AC05A93C1CDDBE570 /* PluginLLMProviderCommandCode */; };
+		7ED7236EE1184075DD12FF64 /* ProviderIdleTime in Frameworks */ = {isa = PBXBuildFile; productRef = 16A9594DD5EEF965CDFA12A1 /* ProviderIdleTime */; };
+		817B644B8088DC6286FC582B /* PluginLLMProviderAliyun in Frameworks */ = {isa = PBXBuildFile; productRef = 29B37809ECE4951973BA2D8C /* PluginLLMProviderAliyun */; };
+		81A518FDDE761604348F5DD8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 04F6AF829A98FFAF565A48CA /* Assets.xcassets */; };
+		82D4CA7F529441E5177339B7 /* LodeHostManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92917E632FA9BCCF6B5B80FF /* LodeHostManifest.swift */; };
+		839C8D653E9593DC5CABB019 /* ProviderRailView in Frameworks */ = {isa = PBXBuildFile; productRef = 44F330233BC27EFC60664C37 /* ProviderRailView */; };
+		83A43B767478766F008D1793 /* PluginAbout in Frameworks */ = {isa = PBXBuildFile; productRef = 57BF8DA41C39BDE87C36AF7B /* PluginAbout */; };
+		84858941918BA4082AC9F60B /* PluginConversationInput in Frameworks */ = {isa = PBXBuildFile; productRef = 0C3301DE382462727BC9CB7C /* PluginConversationInput */; };
+		85D8F1F0DDB9C93C726738ED /* PluginCodeEditorHost in Frameworks */ = {isa = PBXBuildFile; productRef = D405598E30A7292EBC4EA6E7 /* PluginCodeEditorHost */; };
+		85E17A019294C7A12571E05A /* KitLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 717C675466A18E501B367C49 /* KitLLM */; };
+		85F61531A7F7612819759451 /* PluginLLMProviderLPgpt in Frameworks */ = {isa = PBXBuildFile; productRef = EA4DD280E2A47662FF513CAB /* PluginLLMProviderLPgpt */; };
+		876464184DD68FA43454EFD8 /* ProviderTheme in Frameworks */ = {isa = PBXBuildFile; productRef = 6C6DA3F1373D3ED5783FA584 /* ProviderTheme */; };
+		87EB84DB7E04D26555E47DE8 /* ProviderLifecycleHooks in Frameworks */ = {isa = PBXBuildFile; productRef = 9EEC2A410E840D83BBD30A06 /* ProviderLifecycleHooks */; };
+		88426152B1087EAC4EAA0226 /* ProviderWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = C4DDC63BAF1C72FB4E7DFCF4 /* ProviderWebServer */; };
+		894E051512E3FC16AD5FA12E /* UpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BAE8311F59AB370DAD5CA2 /* UpdateController.swift */; };
+		89F9338FC7CE782AE1B2C677 /* PluginConversationSpeed in Frameworks */ = {isa = PBXBuildFile; productRef = 5DF0C0457544BB4FA231BD81 /* PluginConversationSpeed */; };
+		8C2D8B927F36694A13713C9A /* PluginConversationBehavior in Frameworks */ = {isa = PBXBuildFile; productRef = EE9077A1B71EFAA9E48A5208 /* PluginConversationBehavior */; };
+		90974E05F9D4B6E94B7F0394 /* PluginLLMContext in Frameworks */ = {isa = PBXBuildFile; productRef = 3350E5682A09CFD2AA19D95D /* PluginLLMContext */; };
+		90C5885EE24385C166CE2C39 /* PluginLLMProviderAiRouter in Frameworks */ = {isa = PBXBuildFile; productRef = 554F1F1D99CB6F65B09B0B14 /* PluginLLMProviderAiRouter */; };
+		91813E20A30BCDE0261E8663 /* ProviderAgentRules in Frameworks */ = {isa = PBXBuildFile; productRef = 2D8494880AFF613B387C1D14 /* ProviderAgentRules */; };
+		918D8E752422DD4F32D4FF20 /* PluginLLMProviderOpenRouter in Frameworks */ = {isa = PBXBuildFile; productRef = ECD9A520784F62C81E93FF08 /* PluginLLMProviderOpenRouter */; };
+		925B10E2C99C2D338B87327F /* PluginSettingGeneral in Frameworks */ = {isa = PBXBuildFile; productRef = F138B3AD3D2C5F930D132C98 /* PluginSettingGeneral */; };
+		92D87D8BB40D0A627F4B9B1C /* PluginLLMProviderDeepSeek in Frameworks */ = {isa = PBXBuildFile; productRef = D9939277FAB37252570F0BE5 /* PluginLLMProviderDeepSeek */; };
+		9544894DBD082B2305ED9528 /* ProviderConversation in Frameworks */ = {isa = PBXBuildFile; productRef = FE50F7802F2B7AD7F3B5BE87 /* ProviderConversation */; };
+		96847F8EE74A8A7DF39EA8A6 /* LodeHostManifestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B897C699A5BBD58C41CE2D3 /* LodeHostManifestTests.swift */; };
+		96CDBA8EF4DAB2C95D1EE845 /* KernelCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5254F38836ECDE2AF9BA6BC6 /* KernelCore */; };
+		974A59DA20A7B462DC2422EB /* ProviderConversationInput in Frameworks */ = {isa = PBXBuildFile; productRef = 3702A6B7B59D5275E16F1CBF /* ProviderConversationInput */; };
+		9A0D17BEE411A5B8216A49D0 /* UpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BAE8311F59AB370DAD5CA2 /* UpdateController.swift */; };
+		9A38CFF5FB78410C80E991AC /* ProviderPromptSuggestion in Frameworks */ = {isa = PBXBuildFile; productRef = FAFB1D7540C1EEBB812CDF94 /* ProviderPromptSuggestion */; };
+		9A47D2298DC3A26D3A80B5F9 /* PluginSettingGeneral in Frameworks */ = {isa = PBXBuildFile; productRef = 3A73B657ECB5226FA535D28F /* PluginSettingGeneral */; };
+		9B35D6EE1E0EC593A07E96AD /* PluginThemeManager in Frameworks */ = {isa = PBXBuildFile; productRef = 7D32C0F9194226CEB108781F /* PluginThemeManager */; };
+		9BB582AA097F6795A54236E7 /* PluginModelSelector in Frameworks */ = {isa = PBXBuildFile; productRef = CCB80396EACECC7D5C6E1E5B /* PluginModelSelector */; };
+		9BF1805F4CF22C95B5556C53 /* ProviderExternalFile in Frameworks */ = {isa = PBXBuildFile; productRef = D98164CD19F5CBE89E25625C /* ProviderExternalFile */; };
+		9C05ACDDA1C7A14EDD223838 /* ProviderAgentLoop in Frameworks */ = {isa = PBXBuildFile; productRef = D07105CE6936E6037C114D93 /* ProviderAgentLoop */; };
+		9C2BACFDD5D6670D5F262A32 /* PluginConversationCacheHitRate in Frameworks */ = {isa = PBXBuildFile; productRef = 79DE25613F5E70D3914CC52F /* PluginConversationCacheHitRate */; };
+		9C5125A49785C674EFCDF11E /* PluginChatScreenshot in Frameworks */ = {isa = PBXBuildFile; productRef = 17A4247944396639BF8ECC32 /* PluginChatScreenshot */; };
+		9C7E5F2144DE9220A7077AE0 /* ProviderLegacyData in Frameworks */ = {isa = PBXBuildFile; productRef = 253174EDF0456016BAB32A33 /* ProviderLegacyData */; };
+		9D43E1F88C1F0BAB771511F4 /* ProviderChatSection in Frameworks */ = {isa = PBXBuildFile; productRef = 795E91C1816C39FEFFA0AAF7 /* ProviderChatSection */; };
+		9EF3D926726E7026D6D7E30E /* PluginLLMProviderFlyMux in Frameworks */ = {isa = PBXBuildFile; productRef = C89E7B195D86785AE47FAF2F /* PluginLLMProviderFlyMux */; };
+		A1A96C155CCA4A84B3B41F8C /* LodeChatSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB64E8D74985247E15AF3A4 /* LodeChatSuggestions.swift */; };
+		A2706E94466C0D89CFD93993 /* PluginLLMProviderMLX in Frameworks */ = {isa = PBXBuildFile; productRef = 932182782E8B5D41548B67C7 /* PluginLLMProviderMLX */; };
+		A2838B85294699C346B301D6 /* PluginLLMProviderKimiCode in Frameworks */ = {isa = PBXBuildFile; productRef = 89C999194231E4FD528A1B90 /* PluginLLMProviderKimiCode */; };
+		A326A91B79D2D1D4F6FC1418 /* PluginLLMProviderSublyx in Frameworks */ = {isa = PBXBuildFile; productRef = 745CDD6FB8B00209D3269416 /* PluginLLMProviderSublyx */; };
+		A73F8D82EC0862283BE387D6 /* ProviderMessageRendering in Frameworks */ = {isa = PBXBuildFile; productRef = 651B97ABC07E135FABCF9466 /* ProviderMessageRendering */; };
+		A7A05320C1CB224F4EFB9618 /* PluginThemeManager in Frameworks */ = {isa = PBXBuildFile; productRef = E3618C21D261AA75FD624321 /* PluginThemeManager */; };
+		A8A36E39966A21839BA50350 /* ProviderDeveloperMode in Frameworks */ = {isa = PBXBuildFile; productRef = BF80CD38A0A5041AB94B3B2E /* ProviderDeveloperMode */; };
+		A8C457B29175FA88232CD6CA /* PluginLLMProviderFeifeimiao in Frameworks */ = {isa = PBXBuildFile; productRef = 7BC65878F1C0E3B6BDF9E63D /* PluginLLMProviderFeifeimiao */; };
+		A96739688D130CBF897D709C /* PluginConversationMode in Frameworks */ = {isa = PBXBuildFile; productRef = 618B51978BEFC21A358EE63F /* PluginConversationMode */; };
+		AA2296B96EDEBBE4E775AA70 /* PluginConversationTitle in Frameworks */ = {isa = PBXBuildFile; productRef = F610BF6C71B3D8A5931F1A02 /* PluginConversationTitle */; };
+		ABB9006BECA3939C1BD18264 /* LumiFactory in Frameworks */ = {isa = PBXBuildFile; productRef = 077EE8393DD30BE1840AF02E /* LumiFactory */; };
+		AC760EAF52FE9CFBD70C522C /* PluginAbout in Frameworks */ = {isa = PBXBuildFile; productRef = 3FA6DB234C9331BEBFF4E26C /* PluginAbout */; };
+		AEA75F16851796F14CDC4408 /* PluginLLMProviderHyperAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 31229DF379C3D2F744473DB6 /* PluginLLMProviderHyperAPI */; };
+		B03558E050CD11A05913DA3F /* ProviderMessageStreaming in Frameworks */ = {isa = PBXBuildFile; productRef = C426130A6A737E2BB269ABD9 /* ProviderMessageStreaming */; };
+		B07A0BD05568A79810F01A9F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 95CA7C6C59843AC16A459330 /* Sparkle */; };
+		B140982F6542B86F07CF0794 /* PluginThemePack in Frameworks */ = {isa = PBXBuildFile; productRef = 53365E6194D86F6A58F39AD0 /* PluginThemePack */; };
+		B1D0E6AFB020DEBD3A158FC7 /* PluginConversationExport in Frameworks */ = {isa = PBXBuildFile; productRef = CBA50EC81027CEFAF7F7136E /* PluginConversationExport */; };
+		B1E9B1B2520ED4D121ECAF85 /* PluginConversationInput in Frameworks */ = {isa = PBXBuildFile; productRef = A4D321EDCEAA9F54D432FE65 /* PluginConversationInput */; };
+		B5A0A7CC9888E49C9BA78374 /* PluginLLMProviderSettings in Frameworks */ = {isa = PBXBuildFile; productRef = DBC0E42845189BFDCFBD102A /* PluginLLMProviderSettings */; };
+		B63AEAB6640196CFC4098BB0 /* ProviderIdleTime in Frameworks */ = {isa = PBXBuildFile; productRef = 584E860074945B4E1C815DD6 /* ProviderIdleTime */; };
+		B6646E3E48AAECBB1D1D1A28 /* PluginLLMProviderOpenCode in Frameworks */ = {isa = PBXBuildFile; productRef = 19AFAC7D3EC6DAAAB82DD3B8 /* PluginLLMProviderOpenCode */; };
+		B7ED7ECEB2E2DD0DE47CDBF2 /* ProviderSkill in Frameworks */ = {isa = PBXBuildFile; productRef = 756580246F5100F97304E539 /* ProviderSkill */; };
+		B80C4AC8367645F19C2D0CF7 /* PluginChatFileAttachment in Frameworks */ = {isa = PBXBuildFile; productRef = 56EB0869303D98EB9A710F52 /* PluginChatFileAttachment */; };
+		B8F2643AC504865F6C8F8400 /* LaunchBudgetGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C33B8D90A10089ECEE6775 /* LaunchBudgetGateTests.swift */; };
+		B9460034BBEE928E4588FE0F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 97F1B86CFA166C990C747669 /* Localizable.xcstrings */; };
+		BE9EDA7FF44706F533C537D6 /* PluginConversationElapsedTime in Frameworks */ = {isa = PBXBuildFile; productRef = 8628CD57777CC201C8F96025 /* PluginConversationElapsedTime */; };
+		C012377273FB2E47CDBF11BE /* PluginLLMProviderMLX in Frameworks */ = {isa = PBXBuildFile; productRef = 6CB56FC1AACEDE31BC5A3C88 /* PluginLLMProviderMLX */; };
+		C033307432B3CED71F88D8AE /* PluginLLMProviderMiniMax in Frameworks */ = {isa = PBXBuildFile; productRef = 02E1A98100DBE1E55183A2B9 /* PluginLLMProviderMiniMax */; };
+		C21AAD11394689CA1FECE9AF /* ProviderCommand in Frameworks */ = {isa = PBXBuildFile; productRef = CE054A0BFF5B893E9237275E /* ProviderCommand */; };
+		C46D553B586A4C227C087E5C /* ProviderMessageStreaming in Frameworks */ = {isa = PBXBuildFile; productRef = A9838DBCF044C70EFC97D477 /* ProviderMessageStreaming */; };
+		C6AA4C68208444474FEE40F9 /* ProviderRootView in Frameworks */ = {isa = PBXBuildFile; productRef = 149F2C114E63CFABF8276B79 /* ProviderRootView */; };
+		C8BEBE1DCFAA24C0D4C23A0D /* PluginLLMProviderOpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = ADB2713CD5EDB7EEF22F57A5 /* PluginLLMProviderOpenAI */; };
+		C91C43D5B7F58055064FF599 /* LodeProviderAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD83040840EADB1560F6678D /* LodeProviderAssembly.swift */; };
+		CAE21132AE6CE22FBBA03B1B /* PluginLLMProviderZhipu in Frameworks */ = {isa = PBXBuildFile; productRef = DFE3794B7D7C1150A12EAA27 /* PluginLLMProviderZhipu */; };
+		CCBBC978DDB6EE80140B9498 /* PluginConversationExport in Frameworks */ = {isa = PBXBuildFile; productRef = 9DFD140044FD844898D197DC /* PluginConversationExport */; };
+		CE311AD51D3E7A0FA176DBBE /* ProviderMessageRendering in Frameworks */ = {isa = PBXBuildFile; productRef = D3712EA46AF4741746C2A7E3 /* ProviderMessageRendering */; };
+		CFA83C4ABCD05C980A78A1B1 /* LumiFactory in Frameworks */ = {isa = PBXBuildFile; productRef = AAA42F4E2ED0ED3C2F8BB072 /* LumiFactory */; };
+		D42367EE1E09E4A7BB998112 /* PluginConversationTokenUsage in Frameworks */ = {isa = PBXBuildFile; productRef = B7B1E924DD4ABEDFC39A8070 /* PluginConversationTokenUsage */; };
+		D43BFE0BC8E449FC141AFDE3 /* PluginChatEmptyState in Frameworks */ = {isa = PBXBuildFile; productRef = 7B4A0952DD4C45C7BAC0D55A /* PluginChatEmptyState */; };
+		D56345B407976667E6AFE90B /* PluginMessageListStandard in Frameworks */ = {isa = PBXBuildFile; productRef = BD4BCB9A56FD4B76AA5D98B6 /* PluginMessageListStandard */; };
+		D6866CC6198541A66ADB624D /* ProviderRailView in Frameworks */ = {isa = PBXBuildFile; productRef = EC81FAD417E9762583577AAF /* ProviderRailView */; };
+		D72AE1E28606E0318995C65E /* PluginMessageSender in Frameworks */ = {isa = PBXBuildFile; productRef = AC59ED7F1D85A9F64E67EE93 /* PluginMessageSender */; };
+		D7EF4FD20E63EE7171041877 /* PluginLLMProviderTencent in Frameworks */ = {isa = PBXBuildFile; productRef = AA18CB44AD5867EAD7E807D3 /* PluginLLMProviderTencent */; };
+		D9AB2DABFE8A65745009189C /* LodeKernelTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F23848F894CB4A4ADF2AFA8 /* LodeKernelTestCase.swift */; };
+		DAA70C910E48B4747FC0AFFB /* ProviderAgentRules in Frameworks */ = {isa = PBXBuildFile; productRef = 2FA4CE4722109574DEDA4913 /* ProviderAgentRules */; };
+		DAD6926013B1DC51C1688F54 /* ProviderDeveloperMode in Frameworks */ = {isa = PBXBuildFile; productRef = 151C3CF40DE11E6F1BBC9405 /* ProviderDeveloperMode */; };
+		DB07A08A5DC009D7DB3CBC8E /* ProviderConversation in Frameworks */ = {isa = PBXBuildFile; productRef = 2B1C3F7029E25CE2126C382C /* ProviderConversation */; };
+		DB451B0C9F323A93BDE53DCC /* PluginDatabaseManager in Frameworks */ = {isa = PBXBuildFile; productRef = A5E946465B4857683A5621D7 /* PluginDatabaseManager */; };
+		DBFC52006B9794C83434FA4D /* PluginLLMProviderXiaomi in Frameworks */ = {isa = PBXBuildFile; productRef = 34DE760675518AD9A6E7006A /* PluginLLMProviderXiaomi */; };
+		DD57D325D1D14D4897FF8D53 /* ProviderStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 49B74145FED6BC75689B0D73 /* ProviderStorage */; };
+		DDD0A53ED8C345385B3CDF0D /* ProviderChatSection in Frameworks */ = {isa = PBXBuildFile; productRef = 4683B0A2C586417C4AC29EAF /* ProviderChatSection */; };
+		E7685E810E7F1FE729A59E33 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 04F6AF829A98FFAF565A48CA /* Assets.xcassets */; };
+		E928FCA9B70A14A77529B55A /* ProviderProject in Frameworks */ = {isa = PBXBuildFile; productRef = E4E5FFB51B4A6314CBE36A3E /* ProviderProject */; };
+		E937E68C980A94FDBFEC8334 /* PluginConversationStats in Frameworks */ = {isa = PBXBuildFile; productRef = 75F18B9B471EA925AE88449F /* PluginConversationStats */; };
+		E9A78021C50F9E5882EA1903 /* LodeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00354EB27EE4AC34C94391A1 /* LodeApp.swift */; };
+		E9D0E92904C3B494397099C7 /* PluginModelSelector in Frameworks */ = {isa = PBXBuildFile; productRef = 5C84BD2C082572C8BAA8DFB3 /* PluginModelSelector */; };
+		E9DBBF6B99A34D7C815C45F2 /* ProviderChatSection in Frameworks */ = {isa = PBXBuildFile; productRef = D38DEBD2DD1D5314C6AF7B2D /* ProviderChatSection */; };
+		EB294D095B4662C5E302259B /* PluginLLMProviderLPgpt in Frameworks */ = {isa = PBXBuildFile; productRef = E22CA7254F3BB05B3AC982B6 /* PluginLLMProviderLPgpt */; };
+		EE9BB80F93D55885552C6A2A /* PluginLLMProviderAnthropic in Frameworks */ = {isa = PBXBuildFile; productRef = ABAAF4E11E902C15EF201460 /* PluginLLMProviderAnthropic */; };
+		EEBC065054BB72F5102E2983 /* LodeProviderAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD83040840EADB1560F6678D /* LodeProviderAssembly.swift */; };
+		EF2FACA478E353B47EAF807D /* PluginLLMProviderCommandCode in Frameworks */ = {isa = PBXBuildFile; productRef = 51A7026D347DE55CF6C14A85 /* PluginLLMProviderCommandCode */; };
+		EF55B6FA4270D71CB7AEDF79 /* PluginSettingView in Frameworks */ = {isa = PBXBuildFile; productRef = 11A71E519E54C98E194F81A6 /* PluginSettingView */; };
+		F0B13D9EC01FE6360C269B13 /* PluginMessageRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = 68B194F454B06695CB56C0A3 /* PluginMessageRenderer */; };
+		F14BB029F9ADE834C169EFC9 /* PluginThemePack in Frameworks */ = {isa = PBXBuildFile; productRef = 2623C50764D20E996D1685A4 /* PluginThemePack */; };
+		F2477AFE3B31D94603BD05C4 /* PluginSettingGeneral in Frameworks */ = {isa = PBXBuildFile; productRef = A01FD27BBF0357D3D5C63D2C /* PluginSettingGeneral */; };
+		F49EC7F4223DE704FDDBD62D /* PluginLLMProviderHappyCode in Frameworks */ = {isa = PBXBuildFile; productRef = A830342E5DC09E60E00A93B9 /* PluginLLMProviderHappyCode */; };
+		F4AB189E8800435D24EB998D /* LodeHostManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92917E632FA9BCCF6B5B80FF /* LodeHostManifest.swift */; };
+		F4B46ED0E1C8497E48D2E8F5 /* ProviderToolManager in Frameworks */ = {isa = PBXBuildFile; productRef = 18D843CFE366BB91A8CBB671 /* ProviderToolManager */; };
+		F4F7D4E6E7D3D269EC302FFC /* ProviderLLMContext in Frameworks */ = {isa = PBXBuildFile; productRef = A19F0352831308A89FE1B0A4 /* ProviderLLMContext */; };
+		F5AE5033C53C8AC9C31907A1 /* PluginDatabaseManager in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5B0717B0E96146E31D6521 /* PluginDatabaseManager */; };
+		F6F73EBC831142738C74D2B0 /* ProviderLifecycleHooks in Frameworks */ = {isa = PBXBuildFile; productRef = F7123B434822831379422F99 /* ProviderLifecycleHooks */; };
+		F762BC7B8ECBF8ACBD8EBBBC /* ProviderMessage in Frameworks */ = {isa = PBXBuildFile; productRef = 11E658E05FC56634BF722FB4 /* ProviderMessage */; };
+		F87B0B6877FA6421A28C18F6 /* PluginConversationSpeed in Frameworks */ = {isa = PBXBuildFile; productRef = CA5AF99B03836A800C14B07F /* PluginConversationSpeed */; };
+		FB70EBF785CA905F244A1B3D /* PluginConversationTokenUsage in Frameworks */ = {isa = PBXBuildFile; productRef = 519DF574AD6D4524486E3520 /* PluginConversationTokenUsage */; };
+		FBC66CD157C2A468F4FCC7A3 /* ProviderAgentLoop in Frameworks */ = {isa = PBXBuildFile; productRef = BCA261E159CB4883767972F3 /* ProviderAgentLoop */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		577C6E8E19760D88AEC2A49B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F827DFA0CC1D54A70148706 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C0D64CE3B6EE128BEE36B413;
+			remoteInfo = LodeUITestHost;
+		};
+		ABDA41CB18E5ED26CB966335 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F827DFA0CC1D54A70148706 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FE246902E9ABB2CAB39C58E4;
+			remoteInfo = Lode;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		00354EB27EE4AC34C94391A1 /* LodeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeApp.swift; sourceTree = "<group>"; };
+		04F6AF829A98FFAF565A48CA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0B09C32A6E35B4B968628ABE /* PluginChatEmptyState */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PluginChatEmptyState; path = Packages/PluginChatEmptyState; sourceTree = SOURCE_ROOT; };
+		0DCEC85DB4D9DC431D443BFD /* ProviderLegacyData */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ProviderLegacyData; path = Packages/ProviderLegacyData; sourceTree = SOURCE_ROOT; };
+		1B897C699A5BBD58C41CE2D3 /* LodeHostManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeHostManifestTests.swift; sourceTree = "<group>"; };
+		27BA628D354F4A4FA0781061 /* LodeUITestHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LodeUITestHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3014753AD2DD0350A4D19D34 /* ProviderExternalFile */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ProviderExternalFile; path = Packages/ProviderExternalFile; sourceTree = SOURCE_ROOT; };
+		33C33B8D90A10089ECEE6775 /* LaunchBudgetGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchBudgetGateTests.swift; sourceTree = "<group>"; };
+		467A6EE6826B8FC18FA16B5B /* PluginRootView */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PluginRootView; path = Packages/PluginRootView; sourceTree = SOURCE_ROOT; };
+		4F23848F894CB4A4ADF2AFA8 /* LodeKernelTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeKernelTestCase.swift; sourceTree = "<group>"; };
+		5009FFC26A00BF90A968E5ED /* LodeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LodeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		56B4D15D87DC567863A80F43 /* PluginCodeEditorHost */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PluginCodeEditorHost; path = Packages/PluginCodeEditorHost; sourceTree = SOURCE_ROOT; };
+		743268E9FFC949699070457B /* Lode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lode.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7AB64E8D74985247E15AF3A4 /* LodeChatSuggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeChatSuggestions.swift; sourceTree = "<group>"; };
+		7DE14931E30CC18FAF0FC39F /* PluginDatabaseManager */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PluginDatabaseManager; path = Packages/PluginDatabaseManager; sourceTree = SOURCE_ROOT; };
+		7FFBB2ADADFAB350934CE2CC /* ProviderWebServer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ProviderWebServer; path = Packages/ProviderWebServer; sourceTree = SOURCE_ROOT; };
+		8FEE96F3E211370912C2A1E8 /* launch-baseline.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "launch-baseline.json"; sourceTree = "<group>"; };
+		92917E632FA9BCCF6B5B80FF /* LodeHostManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeHostManifest.swift; sourceTree = "<group>"; };
+		97F1B86CFA166C990C747669 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		BD83040840EADB1560F6678D /* LodeProviderAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeProviderAssembly.swift; sourceTree = "<group>"; };
+		D1C432AB881E1158212BACE1 /* LodeSmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LodeSmokeUITests.swift; sourceTree = "<group>"; };
+		E7ACD6C0863D2728C862F914 /* LodeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LodeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7BAE8311F59AB370DAD5CA2 /* UpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateController.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1969440C32D08F263D6C0348 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABB9006BECA3939C1BD18264 /* LumiFactory in Frameworks */,
+				4B77B5885CCC602CBDF6793B /* PluginSettingView in Frameworks */,
+				2A9DB17E989322FF61F4EBDB /* PluginAbout in Frameworks */,
+				9A47D2298DC3A26D3A80B5F9 /* PluginSettingGeneral in Frameworks */,
+				39C80E4F30815710FF26B406 /* WorkbenchRootView in Frameworks */,
+				96CDBA8EF4DAB2C95D1EE845 /* KernelCore in Frameworks */,
+				2B54E8B03C2392C8493700EE /* Sparkle in Frameworks */,
+				F5AE5033C53C8AC9C31907A1 /* PluginDatabaseManager in Frameworks */,
+				42397FC6E215B094302ACF38 /* PluginCodeEditorHost in Frameworks */,
+				09DDAF9A10E8CB68EF6E3501 /* LodePluginRootView in Frameworks */,
+				D43BFE0BC8E449FC141AFDE3 /* PluginChatEmptyState in Frameworks */,
+				85E17A019294C7A12571E05A /* KitLLM in Frameworks */,
+				84858941918BA4082AC9F60B /* PluginConversationInput in Frameworks */,
+				6E7AEB9F443664D801014EB6 /* PluginConversationList in Frameworks */,
+				6E015A3043C29C700AF629D0 /* PluginConversationNew in Frameworks */,
+				1B1CE9561D5F0617AAB902AB /* PluginConversationState in Frameworks */,
+				D56345B407976667E6AFE90B /* PluginMessageListStandard in Frameworks */,
+				F0B13D9EC01FE6360C269B13 /* PluginMessageRenderer in Frameworks */,
+				2BADECDB6EB03CDC34BCE754 /* PluginMessageSender in Frameworks */,
+				9BB582AA097F6795A54236E7 /* PluginModelSelector in Frameworks */,
+				68F99C2AFE009668A7B7FA94 /* PluginLLMProviderSettings in Frameworks */,
+				24606199CB790442921E7E9D /* PluginLLMProviderOpenAI in Frameworks */,
+				AA2296B96EDEBBE4E775AA70 /* PluginConversationTitle in Frameworks */,
+				E937E68C980A94FDBFEC8334 /* PluginConversationStats in Frameworks */,
+				D42367EE1E09E4A7BB998112 /* PluginConversationTokenUsage in Frameworks */,
+				F87B0B6877FA6421A28C18F6 /* PluginConversationSpeed in Frameworks */,
+				BE9EDA7FF44706F533C537D6 /* PluginConversationElapsedTime in Frameworks */,
+				3E26DB6532D9137FBC171A1F /* PluginConversationCacheHitRate in Frameworks */,
+				A96739688D130CBF897D709C /* PluginConversationMode in Frameworks */,
+				451505C69CFE0BA845DED502 /* PluginConversationVerbosity in Frameworks */,
+				8C2D8B927F36694A13713C9A /* PluginConversationBehavior in Frameworks */,
+				38ED584B67B900FBEF39EC10 /* PluginChatFileAttachment in Frameworks */,
+				608E7D734783846BA328ABFE /* PluginChatScreenshot in Frameworks */,
+				B1D0E6AFB020DEBD3A158FC7 /* PluginConversationExport in Frameworks */,
+				2C1F373F8F85B013F464D5A7 /* PluginConversationFork in Frameworks */,
+				3707342DB1470495B56B9DE5 /* PluginToolActivity in Frameworks */,
+				58AA46A26A5DAF4585E082AF /* PluginLLMContext in Frameworks */,
+				4E893E5411029182EE9C11AD /* PluginSkill in Frameworks */,
+				90C5885EE24385C166CE2C39 /* PluginLLMProviderAiRouter in Frameworks */,
+				2F329DC7A50737127B5FBFA8 /* PluginLLMProviderAliyun in Frameworks */,
+				2D6D4CD405BC79B45A30E9CA /* PluginLLMProviderAnthropic in Frameworks */,
+				53EE2A718D90442128C9766A /* PluginLLMProviderDeepSeek in Frameworks */,
+				6BC3C9B8780281DBE508DFA8 /* PluginLLMProviderFeifeimiao in Frameworks */,
+				70C618D8B88BFEEDEC671A37 /* PluginLLMProviderFlyMux in Frameworks */,
+				F49EC7F4223DE704FDDBD62D /* PluginLLMProviderHappyCode in Frameworks */,
+				0829EFCE1AB01154F7B8F9F5 /* PluginLLMProviderHyperAPI in Frameworks */,
+				32A0DCD568C93724C71385F1 /* PluginLLMProviderKimiCode in Frameworks */,
+				EB294D095B4662C5E302259B /* PluginLLMProviderLPgpt in Frameworks */,
+				688014B1B9A6AC9F436C4800 /* PluginLLMProviderMegaLLM in Frameworks */,
+				C033307432B3CED71F88D8AE /* PluginLLMProviderMiniMax in Frameworks */,
+				B6646E3E48AAECBB1D1D1A28 /* PluginLLMProviderOpenCode in Frameworks */,
+				7ABBDFAE1C346DF193298008 /* PluginLLMProviderCommandCode in Frameworks */,
+				4BE92519E0A52A06338457EE /* PluginLLMProviderOpenRouter in Frameworks */,
+				59A0F30C79D0A4F3EF295086 /* PluginLLMProviderStepFun in Frameworks */,
+				40C10E875813C3231F70CB56 /* PluginLLMProviderSublyx in Frameworks */,
+				3763451B57646E70CE74A0AD /* PluginLLMProviderTencent in Frameworks */,
+				41D6431B65CD11A2DDA0ABFC /* PluginLLMProviderXiaomi in Frameworks */,
+				05662F50159C9FE5979F9D5F /* PluginLLMProviderXybbz in Frameworks */,
+				CAE21132AE6CE22FBBA03B1B /* PluginLLMProviderZhipu in Frameworks */,
+				C012377273FB2E47CDBF11BE /* PluginLLMProviderMLX in Frameworks */,
+				FBC66CD157C2A468F4FCC7A3 /* ProviderAgentLoop in Frameworks */,
+				9D43E1F88C1F0BAB771511F4 /* ProviderChatSection in Frameworks */,
+				1F817A2EAD6A18AFEC71016F /* ProviderConversation in Frameworks */,
+				3682F5ED7DD5B286F8792EB7 /* ProviderConversationInputBlock in Frameworks */,
+				9BF1805F4CF22C95B5556C53 /* ProviderExternalFile in Frameworks */,
+				F4F7D4E6E7D3D269EC302FFC /* ProviderLLMContext in Frameworks */,
+				6D2BD4D8E6E90A11C8C9A4D9 /* ProviderLLMManager in Frameworks */,
+				9C7E5F2144DE9220A7077AE0 /* ProviderLegacyData in Frameworks */,
+				F6F73EBC831142738C74D2B0 /* ProviderLifecycleHooks in Frameworks */,
+				F762BC7B8ECBF8ACBD8EBBBC /* ProviderMessage in Frameworks */,
+				CE311AD51D3E7A0FA176DBBE /* ProviderMessageRendering in Frameworks */,
+				C46D553B586A4C227C087E5C /* ProviderMessageStreaming in Frameworks */,
+				01E23131E6B753A98A797F29 /* ProviderPromptSuggestionExecutor in Frameworks */,
+				2EC14587E619C84A1FDADDD3 /* ProviderWebServer in Frameworks */,
+				F4B46ED0E1C8497E48D2E8F5 /* ProviderToolManager in Frameworks */,
+				91813E20A30BCDE0261E8663 /* ProviderAgentRules in Frameworks */,
+				C21AAD11394689CA1FECE9AF /* ProviderCommand in Frameworks */,
+				974A59DA20A7B462DC2422EB /* ProviderConversationInput in Frameworks */,
+				DAD6926013B1DC51C1688F54 /* ProviderDeveloperMode in Frameworks */,
+				7ED7236EE1184075DD12FF64 /* ProviderIdleTime in Frameworks */,
+				55C56EF4558724380E2FFB03 /* ProviderNetwork in Frameworks */,
+				6A2BF73AE3E124AB7649DBDE /* ProviderProject in Frameworks */,
+				9A38CFF5FB78410C80E991AC /* ProviderPromptSuggestion in Frameworks */,
+				839C8D653E9593DC5CABB019 /* ProviderRailView in Frameworks */,
+				3622D136E40C7B7BBB7B4216 /* ProviderRootView in Frameworks */,
+				B7ED7ECEB2E2DD0DE47CDBF2 /* ProviderSkill in Frameworks */,
+				DD57D325D1D14D4897FF8D53 /* ProviderStorage in Frameworks */,
+				876464184DD68FA43454EFD8 /* ProviderTheme in Frameworks */,
+				5D8064BBC7ADB07077B59B30 /* ProviderUninstall in Frameworks */,
+				A7A05320C1CB224F4EFB9618 /* PluginThemeManager in Frameworks */,
+				F14BB029F9ADE834C169EFC9 /* PluginThemePack in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B24600747791782A2DD32CB2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				46F091117ABF4E6471E2103D /* LumiFactory in Frameworks */,
+				5341979C412A50FBF8316D1E /* WorkbenchRootView in Frameworks */,
+				3961830994497221859ACD21 /* KernelCore in Frameworks */,
+				57F8F95E058445F83C96E796 /* LumiLoggingKit in Frameworks */,
+				DDD0A53ED8C345385B3CDF0D /* ProviderChatSection in Frameworks */,
+				DB07A08A5DC009D7DB3CBC8E /* ProviderConversation in Frameworks */,
+				0CF6A69FB56EDB2240C7A610 /* ProviderExternalFile in Frameworks */,
+				4315FB3C2998E3E5D5F439DC /* ProviderToolManager in Frameworks */,
+				D6866CC6198541A66ADB624D /* ProviderRailView in Frameworks */,
+				61005EE8D0091A35DA3CF24F /* ProviderRootView in Frameworks */,
+				702E20EB2F0F1346073504A0 /* ProviderToolbar in Frameworks */,
+				AC760EAF52FE9CFBD70C522C /* PluginAbout in Frameworks */,
+				F2477AFE3B31D94603BD05C4 /* PluginSettingGeneral in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA0F300B7BE1E1560A375DEC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFA83C4ABCD05C980A78A1B1 /* LumiFactory in Frameworks */,
+				EF55B6FA4270D71CB7AEDF79 /* PluginSettingView in Frameworks */,
+				83A43B767478766F008D1793 /* PluginAbout in Frameworks */,
+				925B10E2C99C2D338B87327F /* PluginSettingGeneral in Frameworks */,
+				0D58579FEBFE38046462BE18 /* WorkbenchRootView in Frameworks */,
+				5A8DF57DC2166906B4FD3000 /* KernelCore in Frameworks */,
+				B07A0BD05568A79810F01A9F /* Sparkle in Frameworks */,
+				DB451B0C9F323A93BDE53DCC /* PluginDatabaseManager in Frameworks */,
+				85D8F1F0DDB9C93C726738ED /* PluginCodeEditorHost in Frameworks */,
+				27E4B553E7CCEC72CB466CD3 /* LodePluginRootView in Frameworks */,
+				4B31084401EC600609C59B4F /* PluginChatEmptyState in Frameworks */,
+				5A9AD2761BCEFEFE48859AEB /* KitLLM in Frameworks */,
+				B1E9B1B2520ED4D121ECAF85 /* PluginConversationInput in Frameworks */,
+				34337D66BF2BFD4BACA10940 /* PluginConversationList in Frameworks */,
+				50D5C1FE53C99858EF7B6F10 /* PluginConversationNew in Frameworks */,
+				0DE1EFF176D17608677551C2 /* PluginConversationState in Frameworks */,
+				6A88D6F6CA68D046A1E53156 /* PluginMessageListStandard in Frameworks */,
+				254FFEBF64DD8E350FF068F1 /* PluginMessageRenderer in Frameworks */,
+				D72AE1E28606E0318995C65E /* PluginMessageSender in Frameworks */,
+				E9D0E92904C3B494397099C7 /* PluginModelSelector in Frameworks */,
+				B5A0A7CC9888E49C9BA78374 /* PluginLLMProviderSettings in Frameworks */,
+				C8BEBE1DCFAA24C0D4C23A0D /* PluginLLMProviderOpenAI in Frameworks */,
+				39363FB1B2F715BB50396A96 /* PluginConversationTitle in Frameworks */,
+				672E29C9EB39D962B6C962EC /* PluginConversationStats in Frameworks */,
+				FB70EBF785CA905F244A1B3D /* PluginConversationTokenUsage in Frameworks */,
+				89F9338FC7CE782AE1B2C677 /* PluginConversationSpeed in Frameworks */,
+				2D2D3924F784198131250277 /* PluginConversationElapsedTime in Frameworks */,
+				9C2BACFDD5D6670D5F262A32 /* PluginConversationCacheHitRate in Frameworks */,
+				219BE2EB1DC9BFCBEF22C4F1 /* PluginConversationMode in Frameworks */,
+				1AF402F68FD420B975903EA5 /* PluginConversationVerbosity in Frameworks */,
+				5A857E94D56843267030B13F /* PluginConversationBehavior in Frameworks */,
+				B80C4AC8367645F19C2D0CF7 /* PluginChatFileAttachment in Frameworks */,
+				9C5125A49785C674EFCDF11E /* PluginChatScreenshot in Frameworks */,
+				CCBBC978DDB6EE80140B9498 /* PluginConversationExport in Frameworks */,
+				3337415C4D1E53B4ECE07A51 /* PluginConversationFork in Frameworks */,
+				574D83302E38DE2D2CC6F424 /* PluginToolActivity in Frameworks */,
+				90974E05F9D4B6E94B7F0394 /* PluginLLMContext in Frameworks */,
+				256E35F4F8415141AEE4B854 /* PluginSkill in Frameworks */,
+				041D4E974F080AF395BDF750 /* PluginLLMProviderAiRouter in Frameworks */,
+				817B644B8088DC6286FC582B /* PluginLLMProviderAliyun in Frameworks */,
+				EE9BB80F93D55885552C6A2A /* PluginLLMProviderAnthropic in Frameworks */,
+				92D87D8BB40D0A627F4B9B1C /* PluginLLMProviderDeepSeek in Frameworks */,
+				A8C457B29175FA88232CD6CA /* PluginLLMProviderFeifeimiao in Frameworks */,
+				9EF3D926726E7026D6D7E30E /* PluginLLMProviderFlyMux in Frameworks */,
+				63486F24A88D6E6D16ADC0FD /* PluginLLMProviderHappyCode in Frameworks */,
+				AEA75F16851796F14CDC4408 /* PluginLLMProviderHyperAPI in Frameworks */,
+				A2838B85294699C346B301D6 /* PluginLLMProviderKimiCode in Frameworks */,
+				85F61531A7F7612819759451 /* PluginLLMProviderLPgpt in Frameworks */,
+				6985038680000B5859F9E305 /* PluginLLMProviderMegaLLM in Frameworks */,
+				57A54AFCFC4A112C8863B08A /* PluginLLMProviderMiniMax in Frameworks */,
+				209CF693313824E8A0877890 /* PluginLLMProviderOpenCode in Frameworks */,
+				EF2FACA478E353B47EAF807D /* PluginLLMProviderCommandCode in Frameworks */,
+				918D8E752422DD4F32D4FF20 /* PluginLLMProviderOpenRouter in Frameworks */,
+				36228C7B4A40CDEE5B959033 /* PluginLLMProviderStepFun in Frameworks */,
+				A326A91B79D2D1D4F6FC1418 /* PluginLLMProviderSublyx in Frameworks */,
+				D7EF4FD20E63EE7171041877 /* PluginLLMProviderTencent in Frameworks */,
+				DBFC52006B9794C83434FA4D /* PluginLLMProviderXiaomi in Frameworks */,
+				50FBE161AF088E9019557FAF /* PluginLLMProviderXybbz in Frameworks */,
+				534B26F642A7777C5E350787 /* PluginLLMProviderZhipu in Frameworks */,
+				A2706E94466C0D89CFD93993 /* PluginLLMProviderMLX in Frameworks */,
+				9C05ACDDA1C7A14EDD223838 /* ProviderAgentLoop in Frameworks */,
+				E9DBBF6B99A34D7C815C45F2 /* ProviderChatSection in Frameworks */,
+				9544894DBD082B2305ED9528 /* ProviderConversation in Frameworks */,
+				67D7B561BF4F71FDC3331D37 /* ProviderConversationInputBlock in Frameworks */,
+				3507EB103399882FB221C961 /* ProviderExternalFile in Frameworks */,
+				430A7C0144360A9065E489A2 /* ProviderLLMContext in Frameworks */,
+				2153C93E32972E7021838732 /* ProviderLLMManager in Frameworks */,
+				704E09B5EC8E3897557ABA7D /* ProviderLegacyData in Frameworks */,
+				87EB84DB7E04D26555E47DE8 /* ProviderLifecycleHooks in Frameworks */,
+				7A256BCC53759BBFB28DB0F4 /* ProviderMessage in Frameworks */,
+				A73F8D82EC0862283BE387D6 /* ProviderMessageRendering in Frameworks */,
+				B03558E050CD11A05913DA3F /* ProviderMessageStreaming in Frameworks */,
+				3D1FBD1B52823F494E95C406 /* ProviderPromptSuggestionExecutor in Frameworks */,
+				88426152B1087EAC4EAA0226 /* ProviderWebServer in Frameworks */,
+				1DBB94D0ABEED79510FC164D /* ProviderToolManager in Frameworks */,
+				DAA70C910E48B4747FC0AFFB /* ProviderAgentRules in Frameworks */,
+				340E7EEF28DB7DB9DD427DCA /* ProviderCommand in Frameworks */,
+				27C7E14676DDB4E9CBEC37EE /* ProviderConversationInput in Frameworks */,
+				A8A36E39966A21839BA50350 /* ProviderDeveloperMode in Frameworks */,
+				B63AEAB6640196CFC4098BB0 /* ProviderIdleTime in Frameworks */,
+				3124CCA7CAF620B84E98A966 /* ProviderNetwork in Frameworks */,
+				E928FCA9B70A14A77529B55A /* ProviderProject in Frameworks */,
+				3BF08F83364E5CE0B6A9580E /* ProviderPromptSuggestion in Frameworks */,
+				6DD3CF86552BDF96AE9064CA /* ProviderRailView in Frameworks */,
+				C6AA4C68208444474FEE40F9 /* ProviderRootView in Frameworks */,
+				4FCCCC25F53583BE2BB77994 /* ProviderSkill in Frameworks */,
+				560DD736A879BD2B6C19D84B /* ProviderStorage in Frameworks */,
+				599DF274FF26F847D519E199 /* ProviderTheme in Frameworks */,
+				003F1F61FFE9BC6284984679 /* ProviderUninstall in Frameworks */,
+				9B35D6EE1E0EC593A07E96AD /* PluginThemeManager in Frameworks */,
+				B140982F6542B86F07CF0794 /* PluginThemePack in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		240E29BC47CAE90007B797FD /* LodeUITests */ = {
+			isa = PBXGroup;
+			children = (
+				D1C432AB881E1158212BACE1 /* LodeSmokeUITests.swift */,
+			);
+			path = LodeUITests;
+			sourceTree = "<group>";
+		};
+		2D1992B14FE1EC2AC1A74B92 /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				D59B5FC28D16C3E95035FC18 /* perf */,
+			);
+			path = scripts;
+			sourceTree = "<group>";
+		};
+		442C98886399A663C8D09826 /* LodeApp */ = {
+			isa = PBXGroup;
+			children = (
+				04F6AF829A98FFAF565A48CA /* Assets.xcassets */,
+				97F1B86CFA166C990C747669 /* Localizable.xcstrings */,
+				00354EB27EE4AC34C94391A1 /* LodeApp.swift */,
+				7AB64E8D74985247E15AF3A4 /* LodeChatSuggestions.swift */,
+				92917E632FA9BCCF6B5B80FF /* LodeHostManifest.swift */,
+				BD83040840EADB1560F6678D /* LodeProviderAssembly.swift */,
+				E7BAE8311F59AB370DAD5CA2 /* UpdateController.swift */,
+			);
+			path = LodeApp;
+			sourceTree = "<group>";
+		};
+		7D59578DA7E79F39E8B93F33 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				743268E9FFC949699070457B /* Lode.app */,
+				5009FFC26A00BF90A968E5ED /* LodeTests.xctest */,
+				27BA628D354F4A4FA0781061 /* LodeUITestHost.app */,
+				E7ACD6C0863D2728C862F914 /* LodeUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B4B0B563D1D5EA22662F37A4 = {
+			isa = PBXGroup;
+			children = (
+				442C98886399A663C8D09826 /* LodeApp */,
+				E133D41CD8CA7B5B225B2547 /* LodeTests */,
+				240E29BC47CAE90007B797FD /* LodeUITests */,
+				C1383EFC0178D9A9EE961F38 /* Packages */,
+				2D1992B14FE1EC2AC1A74B92 /* scripts */,
+				7D59578DA7E79F39E8B93F33 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C1383EFC0178D9A9EE961F38 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				0B09C32A6E35B4B968628ABE /* PluginChatEmptyState */,
+				56B4D15D87DC567863A80F43 /* PluginCodeEditorHost */,
+				7DE14931E30CC18FAF0FC39F /* PluginDatabaseManager */,
+				467A6EE6826B8FC18FA16B5B /* PluginRootView */,
+				3014753AD2DD0350A4D19D34 /* ProviderExternalFile */,
+				0DCEC85DB4D9DC431D443BFD /* ProviderLegacyData */,
+				7FFBB2ADADFAB350934CE2CC /* ProviderWebServer */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		D59B5FC28D16C3E95035FC18 /* perf */ = {
+			isa = PBXGroup;
+			children = (
+				8FEE96F3E211370912C2A1E8 /* launch-baseline.json */,
+			);
+			path = perf;
+			sourceTree = "<group>";
+		};
+		E133D41CD8CA7B5B225B2547 /* LodeTests */ = {
+			isa = PBXGroup;
+			children = (
+				33C33B8D90A10089ECEE6775 /* LaunchBudgetGateTests.swift */,
+				1B897C699A5BBD58C41CE2D3 /* LodeHostManifestTests.swift */,
+				4F23848F894CB4A4ADF2AFA8 /* LodeKernelTestCase.swift */,
+			);
+			path = LodeTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8E2F89C60FBBBCD3C942EEAD /* LodeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9CF4E944EBEE28871C1736B9 /* Build configuration list for PBXNativeTarget "LodeTests" */;
+			buildPhases = (
+				123D34232C4BFF33F29F6E4E /* Sources */,
+				8393CAAF677BDE5B5CE67CC7 /* Resources */,
+				B24600747791782A2DD32CB2 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F641F1C16DC6FA42E680F096 /* PBXTargetDependency */,
+			);
+			name = LodeTests;
+			packageProductDependencies = (
+				7D52BFF1519C4716EB41895B /* LumiFactory */,
+				1CC5BC9294A5BB8AE1D5FAAC /* WorkbenchRootView */,
+				F37681A802FE42AEC1F47A2D /* KernelCore */,
+				4EDB5511D686A56250E042C7 /* LumiLoggingKit */,
+				4683B0A2C586417C4AC29EAF /* ProviderChatSection */,
+				2B1C3F7029E25CE2126C382C /* ProviderConversation */,
+				3C0879D8DB472CF6A761F96A /* ProviderExternalFile */,
+				4D7AE158BD05CE274961FF10 /* ProviderToolManager */,
+				EC81FAD417E9762583577AAF /* ProviderRailView */,
+				9A94148A5D1C4213789B2119 /* ProviderRootView */,
+				4D47F27221EEF2C4F61DC8B3 /* ProviderToolbar */,
+				3FA6DB234C9331BEBFF4E26C /* PluginAbout */,
+				A01FD27BBF0357D3D5C63D2C /* PluginSettingGeneral */,
+			);
+			productName = LodeTests;
+			productReference = 5009FFC26A00BF90A968E5ED /* LodeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		C0D64CE3B6EE128BEE36B413 /* LodeUITestHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9BFB946AFECE5D62B49F13B0 /* Build configuration list for PBXNativeTarget "LodeUITestHost" */;
+			buildPhases = (
+				2BDAA2A737AC7C8B59D2E3F8 /* Sources */,
+				B6A6C942EC1639A8AAA35197 /* Resources */,
+				1969440C32D08F263D6C0348 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LodeUITestHost;
+			packageProductDependencies = (
+				077EE8393DD30BE1840AF02E /* LumiFactory */,
+				82EBE519F0597E53C6FF4C59 /* PluginSettingView */,
+				3468965338B5AFCC91539A4D /* PluginAbout */,
+				3A73B657ECB5226FA535D28F /* PluginSettingGeneral */,
+				4C1765D0A890056F9E874771 /* WorkbenchRootView */,
+				5254F38836ECDE2AF9BA6BC6 /* KernelCore */,
+				03A912FE1D5BBF0AB5F0E441 /* Sparkle */,
+				4A5B0717B0E96146E31D6521 /* PluginDatabaseManager */,
+				7554B33D07CCD4CAD4D92904 /* PluginCodeEditorHost */,
+				31D0D0471692D7CA0EB9F109 /* LodePluginRootView */,
+				7B4A0952DD4C45C7BAC0D55A /* PluginChatEmptyState */,
+				717C675466A18E501B367C49 /* KitLLM */,
+				0C3301DE382462727BC9CB7C /* PluginConversationInput */,
+				F06C0280F3018831C88D8DF4 /* PluginConversationList */,
+				45268EAFBA99B392EB26E2AA /* PluginConversationNew */,
+				FBA46844747C91E612B928EA /* PluginConversationState */,
+				BD4BCB9A56FD4B76AA5D98B6 /* PluginMessageListStandard */,
+				68B194F454B06695CB56C0A3 /* PluginMessageRenderer */,
+				0BAC6B6F98131E31FC1D09F7 /* PluginMessageSender */,
+				CCB80396EACECC7D5C6E1E5B /* PluginModelSelector */,
+				EF3CD41AF5CE64DD0C846E53 /* PluginLLMProviderSettings */,
+				C8993745FE060D977F4A8812 /* PluginLLMProviderOpenAI */,
+				F610BF6C71B3D8A5931F1A02 /* PluginConversationTitle */,
+				75F18B9B471EA925AE88449F /* PluginConversationStats */,
+				B7B1E924DD4ABEDFC39A8070 /* PluginConversationTokenUsage */,
+				CA5AF99B03836A800C14B07F /* PluginConversationSpeed */,
+				8628CD57777CC201C8F96025 /* PluginConversationElapsedTime */,
+				78712605136AC95D832E1C5C /* PluginConversationCacheHitRate */,
+				618B51978BEFC21A358EE63F /* PluginConversationMode */,
+				03C44602BFAB8870F55CFDFF /* PluginConversationVerbosity */,
+				EE9077A1B71EFAA9E48A5208 /* PluginConversationBehavior */,
+				61B3B820089248F9CF9DFCBC /* PluginChatFileAttachment */,
+				A29E92C94EA3896C01B89AB5 /* PluginChatScreenshot */,
+				CBA50EC81027CEFAF7F7136E /* PluginConversationExport */,
+				598E13FE60C771EBC93A1411 /* PluginConversationFork */,
+				3933F70F3CE9C38C691B6E6F /* PluginToolActivity */,
+				5E9A58FE43A660FD28A73FA2 /* PluginLLMContext */,
+				CE3641347FEECD861B3A5796 /* PluginSkill */,
+				554F1F1D99CB6F65B09B0B14 /* PluginLLMProviderAiRouter */,
+				212885F3E4F8A2E450C160D1 /* PluginLLMProviderAliyun */,
+				BD2C9B7862FF9D756031D6BB /* PluginLLMProviderAnthropic */,
+				FB1DBBB4A497E7E905F456E9 /* PluginLLMProviderDeepSeek */,
+				A9320F67783C2A8B760C2AD0 /* PluginLLMProviderFeifeimiao */,
+				A23C603D024C0EEFCD90E291 /* PluginLLMProviderFlyMux */,
+				A830342E5DC09E60E00A93B9 /* PluginLLMProviderHappyCode */,
+				564272D4AF2EE949694BADA2 /* PluginLLMProviderHyperAPI */,
+				F1F8352A776BE68B02A93F59 /* PluginLLMProviderKimiCode */,
+				E22CA7254F3BB05B3AC982B6 /* PluginLLMProviderLPgpt */,
+				1D4A06A97F1AD0E46E9C8091 /* PluginLLMProviderMegaLLM */,
+				02E1A98100DBE1E55183A2B9 /* PluginLLMProviderMiniMax */,
+				19AFAC7D3EC6DAAAB82DD3B8 /* PluginLLMProviderOpenCode */,
+				2E7F908AC05A93C1CDDBE570 /* PluginLLMProviderCommandCode */,
+				1387E22379C17B35B4D8072C /* PluginLLMProviderOpenRouter */,
+				053B19163C889A3998159374 /* PluginLLMProviderStepFun */,
+				D1E595C490C53DBD761F8268 /* PluginLLMProviderSublyx */,
+				414C262E5813BA82CB0CF45C /* PluginLLMProviderTencent */,
+				512257562C2573C718C75B1F /* PluginLLMProviderXiaomi */,
+				95C1FE9A395E9C9816FC23B0 /* PluginLLMProviderXybbz */,
+				DFE3794B7D7C1150A12EAA27 /* PluginLLMProviderZhipu */,
+				6CB56FC1AACEDE31BC5A3C88 /* PluginLLMProviderMLX */,
+				BCA261E159CB4883767972F3 /* ProviderAgentLoop */,
+				795E91C1816C39FEFFA0AAF7 /* ProviderChatSection */,
+				056325B5703892B16DEA6063 /* ProviderConversation */,
+				82CC911607E24BFE3407D751 /* ProviderConversationInputBlock */,
+				D98164CD19F5CBE89E25625C /* ProviderExternalFile */,
+				A19F0352831308A89FE1B0A4 /* ProviderLLMContext */,
+				6A86FD539C25F127FF9FFA4C /* ProviderLLMManager */,
+				253174EDF0456016BAB32A33 /* ProviderLegacyData */,
+				F7123B434822831379422F99 /* ProviderLifecycleHooks */,
+				11E658E05FC56634BF722FB4 /* ProviderMessage */,
+				D3712EA46AF4741746C2A7E3 /* ProviderMessageRendering */,
+				A9838DBCF044C70EFC97D477 /* ProviderMessageStreaming */,
+				A3B2BF59279F755C3A2CDEC1 /* ProviderPromptSuggestionExecutor */,
+				B0C084C09693D5813C89E0CE /* ProviderWebServer */,
+				18D843CFE366BB91A8CBB671 /* ProviderToolManager */,
+				2D8494880AFF613B387C1D14 /* ProviderAgentRules */,
+				CE054A0BFF5B893E9237275E /* ProviderCommand */,
+				3702A6B7B59D5275E16F1CBF /* ProviderConversationInput */,
+				151C3CF40DE11E6F1BBC9405 /* ProviderDeveloperMode */,
+				16A9594DD5EEF965CDFA12A1 /* ProviderIdleTime */,
+				AC787F9FFEF3C7B0AA4C8A00 /* ProviderNetwork */,
+				7459ACD5C49D8B33D138F1C1 /* ProviderProject */,
+				FAFB1D7540C1EEBB812CDF94 /* ProviderPromptSuggestion */,
+				44F330233BC27EFC60664C37 /* ProviderRailView */,
+				24234CF5AE97D56F3EBE131F /* ProviderRootView */,
+				756580246F5100F97304E539 /* ProviderSkill */,
+				49B74145FED6BC75689B0D73 /* ProviderStorage */,
+				6C6DA3F1373D3ED5783FA584 /* ProviderTheme */,
+				1AFA1109BCD2D6A250EA672C /* ProviderUninstall */,
+				E3618C21D261AA75FD624321 /* PluginThemeManager */,
+				2623C50764D20E996D1685A4 /* PluginThemePack */,
+			);
+			productName = LodeUITestHost;
+			productReference = 27BA628D354F4A4FA0781061 /* LodeUITestHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D92FF7F10C72F5ADE272A63D /* LodeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 16F6AC2E09DCDA6BE712E0DB /* Build configuration list for PBXNativeTarget "LodeUITests" */;
+			buildPhases = (
+				A2E14CF3E8CFB9B53C676344 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				34AE56E0D852F6B6FB3D7F14 /* PBXTargetDependency */,
+			);
+			name = LodeUITests;
+			packageProductDependencies = (
+			);
+			productName = LodeUITests;
+			productReference = E7ACD6C0863D2728C862F914 /* LodeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		FE246902E9ABB2CAB39C58E4 /* Lode */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C42D57A477EE805BD5F83F07 /* Build configuration list for PBXNativeTarget "Lode" */;
+			buildPhases = (
+				22E3DB4BDC55EAC390AB94EC /* Sources */,
+				F1BFF32C075139EEF72F7D6D /* Resources */,
+				BA0F300B7BE1E1560A375DEC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Lode;
+			packageProductDependencies = (
+				AAA42F4E2ED0ED3C2F8BB072 /* LumiFactory */,
+				11A71E519E54C98E194F81A6 /* PluginSettingView */,
+				57BF8DA41C39BDE87C36AF7B /* PluginAbout */,
+				F138B3AD3D2C5F930D132C98 /* PluginSettingGeneral */,
+				45D674A4B0B8E414368B31BC /* WorkbenchRootView */,
+				2361E7046A5D0CC11BDE52D2 /* KernelCore */,
+				95CA7C6C59843AC16A459330 /* Sparkle */,
+				A5E946465B4857683A5621D7 /* PluginDatabaseManager */,
+				D405598E30A7292EBC4EA6E7 /* PluginCodeEditorHost */,
+				07CEAB99630B496822912C6A /* LodePluginRootView */,
+				E890C26055C3129C0D61C2B0 /* PluginChatEmptyState */,
+				147CACFC7E508A6B120AE1BD /* KitLLM */,
+				A4D321EDCEAA9F54D432FE65 /* PluginConversationInput */,
+				AFFA0FDD8C6EF63A3D731CA5 /* PluginConversationList */,
+				14527FD0E7934F8A1B499622 /* PluginConversationNew */,
+				A10892594B7E96103B2B57AD /* PluginConversationState */,
+				CA1FC55200D8FCC80E09B405 /* PluginMessageListStandard */,
+				A9A1855D9FD8B11832C70FB5 /* PluginMessageRenderer */,
+				AC59ED7F1D85A9F64E67EE93 /* PluginMessageSender */,
+				5C84BD2C082572C8BAA8DFB3 /* PluginModelSelector */,
+				DBC0E42845189BFDCFBD102A /* PluginLLMProviderSettings */,
+				ADB2713CD5EDB7EEF22F57A5 /* PluginLLMProviderOpenAI */,
+				1A450DB6C981131C9008164F /* PluginConversationTitle */,
+				183B86F799C5B828B74F12A0 /* PluginConversationStats */,
+				519DF574AD6D4524486E3520 /* PluginConversationTokenUsage */,
+				5DF0C0457544BB4FA231BD81 /* PluginConversationSpeed */,
+				9A06F541301F9F53C7703061 /* PluginConversationElapsedTime */,
+				79DE25613F5E70D3914CC52F /* PluginConversationCacheHitRate */,
+				D4D26EE6BE38654A93080F6C /* PluginConversationMode */,
+				995ABBBBB6F3F0A00171CFC7 /* PluginConversationVerbosity */,
+				EFF568BDEED6D885F8EA8BE0 /* PluginConversationBehavior */,
+				56EB0869303D98EB9A710F52 /* PluginChatFileAttachment */,
+				17A4247944396639BF8ECC32 /* PluginChatScreenshot */,
+				9DFD140044FD844898D197DC /* PluginConversationExport */,
+				EBF087BB8F4B9B56A120A9F2 /* PluginConversationFork */,
+				B8B48B6CA37DE696832BDDDD /* PluginToolActivity */,
+				3350E5682A09CFD2AA19D95D /* PluginLLMContext */,
+				C6843D59A95A68E9DC9B228B /* PluginSkill */,
+				C27F7AD5E39DE8278B4D944F /* PluginLLMProviderAiRouter */,
+				29B37809ECE4951973BA2D8C /* PluginLLMProviderAliyun */,
+				ABAAF4E11E902C15EF201460 /* PluginLLMProviderAnthropic */,
+				D9939277FAB37252570F0BE5 /* PluginLLMProviderDeepSeek */,
+				7BC65878F1C0E3B6BDF9E63D /* PluginLLMProviderFeifeimiao */,
+				C89E7B195D86785AE47FAF2F /* PluginLLMProviderFlyMux */,
+				DF9073BE646186661F734466 /* PluginLLMProviderHappyCode */,
+				31229DF379C3D2F744473DB6 /* PluginLLMProviderHyperAPI */,
+				89C999194231E4FD528A1B90 /* PluginLLMProviderKimiCode */,
+				EA4DD280E2A47662FF513CAB /* PluginLLMProviderLPgpt */,
+				86645F93D03C2711E60F0217 /* PluginLLMProviderMegaLLM */,
+				85552075C861E79DDA5C5C4E /* PluginLLMProviderMiniMax */,
+				E87BAC4E1029B7965C18CFF6 /* PluginLLMProviderOpenCode */,
+				51A7026D347DE55CF6C14A85 /* PluginLLMProviderCommandCode */,
+				ECD9A520784F62C81E93FF08 /* PluginLLMProviderOpenRouter */,
+				AEB1852197B9D28A79C7B945 /* PluginLLMProviderStepFun */,
+				745CDD6FB8B00209D3269416 /* PluginLLMProviderSublyx */,
+				AA18CB44AD5867EAD7E807D3 /* PluginLLMProviderTencent */,
+				34DE760675518AD9A6E7006A /* PluginLLMProviderXiaomi */,
+				FC7BF31C6AECAF79C46CE110 /* PluginLLMProviderXybbz */,
+				9101C0447587BC624E373B66 /* PluginLLMProviderZhipu */,
+				932182782E8B5D41548B67C7 /* PluginLLMProviderMLX */,
+				D07105CE6936E6037C114D93 /* ProviderAgentLoop */,
+				D38DEBD2DD1D5314C6AF7B2D /* ProviderChatSection */,
+				FE50F7802F2B7AD7F3B5BE87 /* ProviderConversation */,
+				E5CE7E2F65F986EC2ADA821D /* ProviderConversationInputBlock */,
+				1D26AF9A007B34686165120C /* ProviderExternalFile */,
+				F3AD3D9CF7E85A182033D008 /* ProviderLLMContext */,
+				F4D896F192B45D40E22C7197 /* ProviderLLMManager */,
+				07FFAB2F91BA5494714002F9 /* ProviderLegacyData */,
+				9EEC2A410E840D83BBD30A06 /* ProviderLifecycleHooks */,
+				392DE92E81BA51223A1ED207 /* ProviderMessage */,
+				651B97ABC07E135FABCF9466 /* ProviderMessageRendering */,
+				C426130A6A737E2BB269ABD9 /* ProviderMessageStreaming */,
+				69B6895DFE9063D3CB1E9826 /* ProviderPromptSuggestionExecutor */,
+				C4DDC63BAF1C72FB4E7DFCF4 /* ProviderWebServer */,
+				73EC5ED4FBB7667FFD1E5D4A /* ProviderToolManager */,
+				2FA4CE4722109574DEDA4913 /* ProviderAgentRules */,
+				3A8EAC09CA1907A272EDF4D7 /* ProviderCommand */,
+				DA1EA86E50E57D15B77E834D /* ProviderConversationInput */,
+				BF80CD38A0A5041AB94B3B2E /* ProviderDeveloperMode */,
+				584E860074945B4E1C815DD6 /* ProviderIdleTime */,
+				F0C3116AFB27B550DF4B6F3A /* ProviderNetwork */,
+				E4E5FFB51B4A6314CBE36A3E /* ProviderProject */,
+				30553875528D17BEFD9AA081 /* ProviderPromptSuggestion */,
+				FA54C7BF97EF88F05D2863B3 /* ProviderRailView */,
+				149F2C114E63CFABF8276B79 /* ProviderRootView */,
+				0BB30D62EF07F0ECA40D07AA /* ProviderSkill */,
+				1B17382DB58DEE912DF479FC /* ProviderStorage */,
+				D27E8482DF9C5130A1EC6886 /* ProviderTheme */,
+				A7A1AA4631597BCADDDCBDF9 /* ProviderUninstall */,
+				7D32C0F9194226CEB108781F /* PluginThemeManager */,
+				53365E6194D86F6A58F39AD0 /* PluginThemePack */,
+			);
+			productName = Lode;
+			productReference = 743268E9FFC949699070457B /* Lode.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8F827DFA0CC1D54A70148706 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					8E2F89C60FBBBCD3C942EEAD = {
+						DevelopmentTeam = Y6HZ9JJYV6;
+						ProvisioningStyle = Automatic;
+					};
+					C0D64CE3B6EE128BEE36B413 = {
+						DevelopmentTeam = Y6HZ9JJYV6;
+						ProvisioningStyle = Automatic;
+					};
+					D92FF7F10C72F5ADE272A63D = {
+						TestTargetID = C0D64CE3B6EE128BEE36B413;
+					};
+					FE246902E9ABB2CAB39C58E4 = {
+						DevelopmentTeam = Y6HZ9JJYV6;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D41FF819E1F02B002F8D458A /* Build configuration list for PBXProject "Lode" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				"zh-HK",
+				"zh-Hans",
+				"zh-Hant",
+				"zh-TW",
+			);
+			mainGroup = B4B0B563D1D5EA22662F37A4;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */,
+				8E6345390FD74D908AD28548 /* XCRemoteSwiftPackageReference "LumiFactory" */,
+				2C5D083E25689F66E2871F7E /* XCRemoteSwiftPackageReference "LumiKernel" */,
+				6C80AF6F48ABB2689C4CD0FA /* XCRemoteSwiftPackageReference "LumiKitLLM" */,
+				0270BB939FF548D18964D6C0 /* XCRemoteSwiftPackageReference "LumiLogging" */,
+				3DCDA7BC95A5B6915D34A9B4 /* XCRemoteSwiftPackageReference "LumiPluginAbout" */,
+				1596E3250F567F7D6ECDD98C /* XCRemoteSwiftPackageReference "LumiPluginConversationList" */,
+				8766DBCB16A251D1A79AD5DA /* XCRemoteSwiftPackageReference "LumiPluginConversationNew" */,
+				46CBA766EE819C402FFECD6F /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAiRouter" */,
+				1E2E10E00D0A808054D61D51 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAliyun" */,
+				99EF16CC76609A6E6A64ECF1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAnthropic" */,
+				A5781F4D5E05D415EFDEAF8A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderCommandCode" */,
+				C149A82B89543CD3C54F3B32 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderDeepSeek" */,
+				92F0594C0545E11DD7722A2E /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFeifeimiao" */,
+				DB61981E970DCB18CFD2C81C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFlyMux" */,
+				9F4F323A534E28450FFEA80A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHappyCode" */,
+				40A1DFCE6DB65FF89D2293B1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHyperAPI" */,
+				01EF78406B4DC59AFEFBA34C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderKimiCode" */,
+				60F5741837894BD24C6F2372 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderLPgpt" */,
+				40B57C7F252E5AC70C2659F6 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMLX" */,
+				66A4CBBBB13213984344220D /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMegaLLM" */,
+				26821A887D57D04BB9F01598 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMiniMax" */,
+				D8182A8DFE43739E5A9E9582 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenCode" */,
+				2D49DB2DD200FC4459E8E0DB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenRouter" */,
+				F5C135B5C4D0001B3B9301D5 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderStepFun" */,
+				D91BEEFF2A3BF1F03C250CA2 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderSublyx" */,
+				02C0E7169FC58421F81A1BEB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderTencent" */,
+				878BF526628B812315C2B8C9 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXiaomi" */,
+				B65ACE2030993B050E7E7168 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXybbz" */,
+				9A498D88D6D4D8957BD0B5B7 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderZhipu" */,
+				A647E785E4EE99F2CEE3A82A /* XCRemoteSwiftPackageReference "LumiPluginRootView" */,
+				ED70FE285657C502306580C3 /* XCRemoteSwiftPackageReference "LumiPluginSettingGeneral" */,
+				F51F5A8F36726A39F84DA2E6 /* XCRemoteSwiftPackageReference "LumiPluginSettingView" */,
+				72022A8F7863F417EFE01231 /* XCRemoteSwiftPackageReference "LumiPluginThemeManager" */,
+				4BCC341E59DB85CF14E5B67A /* XCRemoteSwiftPackageReference "LumiPluginThemePack" */,
+				CCBE690B115D244D44961EA5 /* XCRemoteSwiftPackageReference "LumiProviderAgentLoop" */,
+				18274D66AA87EACFBC392EE1 /* XCRemoteSwiftPackageReference "LumiProviderConversationInputBlock" */,
+				89B673B9934AF91AD8EA4E21 /* XCRemoteSwiftPackageReference "LumiProviderLLMContext" */,
+				D4B5218276E8AA17E6EC34AC /* XCRemoteSwiftPackageReference "LumiProviderLLMManager" */,
+				F1BADBB0E4ADF74BFCD498AC /* XCRemoteSwiftPackageReference "LumiProviderLifecycleHooks" */,
+				B21F7D97AC950CADE60B4401 /* XCRemoteSwiftPackageReference "LumiProviderMessage" */,
+				2F5B4244E96C3C1FBC326DA3 /* XCRemoteSwiftPackageReference "LumiProviderMessageRendering" */,
+				DD2040080338C34234968CA0 /* XCRemoteSwiftPackageReference "LumiProviderMessageStreaming" */,
+				00F1BCE2E2341C9F54C3ACCB /* XCRemoteSwiftPackageReference "LumiProviderPromptSuggestionExecutor" */,
+				AA17D93923245A260D4F9C34 /* XCRemoteSwiftPackageReference "LumiProviderToolManager" */,
+				09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */,
+				FF7F9549683615AF0C082B28 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				A2FEBE941494CCD1DDAA6603 /* XCLocalSwiftPackageReference "Packages/PluginChatEmptyState" */,
+				9D42B09B794A8DA0A3C5B744 /* XCLocalSwiftPackageReference "Packages/PluginCodeEditorHost" */,
+				3D6DCDFD91C51478D26E29A5 /* XCLocalSwiftPackageReference "Packages/PluginDatabaseManager" */,
+				D9C6F0CCABCBF068D72CBCE8 /* XCLocalSwiftPackageReference "Packages/PluginRootView" */,
+				FB151A0D4E9D80E859930C79 /* XCLocalSwiftPackageReference "Packages/ProviderExternalFile" */,
+				5A0475AB130972B3717B5327 /* XCLocalSwiftPackageReference "Packages/ProviderLegacyData" */,
+				7231C18825D848D98F37BB87 /* XCLocalSwiftPackageReference "Packages/ProviderWebServer" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 7D59578DA7E79F39E8B93F33 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FE246902E9ABB2CAB39C58E4 /* Lode */,
+				C0D64CE3B6EE128BEE36B413 /* LodeUITestHost */,
+				D92FF7F10C72F5ADE272A63D /* LodeUITests */,
+				8E2F89C60FBBBCD3C942EEAD /* LodeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8393CAAF677BDE5B5CE67CC7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				70A5D2ABAAF278F5EDA1AD74 /* launch-baseline.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B6A6C942EC1639A8AAA35197 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7685E810E7F1FE729A59E33 /* Assets.xcassets in Resources */,
+				B9460034BBEE928E4588FE0F /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1BFF32C075139EEF72F7D6D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				81A518FDDE761604348F5DD8 /* Assets.xcassets in Resources */,
+				785652F473C0C3E3EAF1E5AB /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		123D34232C4BFF33F29F6E4E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B8F2643AC504865F6C8F8400 /* LaunchBudgetGateTests.swift in Sources */,
+				96847F8EE74A8A7DF39EA8A6 /* LodeHostManifestTests.swift in Sources */,
+				D9AB2DABFE8A65745009189C /* LodeKernelTestCase.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		22E3DB4BDC55EAC390AB94EC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E9A78021C50F9E5882EA1903 /* LodeApp.swift in Sources */,
+				1843A957856BD556B2325C6F /* LodeChatSuggestions.swift in Sources */,
+				F4AB189E8800435D24EB998D /* LodeHostManifest.swift in Sources */,
+				C91C43D5B7F58055064FF599 /* LodeProviderAssembly.swift in Sources */,
+				894E051512E3FC16AD5FA12E /* UpdateController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2BDAA2A737AC7C8B59D2E3F8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				39AEB5D218CFF99D43F029ED /* LodeApp.swift in Sources */,
+				A1A96C155CCA4A84B3B41F8C /* LodeChatSuggestions.swift in Sources */,
+				82D4CA7F529441E5177339B7 /* LodeHostManifest.swift in Sources */,
+				EEBC065054BB72F5102E2983 /* LodeProviderAssembly.swift in Sources */,
+				9A0D17BEE411A5B8216A49D0 /* UpdateController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2E14CF3E8CFB9B53C676344 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				68FB068B4243CE92D149027B /* LodeSmokeUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		34AE56E0D852F6B6FB3D7F14 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C0D64CE3B6EE128BEE36B413 /* LodeUITestHost */;
+			targetProxy = 577C6E8E19760D88AEC2A49B /* PBXContainerItemProxy */;
+		};
+		F641F1C16DC6FA42E680F096 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FE246902E9ABB2CAB39C58E4 /* Lode */;
+			targetProxy = ABDA41CB18E5ED26CB966335 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0204187F8292E73E2B1AD64C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode.uitests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = LodeUITestHost;
+			};
+			name = Release;
+		};
+		12861D0188C08A70C80AF714 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LodeApp/App.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y6HZ9JJYV6;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_EXPLICIT_MODULES = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "LodeApp/Lode-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Lode UI Test Host";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode.uitesthost;
+				PRODUCT_NAME = LodeUITestHost;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		164A79B240DC43759988E651 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Y6HZ9JJYV6;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode.tests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Lode.app/Contents/MacOS/Lode";
+			};
+			name = Release;
+		};
+		30B0D7CF4488399A2BAB38F7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LodeApp/App.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y6HZ9JJYV6;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_EXPLICIT_MODULES = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "LodeApp/Lode-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Lode;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode;
+				PRODUCT_NAME = Lode;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		4156DF155B41619C3224AEE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		56B573B177FC375A9A150A12 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LodeApp/App.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y6HZ9JJYV6;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_EXPLICIT_MODULES = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "LodeApp/Lode-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Lode;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode;
+				PRODUCT_NAME = Lode;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		7671B7E9E461D3593C9440F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LodeApp/App.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y6HZ9JJYV6;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_EXPLICIT_MODULES = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "LodeApp/Lode-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Lode UI Test Host";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode.uitesthost;
+				PRODUCT_NAME = LodeUITestHost;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		9347A633758587FE9FCEADB4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C7EF64748EF0ACEE8E27FE5A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Y6HZ9JJYV6;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode.tests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Lode.app/Contents/MacOS/Lode";
+			};
+			name = Debug;
+		};
+		FA57CAE58714EB5A1490C134 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coffic.lode.uitests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = LodeUITestHost;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		16F6AC2E09DCDA6BE712E0DB /* Build configuration list for PBXNativeTarget "LodeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA57CAE58714EB5A1490C134 /* Debug */,
+				0204187F8292E73E2B1AD64C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9BFB946AFECE5D62B49F13B0 /* Build configuration list for PBXNativeTarget "LodeUITestHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				12861D0188C08A70C80AF714 /* Debug */,
+				7671B7E9E461D3593C9440F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9CF4E944EBEE28871C1736B9 /* Build configuration list for PBXNativeTarget "LodeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7EF64748EF0ACEE8E27FE5A /* Debug */,
+				164A79B240DC43759988E651 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C42D57A477EE805BD5F83F07 /* Build configuration list for PBXNativeTarget "Lode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				30B0D7CF4488399A2BAB38F7 /* Debug */,
+				56B573B177FC375A9A150A12 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D41FF819E1F02B002F8D458A /* Build configuration list for PBXProject "Lode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9347A633758587FE9FCEADB4 /* Debug */,
+				4156DF155B41619C3224AEE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		3D6DCDFD91C51478D26E29A5 /* XCLocalSwiftPackageReference "Packages/PluginDatabaseManager" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/PluginDatabaseManager;
+		};
+		5A0475AB130972B3717B5327 /* XCLocalSwiftPackageReference "Packages/ProviderLegacyData" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ProviderLegacyData;
+		};
+		7231C18825D848D98F37BB87 /* XCLocalSwiftPackageReference "Packages/ProviderWebServer" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ProviderWebServer;
+		};
+		9D42B09B794A8DA0A3C5B744 /* XCLocalSwiftPackageReference "Packages/PluginCodeEditorHost" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/PluginCodeEditorHost;
+		};
+		A2FEBE941494CCD1DDAA6603 /* XCLocalSwiftPackageReference "Packages/PluginChatEmptyState" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/PluginChatEmptyState;
+		};
+		D9C6F0CCABCBF068D72CBCE8 /* XCLocalSwiftPackageReference "Packages/PluginRootView" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/PluginRootView;
+		};
+		FB151A0D4E9D80E859930C79 /* XCLocalSwiftPackageReference "Packages/ProviderExternalFile" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ProviderExternalFile;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		00F1BCE2E2341C9F54C3ACCB /* XCRemoteSwiftPackageReference "LumiProviderPromptSuggestionExecutor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderPromptSuggestionExecutor.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		01EF78406B4DC59AFEFBA34C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderKimiCode" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderKimiCode.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		0270BB939FF548D18964D6C0 /* XCRemoteSwiftPackageReference "LumiLogging" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiLogging.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
+		02C0E7169FC58421F81A1BEB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderTencent" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderTencent.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviders.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.28.3;
+			};
+		};
+		1596E3250F567F7D6ECDD98C /* XCRemoteSwiftPackageReference "LumiPluginConversationList" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginConversationList.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.1;
+			};
+		};
+		18274D66AA87EACFBC392EE1 /* XCRemoteSwiftPackageReference "LumiProviderConversationInputBlock" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderConversationInputBlock.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		1E2E10E00D0A808054D61D51 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAliyun" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderAliyun.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		26821A887D57D04BB9F01598 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMiniMax" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderMiniMax.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		2C5D083E25689F66E2871F7E /* XCRemoteSwiftPackageReference "LumiKernel" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiKernel.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.3;
+			};
+		};
+		2D49DB2DD200FC4459E8E0DB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenRouter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderOpenRouter.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		2F5B4244E96C3C1FBC326DA3 /* XCRemoteSwiftPackageReference "LumiProviderMessageRendering" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderMessageRendering.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		3DCDA7BC95A5B6915D34A9B4 /* XCRemoteSwiftPackageReference "LumiPluginAbout" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginAbout.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.1.1;
+			};
+		};
+		40A1DFCE6DB65FF89D2293B1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHyperAPI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderHyperAPI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		40B57C7F252E5AC70C2659F6 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMLX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderMLX.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		46CBA766EE819C402FFECD6F /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAiRouter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderAiRouter.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		4BCC341E59DB85CF14E5B67A /* XCRemoteSwiftPackageReference "LumiPluginThemePack" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginThemePack.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.4;
+			};
+		};
+		5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiChat.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.2;
+			};
+		};
+		60F5741837894BD24C6F2372 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderLPgpt" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderLPgpt.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		66A4CBBBB13213984344220D /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMegaLLM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderMegaLLM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		6C80AF6F48ABB2689C4CD0FA /* XCRemoteSwiftPackageReference "LumiKitLLM" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiKitLLM.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
+		72022A8F7863F417EFE01231 /* XCRemoteSwiftPackageReference "LumiPluginThemeManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginThemeManager.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
+		8766DBCB16A251D1A79AD5DA /* XCRemoteSwiftPackageReference "LumiPluginConversationNew" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginConversationNew.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		878BF526628B812315C2B8C9 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXiaomi" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderXiaomi.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		89B673B9934AF91AD8EA4E21 /* XCRemoteSwiftPackageReference "LumiProviderLLMContext" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderLLMContext.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		8E6345390FD74D908AD28548 /* XCRemoteSwiftPackageReference "LumiFactory" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiFactory.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.7.9;
+			};
+		};
+		92F0594C0545E11DD7722A2E /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFeifeimiao" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderFeifeimiao.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		99EF16CC76609A6E6A64ECF1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAnthropic" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderAnthropic.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		9A498D88D6D4D8957BD0B5B7 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderZhipu" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderZhipu.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		9F4F323A534E28450FFEA80A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHappyCode" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderHappyCode.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		A5781F4D5E05D415EFDEAF8A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderCommandCode" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderCommandCode.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		A647E785E4EE99F2CEE3A82A /* XCRemoteSwiftPackageReference "LumiPluginRootView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginRootView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.4;
+			};
+		};
+		AA17D93923245A260D4F9C34 /* XCRemoteSwiftPackageReference "LumiProviderToolManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderToolManager.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.5;
+			};
+		};
+		B21F7D97AC950CADE60B4401 /* XCRemoteSwiftPackageReference "LumiProviderMessage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderMessage.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.2;
+			};
+		};
+		B65ACE2030993B050E7E7168 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXybbz" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderXybbz.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		C149A82B89543CD3C54F3B32 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderDeepSeek" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderDeepSeek.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		CCBE690B115D244D44961EA5 /* XCRemoteSwiftPackageReference "LumiProviderAgentLoop" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderAgentLoop.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.1;
+			};
+		};
+		D4B5218276E8AA17E6EC34AC /* XCRemoteSwiftPackageReference "LumiProviderLLMManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderLLMManager.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		D8182A8DFE43739E5A9E9582 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenCode" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderOpenCode.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		D91BEEFF2A3BF1F03C250CA2 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderSublyx" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderSublyx.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		DB61981E970DCB18CFD2C81C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFlyMux" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderFlyMux.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		DD2040080338C34234968CA0 /* XCRemoteSwiftPackageReference "LumiProviderMessageStreaming" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderMessageStreaming.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		ED70FE285657C502306580C3 /* XCRemoteSwiftPackageReference "LumiPluginSettingGeneral" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginSettingGeneral.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.0;
+			};
+		};
+		F1BADBB0E4ADF74BFCD498AC /* XCRemoteSwiftPackageReference "LumiProviderLifecycleHooks" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiProviderLifecycleHooks.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		F51F5A8F36726A39F84DA2E6 /* XCRemoteSwiftPackageReference "LumiPluginSettingView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginSettingView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.6;
+			};
+		};
+		F5C135B5C4D0001B3B9301D5 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderStepFun" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lumi-softworks/LumiPluginLLMProviderStepFun.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		FF7F9549683615AF0C082B28 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		02E1A98100DBE1E55183A2B9 /* PluginLLMProviderMiniMax */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 26821A887D57D04BB9F01598 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMiniMax" */;
+			productName = PluginLLMProviderMiniMax;
+		};
+		03A912FE1D5BBF0AB5F0E441 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF7F9549683615AF0C082B28 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		03C44602BFAB8870F55CFDFF /* PluginConversationVerbosity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationVerbosity;
+		};
+		053B19163C889A3998159374 /* PluginLLMProviderStepFun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F5C135B5C4D0001B3B9301D5 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderStepFun" */;
+			productName = PluginLLMProviderStepFun;
+		};
+		056325B5703892B16DEA6063 /* ProviderConversation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderConversation;
+		};
+		077EE8393DD30BE1840AF02E /* LumiFactory */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8E6345390FD74D908AD28548 /* XCRemoteSwiftPackageReference "LumiFactory" */;
+			productName = LumiFactory;
+		};
+		07CEAB99630B496822912C6A /* LodePluginRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LodePluginRootView;
+		};
+		07FFAB2F91BA5494714002F9 /* ProviderLegacyData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderLegacyData;
+		};
+		0BAC6B6F98131E31FC1D09F7 /* PluginMessageSender */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginMessageSender;
+		};
+		0BB30D62EF07F0ECA40D07AA /* ProviderSkill */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderSkill;
+		};
+		0C3301DE382462727BC9CB7C /* PluginConversationInput */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationInput;
+		};
+		11A71E519E54C98E194F81A6 /* PluginSettingView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F51F5A8F36726A39F84DA2E6 /* XCRemoteSwiftPackageReference "LumiPluginSettingView" */;
+			productName = PluginSettingView;
+		};
+		11E658E05FC56634BF722FB4 /* ProviderMessage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B21F7D97AC950CADE60B4401 /* XCRemoteSwiftPackageReference "LumiProviderMessage" */;
+			productName = ProviderMessage;
+		};
+		1387E22379C17B35B4D8072C /* PluginLLMProviderOpenRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2D49DB2DD200FC4459E8E0DB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenRouter" */;
+			productName = PluginLLMProviderOpenRouter;
+		};
+		14527FD0E7934F8A1B499622 /* PluginConversationNew */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8766DBCB16A251D1A79AD5DA /* XCRemoteSwiftPackageReference "LumiPluginConversationNew" */;
+			productName = PluginConversationNew;
+		};
+		147CACFC7E508A6B120AE1BD /* KitLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6C80AF6F48ABB2689C4CD0FA /* XCRemoteSwiftPackageReference "LumiKitLLM" */;
+			productName = KitLLM;
+		};
+		149F2C114E63CFABF8276B79 /* ProviderRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderRootView;
+		};
+		151C3CF40DE11E6F1BBC9405 /* ProviderDeveloperMode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderDeveloperMode;
+		};
+		16A9594DD5EEF965CDFA12A1 /* ProviderIdleTime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderIdleTime;
+		};
+		17A4247944396639BF8ECC32 /* PluginChatScreenshot */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginChatScreenshot;
+		};
+		183B86F799C5B828B74F12A0 /* PluginConversationStats */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationStats;
+		};
+		18D843CFE366BB91A8CBB671 /* ProviderToolManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA17D93923245A260D4F9C34 /* XCRemoteSwiftPackageReference "LumiProviderToolManager" */;
+			productName = ProviderToolManager;
+		};
+		19AFAC7D3EC6DAAAB82DD3B8 /* PluginLLMProviderOpenCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D8182A8DFE43739E5A9E9582 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenCode" */;
+			productName = PluginLLMProviderOpenCode;
+		};
+		1A450DB6C981131C9008164F /* PluginConversationTitle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationTitle;
+		};
+		1AFA1109BCD2D6A250EA672C /* ProviderUninstall */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderUninstall;
+		};
+		1B17382DB58DEE912DF479FC /* ProviderStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderStorage;
+		};
+		1CC5BC9294A5BB8AE1D5FAAC /* WorkbenchRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A647E785E4EE99F2CEE3A82A /* XCRemoteSwiftPackageReference "LumiPluginRootView" */;
+			productName = WorkbenchRootView;
+		};
+		1D26AF9A007B34686165120C /* ProviderExternalFile */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderExternalFile;
+		};
+		1D4A06A97F1AD0E46E9C8091 /* PluginLLMProviderMegaLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66A4CBBBB13213984344220D /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMegaLLM" */;
+			productName = PluginLLMProviderMegaLLM;
+		};
+		212885F3E4F8A2E450C160D1 /* PluginLLMProviderAliyun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E2E10E00D0A808054D61D51 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAliyun" */;
+			productName = PluginLLMProviderAliyun;
+		};
+		2361E7046A5D0CC11BDE52D2 /* KernelCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2C5D083E25689F66E2871F7E /* XCRemoteSwiftPackageReference "LumiKernel" */;
+			productName = KernelCore;
+		};
+		24234CF5AE97D56F3EBE131F /* ProviderRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderRootView;
+		};
+		253174EDF0456016BAB32A33 /* ProviderLegacyData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderLegacyData;
+		};
+		2623C50764D20E996D1685A4 /* PluginThemePack */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4BCC341E59DB85CF14E5B67A /* XCRemoteSwiftPackageReference "LumiPluginThemePack" */;
+			productName = PluginThemePack;
+		};
+		29B37809ECE4951973BA2D8C /* PluginLLMProviderAliyun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E2E10E00D0A808054D61D51 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAliyun" */;
+			productName = PluginLLMProviderAliyun;
+		};
+		2B1C3F7029E25CE2126C382C /* ProviderConversation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderConversation;
+		};
+		2D8494880AFF613B387C1D14 /* ProviderAgentRules */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderAgentRules;
+		};
+		2E7F908AC05A93C1CDDBE570 /* PluginLLMProviderCommandCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A5781F4D5E05D415EFDEAF8A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderCommandCode" */;
+			productName = PluginLLMProviderCommandCode;
+		};
+		2FA4CE4722109574DEDA4913 /* ProviderAgentRules */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderAgentRules;
+		};
+		30553875528D17BEFD9AA081 /* ProviderPromptSuggestion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderPromptSuggestion;
+		};
+		31229DF379C3D2F744473DB6 /* PluginLLMProviderHyperAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40A1DFCE6DB65FF89D2293B1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHyperAPI" */;
+			productName = PluginLLMProviderHyperAPI;
+		};
+		31D0D0471692D7CA0EB9F109 /* LodePluginRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LodePluginRootView;
+		};
+		3350E5682A09CFD2AA19D95D /* PluginLLMContext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginLLMContext;
+		};
+		3468965338B5AFCC91539A4D /* PluginAbout */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3DCDA7BC95A5B6915D34A9B4 /* XCRemoteSwiftPackageReference "LumiPluginAbout" */;
+			productName = PluginAbout;
+		};
+		34DE760675518AD9A6E7006A /* PluginLLMProviderXiaomi */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 878BF526628B812315C2B8C9 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXiaomi" */;
+			productName = PluginLLMProviderXiaomi;
+		};
+		3702A6B7B59D5275E16F1CBF /* ProviderConversationInput */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderConversationInput;
+		};
+		392DE92E81BA51223A1ED207 /* ProviderMessage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B21F7D97AC950CADE60B4401 /* XCRemoteSwiftPackageReference "LumiProviderMessage" */;
+			productName = ProviderMessage;
+		};
+		3933F70F3CE9C38C691B6E6F /* PluginToolActivity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginToolActivity;
+		};
+		3A73B657ECB5226FA535D28F /* PluginSettingGeneral */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = ED70FE285657C502306580C3 /* XCRemoteSwiftPackageReference "LumiPluginSettingGeneral" */;
+			productName = PluginSettingGeneral;
+		};
+		3A8EAC09CA1907A272EDF4D7 /* ProviderCommand */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderCommand;
+		};
+		3C0879D8DB472CF6A761F96A /* ProviderExternalFile */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderExternalFile;
+		};
+		3FA6DB234C9331BEBFF4E26C /* PluginAbout */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3DCDA7BC95A5B6915D34A9B4 /* XCRemoteSwiftPackageReference "LumiPluginAbout" */;
+			productName = PluginAbout;
+		};
+		414C262E5813BA82CB0CF45C /* PluginLLMProviderTencent */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 02C0E7169FC58421F81A1BEB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderTencent" */;
+			productName = PluginLLMProviderTencent;
+		};
+		44F330233BC27EFC60664C37 /* ProviderRailView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderRailView;
+		};
+		45268EAFBA99B392EB26E2AA /* PluginConversationNew */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8766DBCB16A251D1A79AD5DA /* XCRemoteSwiftPackageReference "LumiPluginConversationNew" */;
+			productName = PluginConversationNew;
+		};
+		45D674A4B0B8E414368B31BC /* WorkbenchRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A647E785E4EE99F2CEE3A82A /* XCRemoteSwiftPackageReference "LumiPluginRootView" */;
+			productName = WorkbenchRootView;
+		};
+		4683B0A2C586417C4AC29EAF /* ProviderChatSection */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderChatSection;
+		};
+		49B74145FED6BC75689B0D73 /* ProviderStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderStorage;
+		};
+		4A5B0717B0E96146E31D6521 /* PluginDatabaseManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PluginDatabaseManager;
+		};
+		4C1765D0A890056F9E874771 /* WorkbenchRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A647E785E4EE99F2CEE3A82A /* XCRemoteSwiftPackageReference "LumiPluginRootView" */;
+			productName = WorkbenchRootView;
+		};
+		4D47F27221EEF2C4F61DC8B3 /* ProviderToolbar */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderToolbar;
+		};
+		4D7AE158BD05CE274961FF10 /* ProviderToolManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA17D93923245A260D4F9C34 /* XCRemoteSwiftPackageReference "LumiProviderToolManager" */;
+			productName = ProviderToolManager;
+		};
+		4EDB5511D686A56250E042C7 /* LumiLoggingKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0270BB939FF548D18964D6C0 /* XCRemoteSwiftPackageReference "LumiLogging" */;
+			productName = LumiLoggingKit;
+		};
+		512257562C2573C718C75B1F /* PluginLLMProviderXiaomi */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 878BF526628B812315C2B8C9 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXiaomi" */;
+			productName = PluginLLMProviderXiaomi;
+		};
+		519DF574AD6D4524486E3520 /* PluginConversationTokenUsage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationTokenUsage;
+		};
+		51A7026D347DE55CF6C14A85 /* PluginLLMProviderCommandCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A5781F4D5E05D415EFDEAF8A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderCommandCode" */;
+			productName = PluginLLMProviderCommandCode;
+		};
+		5254F38836ECDE2AF9BA6BC6 /* KernelCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2C5D083E25689F66E2871F7E /* XCRemoteSwiftPackageReference "LumiKernel" */;
+			productName = KernelCore;
+		};
+		53365E6194D86F6A58F39AD0 /* PluginThemePack */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4BCC341E59DB85CF14E5B67A /* XCRemoteSwiftPackageReference "LumiPluginThemePack" */;
+			productName = PluginThemePack;
+		};
+		554F1F1D99CB6F65B09B0B14 /* PluginLLMProviderAiRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46CBA766EE819C402FFECD6F /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAiRouter" */;
+			productName = PluginLLMProviderAiRouter;
+		};
+		564272D4AF2EE949694BADA2 /* PluginLLMProviderHyperAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40A1DFCE6DB65FF89D2293B1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHyperAPI" */;
+			productName = PluginLLMProviderHyperAPI;
+		};
+		56EB0869303D98EB9A710F52 /* PluginChatFileAttachment */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginChatFileAttachment;
+		};
+		57BF8DA41C39BDE87C36AF7B /* PluginAbout */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3DCDA7BC95A5B6915D34A9B4 /* XCRemoteSwiftPackageReference "LumiPluginAbout" */;
+			productName = PluginAbout;
+		};
+		584E860074945B4E1C815DD6 /* ProviderIdleTime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderIdleTime;
+		};
+		598E13FE60C771EBC93A1411 /* PluginConversationFork */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationFork;
+		};
+		5C84BD2C082572C8BAA8DFB3 /* PluginModelSelector */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginModelSelector;
+		};
+		5DF0C0457544BB4FA231BD81 /* PluginConversationSpeed */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationSpeed;
+		};
+		5E9A58FE43A660FD28A73FA2 /* PluginLLMContext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginLLMContext;
+		};
+		618B51978BEFC21A358EE63F /* PluginConversationMode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationMode;
+		};
+		61B3B820089248F9CF9DFCBC /* PluginChatFileAttachment */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginChatFileAttachment;
+		};
+		651B97ABC07E135FABCF9466 /* ProviderMessageRendering */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2F5B4244E96C3C1FBC326DA3 /* XCRemoteSwiftPackageReference "LumiProviderMessageRendering" */;
+			productName = ProviderMessageRendering;
+		};
+		68B194F454B06695CB56C0A3 /* PluginMessageRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginMessageRenderer;
+		};
+		69B6895DFE9063D3CB1E9826 /* ProviderPromptSuggestionExecutor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00F1BCE2E2341C9F54C3ACCB /* XCRemoteSwiftPackageReference "LumiProviderPromptSuggestionExecutor" */;
+			productName = ProviderPromptSuggestionExecutor;
+		};
+		6A86FD539C25F127FF9FFA4C /* ProviderLLMManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4B5218276E8AA17E6EC34AC /* XCRemoteSwiftPackageReference "LumiProviderLLMManager" */;
+			productName = ProviderLLMManager;
+		};
+		6C6DA3F1373D3ED5783FA584 /* ProviderTheme */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderTheme;
+		};
+		6CB56FC1AACEDE31BC5A3C88 /* PluginLLMProviderMLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40B57C7F252E5AC70C2659F6 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMLX" */;
+			productName = PluginLLMProviderMLX;
+		};
+		717C675466A18E501B367C49 /* KitLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6C80AF6F48ABB2689C4CD0FA /* XCRemoteSwiftPackageReference "LumiKitLLM" */;
+			productName = KitLLM;
+		};
+		73EC5ED4FBB7667FFD1E5D4A /* ProviderToolManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA17D93923245A260D4F9C34 /* XCRemoteSwiftPackageReference "LumiProviderToolManager" */;
+			productName = ProviderToolManager;
+		};
+		7459ACD5C49D8B33D138F1C1 /* ProviderProject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderProject;
+		};
+		745CDD6FB8B00209D3269416 /* PluginLLMProviderSublyx */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D91BEEFF2A3BF1F03C250CA2 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderSublyx" */;
+			productName = PluginLLMProviderSublyx;
+		};
+		7554B33D07CCD4CAD4D92904 /* PluginCodeEditorHost */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PluginCodeEditorHost;
+		};
+		756580246F5100F97304E539 /* ProviderSkill */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderSkill;
+		};
+		75F18B9B471EA925AE88449F /* PluginConversationStats */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationStats;
+		};
+		78712605136AC95D832E1C5C /* PluginConversationCacheHitRate */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationCacheHitRate;
+		};
+		795E91C1816C39FEFFA0AAF7 /* ProviderChatSection */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderChatSection;
+		};
+		79DE25613F5E70D3914CC52F /* PluginConversationCacheHitRate */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationCacheHitRate;
+		};
+		7B4A0952DD4C45C7BAC0D55A /* PluginChatEmptyState */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PluginChatEmptyState;
+		};
+		7BC65878F1C0E3B6BDF9E63D /* PluginLLMProviderFeifeimiao */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 92F0594C0545E11DD7722A2E /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFeifeimiao" */;
+			productName = PluginLLMProviderFeifeimiao;
+		};
+		7D32C0F9194226CEB108781F /* PluginThemeManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72022A8F7863F417EFE01231 /* XCRemoteSwiftPackageReference "LumiPluginThemeManager" */;
+			productName = PluginThemeManager;
+		};
+		7D52BFF1519C4716EB41895B /* LumiFactory */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8E6345390FD74D908AD28548 /* XCRemoteSwiftPackageReference "LumiFactory" */;
+			productName = LumiFactory;
+		};
+		82CC911607E24BFE3407D751 /* ProviderConversationInputBlock */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 18274D66AA87EACFBC392EE1 /* XCRemoteSwiftPackageReference "LumiProviderConversationInputBlock" */;
+			productName = ProviderConversationInputBlock;
+		};
+		82EBE519F0597E53C6FF4C59 /* PluginSettingView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F51F5A8F36726A39F84DA2E6 /* XCRemoteSwiftPackageReference "LumiPluginSettingView" */;
+			productName = PluginSettingView;
+		};
+		85552075C861E79DDA5C5C4E /* PluginLLMProviderMiniMax */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 26821A887D57D04BB9F01598 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMiniMax" */;
+			productName = PluginLLMProviderMiniMax;
+		};
+		8628CD57777CC201C8F96025 /* PluginConversationElapsedTime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationElapsedTime;
+		};
+		86645F93D03C2711E60F0217 /* PluginLLMProviderMegaLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66A4CBBBB13213984344220D /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMegaLLM" */;
+			productName = PluginLLMProviderMegaLLM;
+		};
+		89C999194231E4FD528A1B90 /* PluginLLMProviderKimiCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 01EF78406B4DC59AFEFBA34C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderKimiCode" */;
+			productName = PluginLLMProviderKimiCode;
+		};
+		9101C0447587BC624E373B66 /* PluginLLMProviderZhipu */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A498D88D6D4D8957BD0B5B7 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderZhipu" */;
+			productName = PluginLLMProviderZhipu;
+		};
+		932182782E8B5D41548B67C7 /* PluginLLMProviderMLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40B57C7F252E5AC70C2659F6 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderMLX" */;
+			productName = PluginLLMProviderMLX;
+		};
+		95C1FE9A395E9C9816FC23B0 /* PluginLLMProviderXybbz */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65ACE2030993B050E7E7168 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXybbz" */;
+			productName = PluginLLMProviderXybbz;
+		};
+		95CA7C6C59843AC16A459330 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF7F9549683615AF0C082B28 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		995ABBBBB6F3F0A00171CFC7 /* PluginConversationVerbosity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationVerbosity;
+		};
+		9A06F541301F9F53C7703061 /* PluginConversationElapsedTime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationElapsedTime;
+		};
+		9A94148A5D1C4213789B2119 /* ProviderRootView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderRootView;
+		};
+		9DFD140044FD844898D197DC /* PluginConversationExport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationExport;
+		};
+		9EEC2A410E840D83BBD30A06 /* ProviderLifecycleHooks */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1BADBB0E4ADF74BFCD498AC /* XCRemoteSwiftPackageReference "LumiProviderLifecycleHooks" */;
+			productName = ProviderLifecycleHooks;
+		};
+		A01FD27BBF0357D3D5C63D2C /* PluginSettingGeneral */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = ED70FE285657C502306580C3 /* XCRemoteSwiftPackageReference "LumiPluginSettingGeneral" */;
+			productName = PluginSettingGeneral;
+		};
+		A10892594B7E96103B2B57AD /* PluginConversationState */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationState;
+		};
+		A19F0352831308A89FE1B0A4 /* ProviderLLMContext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89B673B9934AF91AD8EA4E21 /* XCRemoteSwiftPackageReference "LumiProviderLLMContext" */;
+			productName = ProviderLLMContext;
+		};
+		A23C603D024C0EEFCD90E291 /* PluginLLMProviderFlyMux */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB61981E970DCB18CFD2C81C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFlyMux" */;
+			productName = PluginLLMProviderFlyMux;
+		};
+		A29E92C94EA3896C01B89AB5 /* PluginChatScreenshot */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginChatScreenshot;
+		};
+		A3B2BF59279F755C3A2CDEC1 /* ProviderPromptSuggestionExecutor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00F1BCE2E2341C9F54C3ACCB /* XCRemoteSwiftPackageReference "LumiProviderPromptSuggestionExecutor" */;
+			productName = ProviderPromptSuggestionExecutor;
+		};
+		A4D321EDCEAA9F54D432FE65 /* PluginConversationInput */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationInput;
+		};
+		A5E946465B4857683A5621D7 /* PluginDatabaseManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PluginDatabaseManager;
+		};
+		A7A1AA4631597BCADDDCBDF9 /* ProviderUninstall */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderUninstall;
+		};
+		A830342E5DC09E60E00A93B9 /* PluginLLMProviderHappyCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9F4F323A534E28450FFEA80A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHappyCode" */;
+			productName = PluginLLMProviderHappyCode;
+		};
+		A9320F67783C2A8B760C2AD0 /* PluginLLMProviderFeifeimiao */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 92F0594C0545E11DD7722A2E /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFeifeimiao" */;
+			productName = PluginLLMProviderFeifeimiao;
+		};
+		A9838DBCF044C70EFC97D477 /* ProviderMessageStreaming */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD2040080338C34234968CA0 /* XCRemoteSwiftPackageReference "LumiProviderMessageStreaming" */;
+			productName = ProviderMessageStreaming;
+		};
+		A9A1855D9FD8B11832C70FB5 /* PluginMessageRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginMessageRenderer;
+		};
+		AA18CB44AD5867EAD7E807D3 /* PluginLLMProviderTencent */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 02C0E7169FC58421F81A1BEB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderTencent" */;
+			productName = PluginLLMProviderTencent;
+		};
+		AAA42F4E2ED0ED3C2F8BB072 /* LumiFactory */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8E6345390FD74D908AD28548 /* XCRemoteSwiftPackageReference "LumiFactory" */;
+			productName = LumiFactory;
+		};
+		ABAAF4E11E902C15EF201460 /* PluginLLMProviderAnthropic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 99EF16CC76609A6E6A64ECF1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAnthropic" */;
+			productName = PluginLLMProviderAnthropic;
+		};
+		AC59ED7F1D85A9F64E67EE93 /* PluginMessageSender */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginMessageSender;
+		};
+		AC787F9FFEF3C7B0AA4C8A00 /* ProviderNetwork */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderNetwork;
+		};
+		ADB2713CD5EDB7EEF22F57A5 /* PluginLLMProviderOpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginLLMProviderOpenAI;
+		};
+		AEB1852197B9D28A79C7B945 /* PluginLLMProviderStepFun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F5C135B5C4D0001B3B9301D5 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderStepFun" */;
+			productName = PluginLLMProviderStepFun;
+		};
+		AFFA0FDD8C6EF63A3D731CA5 /* PluginConversationList */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1596E3250F567F7D6ECDD98C /* XCRemoteSwiftPackageReference "LumiPluginConversationList" */;
+			productName = PluginConversationList;
+		};
+		B0C084C09693D5813C89E0CE /* ProviderWebServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderWebServer;
+		};
+		B7B1E924DD4ABEDFC39A8070 /* PluginConversationTokenUsage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationTokenUsage;
+		};
+		B8B48B6CA37DE696832BDDDD /* PluginToolActivity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginToolActivity;
+		};
+		BCA261E159CB4883767972F3 /* ProviderAgentLoop */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CCBE690B115D244D44961EA5 /* XCRemoteSwiftPackageReference "LumiProviderAgentLoop" */;
+			productName = ProviderAgentLoop;
+		};
+		BD2C9B7862FF9D756031D6BB /* PluginLLMProviderAnthropic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 99EF16CC76609A6E6A64ECF1 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAnthropic" */;
+			productName = PluginLLMProviderAnthropic;
+		};
+		BD4BCB9A56FD4B76AA5D98B6 /* PluginMessageListStandard */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginMessageListStandard;
+		};
+		BF80CD38A0A5041AB94B3B2E /* ProviderDeveloperMode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderDeveloperMode;
+		};
+		C27F7AD5E39DE8278B4D944F /* PluginLLMProviderAiRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46CBA766EE819C402FFECD6F /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderAiRouter" */;
+			productName = PluginLLMProviderAiRouter;
+		};
+		C426130A6A737E2BB269ABD9 /* ProviderMessageStreaming */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD2040080338C34234968CA0 /* XCRemoteSwiftPackageReference "LumiProviderMessageStreaming" */;
+			productName = ProviderMessageStreaming;
+		};
+		C4DDC63BAF1C72FB4E7DFCF4 /* ProviderWebServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderWebServer;
+		};
+		C6843D59A95A68E9DC9B228B /* PluginSkill */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginSkill;
+		};
+		C8993745FE060D977F4A8812 /* PluginLLMProviderOpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginLLMProviderOpenAI;
+		};
+		C89E7B195D86785AE47FAF2F /* PluginLLMProviderFlyMux */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB61981E970DCB18CFD2C81C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderFlyMux" */;
+			productName = PluginLLMProviderFlyMux;
+		};
+		CA1FC55200D8FCC80E09B405 /* PluginMessageListStandard */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginMessageListStandard;
+		};
+		CA5AF99B03836A800C14B07F /* PluginConversationSpeed */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationSpeed;
+		};
+		CBA50EC81027CEFAF7F7136E /* PluginConversationExport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationExport;
+		};
+		CCB80396EACECC7D5C6E1E5B /* PluginModelSelector */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginModelSelector;
+		};
+		CE054A0BFF5B893E9237275E /* ProviderCommand */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderCommand;
+		};
+		CE3641347FEECD861B3A5796 /* PluginSkill */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginSkill;
+		};
+		D07105CE6936E6037C114D93 /* ProviderAgentLoop */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CCBE690B115D244D44961EA5 /* XCRemoteSwiftPackageReference "LumiProviderAgentLoop" */;
+			productName = ProviderAgentLoop;
+		};
+		D1E595C490C53DBD761F8268 /* PluginLLMProviderSublyx */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D91BEEFF2A3BF1F03C250CA2 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderSublyx" */;
+			productName = PluginLLMProviderSublyx;
+		};
+		D27E8482DF9C5130A1EC6886 /* ProviderTheme */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderTheme;
+		};
+		D3712EA46AF4741746C2A7E3 /* ProviderMessageRendering */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2F5B4244E96C3C1FBC326DA3 /* XCRemoteSwiftPackageReference "LumiProviderMessageRendering" */;
+			productName = ProviderMessageRendering;
+		};
+		D38DEBD2DD1D5314C6AF7B2D /* ProviderChatSection */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderChatSection;
+		};
+		D405598E30A7292EBC4EA6E7 /* PluginCodeEditorHost */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PluginCodeEditorHost;
+		};
+		D4D26EE6BE38654A93080F6C /* PluginConversationMode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationMode;
+		};
+		D98164CD19F5CBE89E25625C /* ProviderExternalFile */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ProviderExternalFile;
+		};
+		D9939277FAB37252570F0BE5 /* PluginLLMProviderDeepSeek */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C149A82B89543CD3C54F3B32 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderDeepSeek" */;
+			productName = PluginLLMProviderDeepSeek;
+		};
+		DA1EA86E50E57D15B77E834D /* ProviderConversationInput */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderConversationInput;
+		};
+		DBC0E42845189BFDCFBD102A /* PluginLLMProviderSettings */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginLLMProviderSettings;
+		};
+		DF9073BE646186661F734466 /* PluginLLMProviderHappyCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9F4F323A534E28450FFEA80A /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderHappyCode" */;
+			productName = PluginLLMProviderHappyCode;
+		};
+		DFE3794B7D7C1150A12EAA27 /* PluginLLMProviderZhipu */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A498D88D6D4D8957BD0B5B7 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderZhipu" */;
+			productName = PluginLLMProviderZhipu;
+		};
+		E22CA7254F3BB05B3AC982B6 /* PluginLLMProviderLPgpt */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60F5741837894BD24C6F2372 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderLPgpt" */;
+			productName = PluginLLMProviderLPgpt;
+		};
+		E3618C21D261AA75FD624321 /* PluginThemeManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72022A8F7863F417EFE01231 /* XCRemoteSwiftPackageReference "LumiPluginThemeManager" */;
+			productName = PluginThemeManager;
+		};
+		E4E5FFB51B4A6314CBE36A3E /* ProviderProject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderProject;
+		};
+		E5CE7E2F65F986EC2ADA821D /* ProviderConversationInputBlock */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 18274D66AA87EACFBC392EE1 /* XCRemoteSwiftPackageReference "LumiProviderConversationInputBlock" */;
+			productName = ProviderConversationInputBlock;
+		};
+		E87BAC4E1029B7965C18CFF6 /* PluginLLMProviderOpenCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D8182A8DFE43739E5A9E9582 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenCode" */;
+			productName = PluginLLMProviderOpenCode;
+		};
+		E890C26055C3129C0D61C2B0 /* PluginChatEmptyState */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PluginChatEmptyState;
+		};
+		EA4DD280E2A47662FF513CAB /* PluginLLMProviderLPgpt */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 60F5741837894BD24C6F2372 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderLPgpt" */;
+			productName = PluginLLMProviderLPgpt;
+		};
+		EBF087BB8F4B9B56A120A9F2 /* PluginConversationFork */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationFork;
+		};
+		EC81FAD417E9762583577AAF /* ProviderRailView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderRailView;
+		};
+		ECD9A520784F62C81E93FF08 /* PluginLLMProviderOpenRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2D49DB2DD200FC4459E8E0DB /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderOpenRouter" */;
+			productName = PluginLLMProviderOpenRouter;
+		};
+		EE9077A1B71EFAA9E48A5208 /* PluginConversationBehavior */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationBehavior;
+		};
+		EF3CD41AF5CE64DD0C846E53 /* PluginLLMProviderSettings */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginLLMProviderSettings;
+		};
+		EFF568BDEED6D885F8EA8BE0 /* PluginConversationBehavior */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationBehavior;
+		};
+		F06C0280F3018831C88D8DF4 /* PluginConversationList */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1596E3250F567F7D6ECDD98C /* XCRemoteSwiftPackageReference "LumiPluginConversationList" */;
+			productName = PluginConversationList;
+		};
+		F0C3116AFB27B550DF4B6F3A /* ProviderNetwork */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderNetwork;
+		};
+		F138B3AD3D2C5F930D132C98 /* PluginSettingGeneral */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = ED70FE285657C502306580C3 /* XCRemoteSwiftPackageReference "LumiPluginSettingGeneral" */;
+			productName = PluginSettingGeneral;
+		};
+		F1F8352A776BE68B02A93F59 /* PluginLLMProviderKimiCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 01EF78406B4DC59AFEFBA34C /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderKimiCode" */;
+			productName = PluginLLMProviderKimiCode;
+		};
+		F37681A802FE42AEC1F47A2D /* KernelCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2C5D083E25689F66E2871F7E /* XCRemoteSwiftPackageReference "LumiKernel" */;
+			productName = KernelCore;
+		};
+		F3AD3D9CF7E85A182033D008 /* ProviderLLMContext */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89B673B9934AF91AD8EA4E21 /* XCRemoteSwiftPackageReference "LumiProviderLLMContext" */;
+			productName = ProviderLLMContext;
+		};
+		F4D896F192B45D40E22C7197 /* ProviderLLMManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4B5218276E8AA17E6EC34AC /* XCRemoteSwiftPackageReference "LumiProviderLLMManager" */;
+			productName = ProviderLLMManager;
+		};
+		F610BF6C71B3D8A5931F1A02 /* PluginConversationTitle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationTitle;
+		};
+		F7123B434822831379422F99 /* ProviderLifecycleHooks */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1BADBB0E4ADF74BFCD498AC /* XCRemoteSwiftPackageReference "LumiProviderLifecycleHooks" */;
+			productName = ProviderLifecycleHooks;
+		};
+		FA54C7BF97EF88F05D2863B3 /* ProviderRailView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderRailView;
+		};
+		FAFB1D7540C1EEBB812CDF94 /* ProviderPromptSuggestion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderPromptSuggestion;
+		};
+		FB1DBBB4A497E7E905F456E9 /* PluginLLMProviderDeepSeek */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C149A82B89543CD3C54F3B32 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderDeepSeek" */;
+			productName = PluginLLMProviderDeepSeek;
+		};
+		FBA46844747C91E612B928EA /* PluginConversationState */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5799523B16BC9C2F30428281 /* XCRemoteSwiftPackageReference "LumiChat" */;
+			productName = PluginConversationState;
+		};
+		FC7BF31C6AECAF79C46CE110 /* PluginLLMProviderXybbz */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65ACE2030993B050E7E7168 /* XCRemoteSwiftPackageReference "LumiPluginLLMProviderXybbz" */;
+			productName = PluginLLMProviderXybbz;
+		};
+		FE50F7802F2B7AD7F3B5BE87 /* ProviderConversation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09B23FBF4B193B0147AC00CB /* XCRemoteSwiftPackageReference "LumiProviders" */;
+			productName = ProviderConversation;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 8F827DFA0CC1D54A70148706 /* Project object */;
+}

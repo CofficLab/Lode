@@ -30,7 +30,6 @@ Lode was extracted from [Lumi](https://github.com/CofficLab/Lumi) and keeps Lumi
 | `Packages/PluginDatabaseManager/` | Database plugin: connections, queries, object tree, editor, and agent tools |
 | `Packages/PluginCodeEditorHost/` | Editor host plugin used by the SQL editor |
 | `Packages/Kit*` / `Packages/Provider*` / `Packages/Plugin*` | Minimal dependency closure carried over from Lumi |
-| `project.yml` | XcodeGen project description |
 
 Shared capabilities (LumiFactory, LumiKernel, LumiProviders, LumiUI, and others) are consumed as remote Swift packages and are not copied into this repository. Like its sibling apps, Lode keeps no Factory package of its own: `LodeApp/LodeHostManifest.swift` declares the host differences (identity, plugin catalog, storage/theme configuration, app-domain providers and wiring) and the shared LumiFactory engine interprets them.
 
@@ -40,18 +39,14 @@ Requirements:
 
 - macOS 14 or later
 - Xcode 27.0 or later
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 
 ```sh
-xcodegen generate
 xcodebuild -project Lode.xcodeproj -scheme Lode -configuration Debug \
   -destination 'platform=macOS,arch=arm64' \
   ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build
 ```
 
 Builds must target a single architecture: `generic/platform=macOS` compiles both arm64 and x86_64 and trips the single-architecture validation for the ACP executable.
-
-`Lode.xcodeproj` is generated from `project.yml`; do not edit the project file by hand.
 
 ## Testing
 

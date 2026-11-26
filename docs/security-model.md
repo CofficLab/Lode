@@ -5,7 +5,7 @@ hardening that stands in for it. It is a decision record, not a tutorial.
 
 ## Decision: App Sandbox is intentionally disabled
 
-`project.yml` sets `ENABLE_APP_SANDBOX: NO`. Enabling the sandbox would break
+`Lode.xcodeproj` sets `ENABLE_APP_SANDBOX: NO`. Enabling the sandbox would break
 core, shipped functionality that cannot be expressed with sandbox entitlements
 alone:
 
